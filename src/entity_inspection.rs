@@ -132,6 +132,8 @@ impl EntityInspectExtensionTrait for World {
             entity,
             component_id,
             name,
+            // TODO: look up if this component is name-defining
+            is_name_defining: true,
         })
     }
 

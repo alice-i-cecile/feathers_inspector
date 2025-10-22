@@ -12,6 +12,10 @@ pub struct ComponentInspection {
     pub component_id: ComponentId,
     /// The type name of the component.
     pub name: DebugName,
+    /// Is this component "name-defining"?
+    ///
+    /// If so, it will be prioritized for [name resolution](crate::name_resolution).
+    pub is_name_defining: bool,
 }
 
 impl Display for ComponentInspection {

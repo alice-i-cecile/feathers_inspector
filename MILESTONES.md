@@ -29,9 +29,10 @@
 
 ## User-friendly names
 
-- [] Trait-based design for default names
-- [] Proof-of-concept for custom component types
-- [] Implement on foreign types from Bevy
+- [x] Trait-based design for default names
+- [x] Name-formatting based on component names
+- [x] Implement on foreign types from Bevy
+- [ ] Determine whether a component is `NameDefining` using reflection
 
 ## Categories
 
