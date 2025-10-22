@@ -16,25 +16,27 @@
 - [x] Add a command + World method to log dynamically typed resource
 - [x] Add a command + World method to log strongly typed resource
 - [x] Add a command + World method to log all resources
-- [] Display resource values in `ResourceInspection`
 
 ## Component inspection
 
 - [x] List components in `Inspection`
 - [x] Inspect a single component (typed and untyped)
+
+## Reflection-wiring
+
 - [] Display values of components in `Inspection` using reflection
+- [] Display resource values in `ResourceInspection`
 
 ## User-friendly names
 
-- [] Trait-based design
+- [] Trait-based design for default names
 - [] Proof-of-concept for custom component types
 - [] Implement on foreign types from Bevy
 
 ## Categories
 
-- [] Define categories for entities to be filtered by
-- [] Return category as part of `EntityInspection`
-- [] User-extensible categories
+- [] Define user-extensible categories for entities to be filtered by
+- [] Return and log category as part of `EntityInspection`
 
 ## Spawn location
 
