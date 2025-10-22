@@ -62,16 +62,26 @@ pub trait NameDefining: Component {}
 /// When upstreamed, these should be added to the definitions of those components directly.
 mod bevy_name_defining_components {
     use super::NameDefining;
-    use bevy::prelude::*;
+    use bevy::{
+        core_pipeline::Skybox,
+        ecs::system::SystemIdMarker,
+        light::{FogVolume, IrradianceVolume, SunDisk},
+        pbr::{Atmosphere, Lightmap, wireframe::Wireframe},
+        prelude::*,
+        window::Monitor,
+    };
 
     // Windowing and input
     impl NameDefining for Window {}
+    impl NameDefining for Monitor {}
     impl NameDefining for Gamepad {}
 
     // UI
     impl NameDefining for Node {}
     impl NameDefining for Button {}
     impl NameDefining for Text {}
+    impl NameDefining for TextSpan {}
+    impl NameDefining for Text2d {}
     impl NameDefining for ImageNode {}
     impl NameDefining for ViewportNode {}
 
@@ -86,9 +96,30 @@ mod bevy_name_defining_components {
     impl NameDefining for SpotLight {}
     impl NameDefining for AmbientLight {}
     impl NameDefining for LightProbe {}
+    impl NameDefining for IrradianceVolume {}
+    impl NameDefining for SunDisk {}
+    impl NameDefining for Lightmap {}
 
     // Core rendering components
     impl NameDefining for Sprite {}
     impl NameDefining for Mesh2d {}
     impl NameDefining for Mesh3d {}
+    impl NameDefining for Wireframe {}
+
+    // Atmospherics
+    impl NameDefining for Skybox {}
+    impl NameDefining for FogVolume {}
+    impl NameDefining for Atmosphere {}
+    impl NameDefining for DistanceFog {}
+
+    // Animation
+    impl NameDefining for AnimationPlayer {}
+
+    // Audio
+    impl NameDefining for AudioPlayer {}
+    impl NameDefining for AudioSink {}
+
+    // System-likes
+    impl NameDefining for Observer {}
+    impl NameDefining for SystemIdMarker {}
 }
