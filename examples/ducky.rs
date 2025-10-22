@@ -1,5 +1,6 @@
 use bevy::asset::AssetMetaCheck;
 use bevy::prelude::*;
+use feathers_inspector::InspectExtensionCommandsTrait;
 
 fn main() {
     App::new()
@@ -11,6 +12,7 @@ fn main() {
             ..default()
         }))
         .add_systems(Startup, setup)
+        .add_systems(Update, inspect_entity_when_space_pressed)
         .run();
 }
 
@@ -20,4 +22,16 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         image: asset_server.load("ducky.png"),
         ..Default::default()
     });
+}
+
+fn inspect_entity_when_space_pressed(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    entities: Query<Entity>,
+    mut commands: Commands,
+) {
+    if keyboard_input.just_pressed(KeyCode::Space) {
+        for entity in entities.iter() {
+            commands.entity(entity).inspect();
+        }
+    }
 }

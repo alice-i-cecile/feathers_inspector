@@ -2,14 +2,26 @@
 
 ## EntityCommands::inspect
 
-- [] `Inspection` type that holds output
-- [] `impl Display for Inspection`
-- [] EntityRef::inspect
-- [] EntityCommands::inspect
-- [] Test in example
-- [] Displays entity name
-- [] Displays list of components
-- [] Inspect-all example
+- [x] `EntityInspection` type that holds output
+- [x] `impl Display for EntityInspection`
+- [x] EntityRef::inspect
+- [x] EntityCommands::inspect
+- [x] Test in example
+- [x] Displays entity name
+- [] Command-style inspection example
+
+## Component inspection
+
+- [] List components in `Inspection`
+- [] Display values of components in `Inspection` using reflection
+
+## Resource inspection
+
+- [] Create `ResourceInspection` type
+- [] Add a command + world method to log dynamically typed resource
+- [] Add a command + world method to log strongly typed resource
+- [] Add a command + World method to log all resources
+- [] Display resource values in `ResourceInspection`
 
 ## User-friendly names
 
