@@ -8,7 +8,7 @@
 - [x] EntityCommands::inspect
 - [x] Test in example
 - [x] Displays entity name
-- [] Command-style inspection example
+- [x] Log-style inspection example
 
 ## Component inspection
 
@@ -17,9 +17,9 @@
 
 ## Resource inspection
 
-- [] Create `ResourceInspection` type
+- [x] Create `ResourceInspection` type
 - [] Add a command + world method to log dynamically typed resource
-- [] Add a command + world method to log strongly typed resource
+- [x] Add a command + world method to log strongly typed resource
 - [] Add a command + World method to log all resources
 - [] Display resource values in `ResourceInspection`
 
