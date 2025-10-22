@@ -6,7 +6,10 @@
 //! See the [`component_inspection`](crate::component_inspection) module
 //! for information about inspecting and displaying components.
 
-use bevy::{ecs::component::ComponentId, prelude::*};
+use bevy::{
+    ecs::{change_detection::MaybeLocation, component::ComponentId},
+    prelude::*,
+};
 use core::any::type_name;
 use core::fmt::Display;
 
@@ -20,6 +23,8 @@ pub struct EntityInspection {
     pub name: Option<Name>,
     /// The components on the entity, in inspection form.
     pub components: Vec<ComponentInspection>,
+    /// The code location that caused this entity to be spawned.
+    pub location: MaybeLocation,
 }
 
 impl Display for EntityInspection {
@@ -32,6 +37,18 @@ impl Display for EntityInspection {
         };
 
         display_str.push_str(&format!("{name_str} ({})", self.entity));
+
+        if let Some(location) = self.location.into_option() {
+            display_str.push_str(&format!("\nSpawned by: {}", location));
+        } else {
+            warn_once!(
+                "Entity {:?} has no spawn location information available. Consider enabling \
+                 the `track_location` feature for better debugging.",
+                self.entity
+            );
+        }
+
+        display_str.push_str("\nComponents:");
 
         for component in &self.components {
             display_str.push_str(&format!("\n- {}", component));
@@ -94,10 +111,13 @@ impl EntityInspectExtensionTrait for World {
             .filter_map(Result::ok)
             .collect();
 
+        let location = entity_ref.spawned_by().clone();
+
         EntityInspection {
             entity,
             name,
             components,
+            location,
         }
     }
 

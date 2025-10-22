@@ -38,7 +38,7 @@
 
 ## Spawn location
 
-- [] add spawn location to `EntityInspection`
+- [x] add spawn location to `EntityInspection`
 
 ## Inspector customization
 
