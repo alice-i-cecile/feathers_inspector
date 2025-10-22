@@ -18,8 +18,8 @@
 ## Resource inspection
 
 - [x] Create `ResourceInspection` type
-- [] Add a command + world method to log dynamically typed resource
-- [x] Add a command + world method to log strongly typed resource
+- [x] Add a command + World method to log dynamically typed resource
+- [x] Add a command + World method to log strongly typed resource
 - [] Add a command + World method to log all resources
 - [] Display resource values in `ResourceInspection`
 

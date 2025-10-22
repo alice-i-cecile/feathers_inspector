@@ -1,25 +1,33 @@
 //! Types and traits for inspecting Bevy resources.
 
-use bevy::prelude::*;
+use bevy::{ecs::component::ComponentId, prelude::*};
 use core::fmt::Display;
+use std::any::type_name;
+use thiserror::Error;
 
 /// The result of inspecting a resource.
 pub struct ResourceInspection {
     /// The type name of the resource.
-    pub type_name: Option<&'static str>,
+    pub name: DebugName,
 }
 
 impl Display for ResourceInspection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let type_name = match &self.type_name {
-            Some(name) => name,
-            None => "Dynamically-Typed Resource",
-        };
-
-        write!(f, "{type_name}")?;
+        write!(f, "Resource: {}", self.name)?;
 
         Ok(())
     }
+}
+
+/// An error that can occur when attempting to inspect a resource.
+#[derive(Debug, Error)]
+pub enum ResourceInspectionError {
+    /// The resource type was not registered in the world.
+    #[error("Resource type {0} not registered in world")]
+    ResourceNotRegistered(&'static str),
+    /// The resource was not found in the world.
+    #[error("Resource with ComponentId {0:?} not found in world")]
+    ResourceNotFound(ComponentId),
 }
 
 /// An extension trait for inspecting resources.
@@ -30,15 +38,37 @@ pub trait ResourceInspectExtensionTrait {
     ///
     /// The provided [`ResourceInspection`] contains details about the resource,
     /// and can be logged using the [`Display`] trait.
-    fn inspect_resource<R: Resource>(&self) -> ResourceInspection;
+    fn inspect_resource<R: Resource>(&self) -> Result<ResourceInspection, ResourceInspectionError>;
+
+    /// Inspects a resource by the provided [`ComponentId`].
+    ///
+    /// This is the dynamically-typed variant of [`inspect_resource`](Self::inspect_resource).
+    fn inspect_resource_by_id(
+        &self,
+        component_id: ComponentId,
+    ) -> Result<ResourceInspection, ResourceInspectionError>;
 }
 
 impl ResourceInspectExtensionTrait for World {
-    fn inspect_resource<R>(&self) -> ResourceInspection {
-        let type_name = std::any::type_name::<R>();
-        ResourceInspection {
-            type_name: Some(type_name),
-        }
+    fn inspect_resource<R: Resource>(&self) -> Result<ResourceInspection, ResourceInspectionError> {
+        let component_id = self.components().resource_id::<R>().ok_or(
+            ResourceInspectionError::ResourceNotRegistered(type_name::<R>()),
+        )?;
+        self.inspect_resource_by_id(component_id)
+    }
+
+    fn inspect_resource_by_id(
+        &self,
+        component_id: ComponentId,
+    ) -> Result<ResourceInspection, ResourceInspectionError> {
+        let component_info = self
+            .components()
+            .get_info(component_id)
+            .ok_or(ResourceInspectionError::ResourceNotFound(component_id))?;
+
+        let name = component_info.name();
+
+        Ok(ResourceInspection { name })
     }
 }
 
@@ -52,7 +82,10 @@ impl ResourceInspectExtensionCommandsTrait for Commands<'_, '_> {
     fn inspect_resource<R: Resource>(&mut self) {
         self.queue(|world: &mut World| {
             let inspection = world.inspect_resource::<R>();
-            info!("{inspection}");
+            match inspection {
+                Ok(inspection) => info!("{inspection}"),
+                Err(err) => warn!("Failed to inspect resource: {}", err),
+            }
         });
     }
 }
