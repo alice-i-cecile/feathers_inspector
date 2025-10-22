@@ -2,5 +2,6 @@
 //!
 //! Built using bevy_feathers, powered by bevy_reflect.
 
+pub mod component_inspection;
 pub mod entity_inspection;
 pub mod resource_inspection;

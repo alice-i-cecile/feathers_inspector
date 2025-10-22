@@ -20,6 +20,7 @@ fn main() {
                 inspect_entities_when_e_pressed,
                 inspect_resource_when_r_pressed,
                 inspect_all_resources_when_a_pressed,
+                inspect_specific_component_when_c_pressed,
             ),
         )
         .run();
@@ -60,5 +61,17 @@ fn inspect_all_resources_when_a_pressed(
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyA) {
         commands.inspect_all_resources();
+    }
+}
+
+fn inspect_specific_component_when_c_pressed(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    query: Query<Entity, With<Sprite>>,
+    mut commands: Commands,
+) {
+    if keyboard_input.just_pressed(KeyCode::KeyC) {
+        for entity in query.iter() {
+            commands.entity(entity).inspect_component::<Sprite>();
+        }
     }
 }

@@ -10,11 +10,6 @@
 - [x] Displays entity name
 - [x] Log-style inspection example
 
-## Component inspection
-
-- [] List components in `Inspection`
-- [] Display values of components in `Inspection` using reflection
-
 ## Resource inspection
 
 - [x] Create `ResourceInspection` type
@@ -22,6 +17,12 @@
 - [x] Add a command + World method to log strongly typed resource
 - [x] Add a command + World method to log all resources
 - [] Display resource values in `ResourceInspection`
+
+## Component inspection
+
+- [] List components in `Inspection`
+- [x] Inspect a single component (typed and untyped)
+- [] Display values of components in `Inspection` using reflection
 
 ## User-friendly names
 

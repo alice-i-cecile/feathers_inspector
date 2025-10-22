@@ -1,8 +1,8 @@
 //! Types and traits for inspecting Bevy resources.
 
 use bevy::{ecs::component::ComponentId, prelude::*};
+use core::any::type_name;
 use core::fmt::Display;
-use std::any::type_name;
 use thiserror::Error;
 
 /// The result of inspecting a resource.
@@ -11,6 +11,8 @@ use thiserror::Error;
 /// [`Debug`] can also be used for more detailed but harder to-read output.
 #[derive(Debug)]
 pub struct ResourceInspection {
+    /// The ComponentId of the resource.
+    pub component_id: ComponentId,
     /// The type name of the resource.
     pub name: DebugName,
 }
@@ -78,7 +80,7 @@ impl ResourceInspectExtensionTrait for World {
 
         let name = component_info.name();
 
-        Ok(ResourceInspection { name })
+        Ok(ResourceInspection { component_id, name })
     }
 
     fn inspect_all_resources(&self) -> Vec<ResourceInspection> {
