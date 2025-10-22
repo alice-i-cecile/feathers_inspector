@@ -47,6 +47,11 @@ pub trait ResourceInspectExtensionTrait {
         &self,
         component_id: ComponentId,
     ) -> Result<ResourceInspection, ResourceInspectionError>;
+
+    /// Inspects all resources in the world.
+    ///
+    /// Returns a vector of [`ResourceInspection`]s for all resources found.
+    fn inspect_all_resources(&self) -> Vec<ResourceInspection>;
 }
 
 impl ResourceInspectExtensionTrait for World {
@@ -70,12 +75,28 @@ impl ResourceInspectExtensionTrait for World {
 
         Ok(ResourceInspection { name })
     }
+
+    fn inspect_all_resources(&self) -> Vec<ResourceInspection> {
+        let mut inspections = Vec::new();
+
+        for (component_info, _ptr) in self.iter_resources() {
+            let component_id = component_info.id();
+            if let Ok(inspection) = self.inspect_resource_by_id(component_id) {
+                inspections.push(inspection);
+            }
+        }
+
+        inspections
+    }
 }
 
 /// An extension trait for inspecting resources via Commands.
 pub trait ResourceInspectExtensionCommandsTrait {
     /// Inspects the provided resource type, logging details to the console using [`info!`].
     fn inspect_resource<R: Resource>(&mut self);
+
+    /// Inspects all resources in the world, logging details to the console using [`info!`].
+    fn inspect_all_resources(&mut self);
 }
 
 impl ResourceInspectExtensionCommandsTrait for Commands<'_, '_> {
@@ -85,6 +106,15 @@ impl ResourceInspectExtensionCommandsTrait for Commands<'_, '_> {
             match inspection {
                 Ok(inspection) => info!("{inspection}"),
                 Err(err) => warn!("Failed to inspect resource: {}", err),
+            }
+        });
+    }
+
+    fn inspect_all_resources(&mut self) {
+        self.queue(|world: &mut World| {
+            let inspections = world.inspect_all_resources();
+            for inspection in inspections {
+                info!("{inspection}");
             }
         });
     }

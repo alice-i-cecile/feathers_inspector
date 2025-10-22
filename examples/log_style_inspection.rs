@@ -19,6 +19,7 @@ fn main() {
             (
                 inspect_entities_when_e_pressed,
                 inspect_resource_when_r_pressed,
+                inspect_all_resources_when_a_pressed,
             ),
         )
         .run();
@@ -50,5 +51,14 @@ fn inspect_resource_when_r_pressed(
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyR) {
         commands.inspect_resource::<AmbientLight>();
+    }
+}
+
+fn inspect_all_resources_when_a_pressed(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+) {
+    if keyboard_input.just_pressed(KeyCode::KeyA) {
+        commands.inspect_all_resources();
     }
 }
