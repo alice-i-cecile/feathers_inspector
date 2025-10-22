@@ -6,6 +6,10 @@ use std::any::type_name;
 use thiserror::Error;
 
 /// The result of inspecting a resource.
+///
+/// Log this using the [`Display`] trait to see details about the resource.
+/// [`Debug`] can also be used for more detailed but harder to-read output.
+#[derive(Debug)]
 pub struct ResourceInspection {
     /// The type name of the resource.
     pub name: DebugName,
@@ -13,7 +17,8 @@ pub struct ResourceInspection {
 
 impl Display for ResourceInspection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Resource: {}", self.name)?;
+        let short_name = self.name.shortname();
+        write!(f, "{short_name}")?;
 
         Ok(())
     }
@@ -112,10 +117,22 @@ impl ResourceInspectExtensionCommandsTrait for Commands<'_, '_> {
 
     fn inspect_all_resources(&mut self) {
         self.queue(|world: &mut World| {
-            let inspections = world.inspect_all_resources();
-            for inspection in inspections {
-                info!("{inspection}");
+            let mut inspections = world.inspect_all_resources();
+            // Alphabetically sort the inspections by resource name
+            inspections.sort_by(|a, b| {
+                a.name
+                    .shortname()
+                    .to_string()
+                    .cmp(&b.name.shortname().to_string())
+            });
+
+            let mut log_string = format!("Inspecting all resources ({} found):", inspections.len());
+            for inspection in &inspections {
+                // PERF: we can probably reduce allocations by constructing this better
+                log_string.push_str(&format!("\n- {}", inspection));
             }
+
+            info!("{log_string}");
         });
     }
 }
