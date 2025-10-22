@@ -31,12 +31,8 @@ impl Display for EntityInspection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut display_str = String::new();
 
-        let name_str = match &self.name {
-            Some(name) => name.as_str(),
-            None => "Entity",
-        };
-
-        display_str.push_str(&format!("{name_str} ({})", self.entity));
+        // Name and entity ID
+        display_str.push_str(&format!("{} ({})", self.resolve_name(), self.entity));
 
         if let Some(location) = self.location.into_option() {
             display_str.push_str(&format!("\nSpawned by: {}", location));

@@ -4,4 +4,5 @@
 
 pub mod component_inspection;
 pub mod entity_inspection;
+pub mod name_resolution;
 pub mod resource_inspection;
