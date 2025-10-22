@@ -20,7 +20,7 @@
 
 ## Component inspection
 
-- [] List components in `Inspection`
+- [x] List components in `Inspection`
 - [x] Inspect a single component (typed and untyped)
 - [] Display values of components in `Inspection` using reflection
 
@@ -33,12 +33,12 @@
 ## Categories
 
 - [] Define categories for entities to be filtered by
-- [] Return category as part of `Inspection`
+- [] Return category as part of `EntityInspection`
 - [] User-extensible categories
 
 ## Spawn location
 
-- [] add spawn location to `Inspection`
+- [] add spawn location to `EntityInspection`
 
 ## Inspector customization
 

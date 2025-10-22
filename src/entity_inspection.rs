@@ -18,17 +18,26 @@ pub struct EntityInspection {
     pub entity: Entity,
     /// The name of the entity, if any.
     pub name: Option<Name>,
+    /// The components on the entity, in inspection form.
+    pub components: Vec<ComponentInspection>,
 }
 
 impl Display for EntityInspection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Entity: {:?}", self.entity)?;
+        let mut display_str = String::new();
+
         let name_str = match &self.name {
             Some(name) => name.as_str(),
             None => "Entity",
         };
 
-        write!(f, "{name_str} ({})", self.entity)?;
+        display_str.push_str(&format!("{name_str} ({})", self.entity));
+
+        for component in &self.components {
+            display_str.push_str(&format!("\n- {}", component));
+        }
+
+        write!(f, "{display_str}")?;
 
         Ok(())
     }
@@ -74,7 +83,22 @@ pub trait EntityInspectExtensionTrait {
 impl EntityInspectExtensionTrait for World {
     fn inspect(&self, entity: Entity) -> EntityInspection {
         let name = self.get::<Name>(entity).cloned();
-        EntityInspection { entity, name }
+        // Temporary binding to avoid dropping borrow
+        let entity_ref = self.entity(entity);
+
+        let components: Vec<ComponentInspection> = entity_ref
+            .archetype()
+            .components()
+            .into_iter()
+            .map(|component_id| self.inspect_component_by_id(*component_id, entity))
+            .filter_map(Result::ok)
+            .collect();
+
+        EntityInspection {
+            entity,
+            name,
+            components,
+        }
     }
 
     fn inspect_component_by_id(
