@@ -32,7 +32,11 @@ impl Display for EntityInspection {
         let mut display_str = String::new();
 
         // Name and entity ID
-        display_str.push_str(&format!("{} ({})", self.resolve_name(), self.entity));
+        display_str.push_str(&format!(
+            "{} ({})",
+            self.resolve_name().unwrap_or("Entity".to_string()),
+            self.entity
+        ));
 
         if let Some(location) = self.location.into_option() {
             display_str.push_str(&format!("\nSpawned by: {}", location));

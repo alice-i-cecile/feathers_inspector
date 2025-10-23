@@ -15,10 +15,11 @@ impl EntityInspection {
     /// If multiple name-defining components are present, they will be joined in alphabetical order,
     /// separated by a "|" character.
     ///
-    /// Otherwise, a default string "Entity" will be returned.
-    pub fn resolve_name(&self) -> String {
+    /// Otherwise, [`None`] is returned.
+    /// The caller can then fall back to a default name such as "Entity".
+    pub fn resolve_name(&self) -> Option<String> {
         if let Some(custom_name) = &self.name {
-            return custom_name.as_str().to_string();
+            return Some(custom_name.as_str().to_string());
         } else {
             let mut name_defining_components: Vec<String> = self
                 .components
@@ -31,9 +32,9 @@ impl EntityInspection {
                 name_defining_components.sort();
 
                 let combined_name = name_defining_components.join(" | ");
-                return combined_name;
+                return Some(combined_name);
             } else {
-                "Entity".to_string()
+                None
             }
         }
     }
