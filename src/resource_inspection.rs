@@ -1,12 +1,11 @@
 //! Types and traits for inspecting Bevy resources.
 
+use crate::display_type_registration::PrettyPrint;
 use bevy::reflect::TypeRegistration;
 use bevy::{ecs::component::ComponentId, prelude::*};
 use core::any::{TypeId, type_name};
 use core::fmt::{Debug, Display};
 use thiserror::Error;
-
-use crate::display_type_registration::pretty_print_type_registration;
 
 /// The result of inspecting a resource.
 ///
@@ -40,7 +39,7 @@ impl Display for ResourceInspection {
         write!(f, "{short_name}")?;
 
         if let Some(type_registration) = &self.type_registration {
-            let type_info_str = pretty_print_type_registration(type_registration);
+            let type_info_str = type_registration.print();
             write!(f, "\nType Information:\n{}", type_info_str)?;
         } else {
             write!(f, "\nType Information: <unregistered type>")?;

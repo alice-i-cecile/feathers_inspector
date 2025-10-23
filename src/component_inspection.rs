@@ -5,7 +5,7 @@ use core::any::TypeId;
 use core::fmt::Display;
 use thiserror::Error;
 
-use crate::display_type_registration::pretty_print_type_registration;
+use crate::display_type_registration::PrettyPrint;
 
 /// The result of inspecting a component.
 ///
@@ -43,7 +43,7 @@ impl Display for ComponentInspection {
         write!(f, "{}", self.name.shortname())?;
 
         if let Some(type_registration) = &self.type_registration {
-            let type_info_str = pretty_print_type_registration(type_registration);
+            let type_info_str = type_registration.print();
             write!(f, "\n{}", type_info_str)?;
         } else {
             write!(f, "\n<unregistered type>")?;
