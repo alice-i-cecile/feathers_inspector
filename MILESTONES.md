@@ -33,7 +33,7 @@
 - [x] Name-formatting based on component names
 - [x] Implement on foreign types from Bevy
 - [ ] Determine whether a component is `NameDefining` using reflection
-- [x] Add priority system to name-defining components
+- [ ] Add priority system to name-defining components
 
 ## Categories
 

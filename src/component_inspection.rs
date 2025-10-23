@@ -12,13 +12,10 @@ pub struct ComponentInspection {
     pub component_id: ComponentId,
     /// The type name of the component.
     pub name: DebugName,
-    /// How is this component involved in [name resolution](crate::name_resolution)?
+    /// Is this component "name-defining"?
     ///
-    /// If [`Some`], the name of this component can be used to provide a friendly name in an inspector for this entity.
-    /// The higher the value, the higher the priority.
-    /// This is determined by the [`NameDefining`](crate::name_resolution::NameDefining)
-    /// trait implementation for the component type.
-    pub is_name_defining: Option<i32>,
+    /// If so, it will be prioritized for [name resolution](crate::name_resolution).
+    pub is_name_defining: bool,
 }
 
 impl Display for ComponentInspection {
