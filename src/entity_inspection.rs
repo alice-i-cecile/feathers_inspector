@@ -7,11 +7,16 @@
 //! for information about inspecting and displaying components.
 
 use bevy::{
-    ecs::{change_detection::MaybeLocation, component::ComponentId},
+    ecs::{
+        component::ComponentId,
+        entity::EntityDoesNotExistError,
+        query::{QueryEntityError, SpawnDetails},
+    },
     prelude::*,
 };
 use core::any::type_name;
 use core::fmt::Display;
+use thiserror::Error;
 
 use crate::component_inspection::{ComponentInspection, ComponentInspectionError};
 
@@ -23,8 +28,8 @@ pub struct EntityInspection {
     pub name: Option<Name>,
     /// The components on the entity, in inspection form.
     pub components: Vec<ComponentInspection>,
-    /// The code location that caused this entity to be spawned.
-    pub location: MaybeLocation,
+    /// Information about how this entity was spawned.
+    pub spawn_details: SpawnDetails,
 }
 
 impl Display for EntityInspection {
@@ -38,8 +43,14 @@ impl Display for EntityInspection {
             self.entity
         ));
 
-        if let Some(location) = self.location.into_option() {
-            display_str.push_str(&format!("\nSpawned by: {}", location));
+        let maybe_location = &self.spawn_details.spawned_by();
+        let tick = &self.spawn_details.spawn_tick();
+
+        if let Some(location) = maybe_location.into_option() {
+            display_str.push_str(&format!(
+                "\nSpawned by: {location} on system tick {}",
+                tick.get()
+            ));
         } else {
             warn_once!(
                 "Entity {:?} has no spawn location information available. Consider enabling \
@@ -60,6 +71,28 @@ impl Display for EntityInspection {
     }
 }
 
+/// An error that can occur when attempting to inspect an entity.
+#[derive(Debug, Error)]
+pub enum EntityInspectionError {
+    /// The entity does not exist in the world.
+    #[error("Entity not found: {0}")]
+    EntityNotFound(EntityDoesNotExistError),
+}
+
+impl From<QueryEntityError> for EntityInspectionError {
+    fn from(err: QueryEntityError) -> Self {
+        match err {
+            QueryEntityError::EntityDoesNotExist(error) => {
+                EntityInspectionError::EntityNotFound(error)
+            }
+            _ => panic!(
+                "Unexpected QueryEntityError variant when inspecting an entity: {:?}",
+                err
+            ),
+        }
+    }
+}
+
 /// An extension trait for inspecting entities.
 ///
 /// This is required because this crate is not part of Bevy itself.
@@ -72,7 +105,7 @@ pub trait EntityInspectExtensionTrait {
     ///
     /// The provided [`EntityInspection`] contains details about the entity,
     /// and can be logged using the [`Display`] trait.
-    fn inspect(&self, entity: Entity) -> EntityInspection;
+    fn inspect(&self, entity: Entity) -> Result<EntityInspection, EntityInspectionError>;
 
     /// Inspects the component corresponding to the provided [`ComponentId`].
     ///
@@ -98,8 +131,14 @@ pub trait EntityInspectExtensionTrait {
 }
 
 impl EntityInspectExtensionTrait for World {
-    fn inspect(&self, entity: Entity) -> EntityInspection {
+    fn inspect(&self, entity: Entity) -> Result<EntityInspection, EntityInspectionError> {
         let name = self.get::<Name>(entity).cloned();
+
+        // This unwrap is safe because `SpawnDetails` is always registered.
+        let mut spawn_details_query = self.try_query::<SpawnDetails>().unwrap();
+
+        let spawn_details = spawn_details_query.get(self, entity)?;
+
         // Temporary binding to avoid dropping borrow
         let entity_ref = self.entity(entity);
 
@@ -111,14 +150,12 @@ impl EntityInspectExtensionTrait for World {
             .filter_map(Result::ok)
             .collect();
 
-        let location = entity_ref.spawned_by().clone();
-
-        EntityInspection {
+        Ok(EntityInspection {
             entity,
             name,
             components,
-            location,
-        }
+            spawn_details,
+        })
     }
 
     fn inspect_component_by_id(
@@ -183,7 +220,10 @@ impl InspectExtensionCommandsTrait for EntityCommands<'_> {
         self.queue(move |entity_world_mut: EntityWorldMut| {
             let world = entity_world_mut.world();
             let inspection = world.inspect(entity);
-            info!("{}", inspection);
+            match inspection {
+                Ok(inspection) => info!("{}", inspection),
+                Err(err) => warn!("Failed to inspect entity: {}", err),
+            }
         });
     }
 

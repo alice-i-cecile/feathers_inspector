@@ -43,6 +43,7 @@
 ## Spawn location
 
 - [x] add spawn location to `EntityInspection`
+- [x] gather and store `SpawnDetails` with more information
 
 ## Inspector customization
 
