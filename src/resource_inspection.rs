@@ -6,6 +6,8 @@ use core::any::{TypeId, type_name};
 use core::fmt::{Debug, Display};
 use thiserror::Error;
 
+use crate::display_type_registration::pretty_print_type_registration;
+
 /// The result of inspecting a resource.
 ///
 /// Log this using the [`Display`] trait to see details about the resource.
@@ -36,6 +38,13 @@ impl Display for ResourceInspection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let short_name = self.name.shortname();
         write!(f, "{short_name}")?;
+
+        if let Some(type_registration) = &self.type_registration {
+            let type_info_str = pretty_print_type_registration(type_registration);
+            write!(f, "\nType Information:\n{}", type_info_str)?;
+        } else {
+            write!(f, "\nType Information: <unregistered type>")?;
+        }
 
         Ok(())
     }
