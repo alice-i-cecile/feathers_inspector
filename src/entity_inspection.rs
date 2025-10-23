@@ -21,6 +21,7 @@ use thiserror::Error;
 use crate::component_inspection::{ComponentInspection, ComponentInspectionError};
 
 /// The result of inspecting an entity.
+#[derive(Clone, Debug)]
 pub struct EntityInspection {
     /// The entity being inspected.
     pub entity: Entity,

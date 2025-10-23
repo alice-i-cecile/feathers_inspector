@@ -11,7 +11,7 @@ use thiserror::Error;
 ///
 /// Log this using the [`Display`] trait to see details about the resource.
 /// [`Debug`] can also be used for more detailed but harder to-read output.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ResourceInspection {
     /// The [`ComponentId`] of the resource.
     pub component_id: ComponentId,

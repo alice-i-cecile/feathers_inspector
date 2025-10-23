@@ -11,6 +11,10 @@ use crate::display_type_registration::PrettyPrint;
 ///
 /// Log this using the [`Display`] trait to see details about the component.
 /// [`Debug`] can also be used for more detailed but harder to-read output.
+// PERF: much of this information is duplicated across all components of the same type.
+// TypeRegistration is particularly heavy.
+// Should we create a shared `ComponentRegistry` type to store this info once per type?
+#[derive(Clone, Debug)]
 pub struct ComponentInspection {
     /// The entity that owns the component.
     pub entity: Entity,
