@@ -1,8 +1,9 @@
 //! Types and traits for inspecting Bevy resources.
 
+use bevy::reflect::TypeRegistration;
 use bevy::{ecs::component::ComponentId, prelude::*};
-use core::any::type_name;
-use core::fmt::Display;
+use core::any::{TypeId, type_name};
+use core::fmt::{Debug, Display};
 use thiserror::Error;
 
 /// The result of inspecting a resource.
@@ -11,10 +12,24 @@ use thiserror::Error;
 /// [`Debug`] can also be used for more detailed but harder to-read output.
 #[derive(Debug)]
 pub struct ResourceInspection {
-    /// The ComponentId of the resource.
+    /// The [`ComponentId`] of the resource.
     pub component_id: ComponentId,
     /// The type name of the resource.
     pub name: DebugName,
+    /// The [`TypeId`] of the resource.
+    ///
+    /// Note that dynamic types will not have a [`TypeId`].
+    pub type_id: Option<TypeId>,
+    /// The type information of the resource.
+    ///
+    /// This contains metadata about the resource's type,
+    /// such as its fields and methods,
+    /// as well as any reflected traits it implements.
+    ///
+    /// Note: this may be `None` if the type is not reflected and registered in the type registry.
+    /// Currently, generic types need to be manually registered,
+    /// and dynamically-typed resources cannot be registered.
+    pub type_registration: Option<TypeRegistration>,
 }
 
 impl Display for ResourceInspection {
@@ -79,8 +94,20 @@ impl ResourceInspectExtensionTrait for World {
             .ok_or(ResourceInspectionError::ResourceNotFound(component_id))?;
 
         let name = component_info.name();
+        let type_id = component_info.type_id();
 
-        Ok(ResourceInspection { component_id, name })
+        let type_registry = self.resource::<AppTypeRegistry>();
+        let type_registration = match type_id {
+            Some(type_id) => type_registry.read().get(type_id).cloned(),
+            None => None,
+        };
+
+        Ok(ResourceInspection {
+            component_id,
+            name,
+            type_id,
+            type_registration,
+        })
     }
 
     fn inspect_all_resources(&self) -> Vec<ResourceInspection> {

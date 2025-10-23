@@ -24,8 +24,8 @@
 
 ## Reflection-wiring
 
-- [] Display values of components in `Inspection` using reflection
-- [] Display resource values in `ResourceInspection`
+- [x] Extract `TypeRegistration` for inspected components and resources
+- [] Display values of components and resource using reflection
 
 ## User-friendly names
 

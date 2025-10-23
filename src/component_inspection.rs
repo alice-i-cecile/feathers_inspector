@@ -1,10 +1,14 @@
 //! Types and traits for inspecting Bevy entities.
 
-use bevy::{ecs::component::ComponentId, prelude::*};
+use bevy::{ecs::component::ComponentId, prelude::*, reflect::TypeRegistration};
+use core::any::TypeId;
 use core::fmt::Display;
 use thiserror::Error;
 
 /// The result of inspecting a component.
+///
+/// Log this using the [`Display`] trait to see details about the component.
+/// [`Debug`] can also be used for more detailed but harder to-read output.
 pub struct ComponentInspection {
     /// The entity that owns the component.
     pub entity: Entity,
@@ -16,6 +20,20 @@ pub struct ComponentInspection {
     ///
     /// If so, it will be prioritized for [name resolution](crate::name_resolution).
     pub is_name_defining: bool,
+    /// The [`TypeId`] of the resource.
+    ///
+    /// Note that dynamic types will not have a [`TypeId`].
+    pub type_id: Option<TypeId>,
+    /// The type information of the resource.
+    ///
+    /// This contains metadata about the resource's type,
+    /// such as its fields and methods,
+    /// as well as any reflected traits it implements.
+    ///
+    /// Note: this may be `None` if the type is not reflected and registered in the type registry.
+    /// Currently, generic types need to be manually registered,
+    /// and dynamically-typed resources cannot be registered.
+    pub type_registration: Option<TypeRegistration>,
 }
 
 impl Display for ComponentInspection {

@@ -131,6 +131,14 @@ impl EntityInspectExtensionTrait for World {
         )?;
 
         let name = component_info.name();
+        let type_id = component_info.type_id();
+        let type_registration = match type_id {
+            Some(type_id) => {
+                let registry = self.resource::<AppTypeRegistry>();
+                registry.read().get(type_id).cloned()
+            }
+            None => None,
+        };
 
         Ok(ComponentInspection {
             entity,
@@ -138,6 +146,8 @@ impl EntityInspectExtensionTrait for World {
             name,
             // TODO: look up if this component is name-defining
             is_name_defining: true,
+            type_id,
+            type_registration,
         })
     }
 
