@@ -18,4 +18,4 @@
 ## Log-style inspection
 
 - [] Implement `Display` for `TypeInfo` and contained types
-- [] Entity name resolution strategy
+- [] Pick and implement an entity name resolution strategy
