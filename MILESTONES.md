@@ -40,21 +40,28 @@
 - [ ] Determine whether a component is `NameDefining` using reflection
 - [ ] Add priority system to name-defining components
 
-## Categories
-
-- [] Define user-extensible categories for entities to be filtered by
-- [] Return and log category as part of `EntityInspection`
-
 ## Spawn location
 
 - [x] add spawn location to `EntityInspection`
 - [x] gather and store `SpawnDetails` with more information
 
+## Inspect all entities
+
+- [] add an API to let users inspect multiple entities at once
+- [] group entities by archetype similarity
+
 ## Inspector customization
 
-- [] `InspectorSettings` trait
-- [] Customize display output
-- [] Importance score
+- [] `InspectorSettings` trait for reflected type information
+- [] Customize display output based on `InspectorSettings`
+- [] Add settings struct for each inspection method, allowing users to pass it in
+
+## Filtering and search
+
+- [] allow users to pass in a search parameter to settings for relevant inspection methods
+- [] search by component presence
+- [] search by component absence
+- [] search by name
 
 ## BRP inspection
 
@@ -106,12 +113,16 @@
   - [] Show sorted list
 - [] List total number of resources
 
+## Categories
+
+- [] Define user-extensible categories for entities to be filtered by
+- [] Return and log category as part of `EntityInspection`
+
 ## Out-of scope
 
-- Search
-  - Needs text input
 - Value editing
   - Needs text input
   - Lots of work
 - Spawn, despawn, insert, remove components, reparenting...
   - Really wants value editing to be useful
+
