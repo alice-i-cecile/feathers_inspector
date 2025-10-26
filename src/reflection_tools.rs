@@ -107,7 +107,9 @@ pub fn pretty_print_reflected_struct(dyn_struct: &dyn Struct) -> String {
         Some(info) => info.type_path(),
         None => "<Unknown Struct>",
     };
-    result.push_str(&format!("{type_name} {{\n"));
+
+    let short_type_name = ShortName::from(type_name);
+    result.push_str(&format!("{short_type_name} {{\n"));
 
     for i in 0..dyn_struct.field_len() {
         let field_name = dyn_struct.name_at(i).unwrap_or("<Unknown Field>");
@@ -126,7 +128,9 @@ pub fn pretty_print_reflected_tuple_struct(dyn_tuple_struct: &dyn TupleStruct) -
         Some(info) => info.type_path(),
         None => "<Unknown TupleStruct>",
     };
-    result.push_str(&format!("{type_name}(\n"));
+
+    let short_type_name = ShortName::from(type_name);
+    result.push_str(&format!("{short_type_name}(\n"));
 
     for i in 0..dyn_tuple_struct.field_len() {
         let field_value = dyn_tuple_struct.field(i).unwrap();
@@ -208,9 +212,10 @@ pub fn pretty_print_reflected_enum(dyn_enum: &dyn Enum) -> String {
         Some(info) => info.type_path(),
         None => "<Unknown Enum>",
     };
+    let short_type_name = ShortName::from(type_name);
     let variant = dyn_enum.variant_name();
+    result.push_str(&format!("{short_type_name}::{variant}"));
 
-    result.push_str(&format!("{type_name}::{variant}"));
     match dyn_enum.variant_type() {
         VariantType::Struct => {
             result.push_str(" {\n");
