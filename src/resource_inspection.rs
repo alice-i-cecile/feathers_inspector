@@ -1,6 +1,7 @@
 //! Types and traits for inspecting Bevy resources.
 
 use crate::display_type_registration::PrettyPrint;
+use crate::reflection_tools::{get_reflected_resource_ref, reflected_value_to_string};
 use bevy::reflect::TypeRegistration;
 use bevy::{ecs::component::ComponentId, prelude::*};
 use core::any::{TypeId, type_name};
@@ -17,6 +18,11 @@ pub struct ResourceInspection {
     pub component_id: ComponentId,
     /// The type name of the resource.
     pub name: DebugName,
+    /// The value of the resource as a string.
+    ///
+    /// This information is gathered via reflection,
+    /// and used for debugging purposes.
+    pub value: String,
     /// The [`TypeId`] of the resource.
     ///
     /// Note that dynamic types will not have a [`TypeId`].
@@ -110,9 +116,24 @@ impl ResourceInspectExtensionTrait for World {
             None => None,
         };
 
+        let maybe_reflected = match type_id {
+            Some(type_id) => match get_reflected_resource_ref(self, type_id) {
+                Ok(reflected) => Some(reflected),
+                Err(_) => None,
+            },
+            None => None,
+        };
+
+        let value = if let Some(reflected) = maybe_reflected {
+            reflected_value_to_string(reflected)
+        } else {
+            "<unreflectable>".to_string()
+        };
+
         Ok(ResourceInspection {
             component_id,
             name,
+            value,
             type_id,
             type_registration,
         })

@@ -18,7 +18,10 @@ use core::any::type_name;
 use core::fmt::Display;
 use thiserror::Error;
 
-use crate::component_inspection::{ComponentInspection, ComponentInspectionError};
+use crate::{
+    component_inspection::{ComponentInspection, ComponentInspectionError},
+    reflection_tools::{get_reflected_component_ref, reflected_value_to_string},
+};
 
 /// The result of inspecting an entity.
 #[derive(Clone, Debug)]
@@ -178,10 +181,26 @@ impl EntityInspectExtensionTrait for World {
             None => None,
         };
 
+        let maybe_reflected = if let Some(type_id) = type_id {
+            match get_reflected_component_ref(&self, entity, type_id) {
+                Ok(reflected) => Some(reflected),
+                Err(_) => None,
+            }
+        } else {
+            None
+        };
+
+        let value = if let Some(reflected) = maybe_reflected {
+            reflected_value_to_string(reflected)
+        } else {
+            "<unreflectable>".to_string()
+        };
+
         Ok(ComponentInspection {
             entity,
             component_id,
             name,
+            value,
             // TODO: look up if this component is name-defining
             is_name_defining: true,
             type_id,

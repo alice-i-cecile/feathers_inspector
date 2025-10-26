@@ -22,6 +22,11 @@ pub struct ComponentInspection {
     pub component_id: ComponentId,
     /// The type name of the component.
     pub name: DebugName,
+    /// The value of the component as a string.
+    ///
+    /// This information is gathered via reflection,
+    /// and used for debugging purposes.
+    pub value: String,
     /// Is this component "name-defining"?
     ///
     /// If so, it will be prioritized for [name resolution](crate::name_resolution).

@@ -26,7 +26,7 @@
 
 - [x] Extract `TypeRegistration` for inspected components and resources
 - [] Display values of components and resource using reflection
-  - [] Get [reflected component info](https://github.com/jakobhellermann/bevy-inspector-egui/blob/93fe429ba0570405094370f31d0530c1a8f0e28d/crates/bevy-inspector-egui/src/restricted_world_view.rs#L375)
+  - [x] Get [reflected component info](https://github.com/jakobhellermann/bevy-inspector-egui/blob/93fe429ba0570405094370f31d0530c1a8f0e28d/crates/bevy-inspector-egui/src/restricted_world_view.rs#L375)
   - [] [Match on the `ReflectedRef`](https://github.com/jakobhellermann/bevy-inspector-egui/blob/93fe429ba0570405094370f31d0530c1a8f0e28d/crates/bevy-inspector-egui/src/reflect_inspector/mod.rs#L318-L319)
   - [] Extract the [represented type info](https://github.com/jakobhellermann/bevy-inspector-egui/blob/93fe429ba0570405094370f31d0530c1a8f0e28d/crates/bevy-inspector-egui/src/reflect_inspector/mod.rs#L544)
   - [] Read the values of `Struct` etc to format the output
