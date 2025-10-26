@@ -181,19 +181,12 @@ impl EntityInspectExtensionTrait for World {
             None => None,
         };
 
-        let maybe_reflected = if let Some(type_id) = type_id {
-            match get_reflected_component_ref(&self, entity, type_id) {
-                Ok(reflected) => Some(reflected),
-                Err(_) => None,
-            }
-        } else {
-            None
-        };
-
-        let value = if let Some(reflected) = maybe_reflected {
-            reflected_value_to_string(reflected)
-        } else {
-            "<unreflectable>".to_string()
+        let value = match type_id {
+            Some(type_id) => match get_reflected_component_ref(&self, entity, type_id) {
+                Ok(reflected) => reflected_value_to_string(reflected),
+                Err(err) => format!("<Unreflectable: {}>", err),
+            },
+            None => "Dynamic Type".to_string(),
         };
 
         Ok(ComponentInspection {

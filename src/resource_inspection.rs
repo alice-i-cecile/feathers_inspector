@@ -1,6 +1,5 @@
 //! Types and traits for inspecting Bevy resources.
 
-use crate::display_type_registration::PrettyPrint;
 use crate::reflection_tools::{get_reflected_resource_ref, reflected_value_to_string};
 use bevy::reflect::TypeRegistration;
 use bevy::{ecs::component::ComponentId, prelude::*};
@@ -42,14 +41,7 @@ pub struct ResourceInspection {
 impl Display for ResourceInspection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let short_name = self.name.shortname();
-        write!(f, "{short_name}")?;
-
-        if let Some(type_registration) = &self.type_registration {
-            let type_info_str = type_registration.print();
-            write!(f, "\nType Information:\n{}", type_info_str)?;
-        } else {
-            write!(f, "\nType Information: <unregistered type>")?;
-        }
+        write!(f, "{}: {}", short_name, self.value)?;
 
         Ok(())
     }
@@ -116,18 +108,12 @@ impl ResourceInspectExtensionTrait for World {
             None => None,
         };
 
-        let maybe_reflected = match type_id {
-            Some(type_id) => match get_reflected_resource_ref(self, type_id) {
-                Ok(reflected) => Some(reflected),
-                Err(_) => None,
+        let value = match type_id {
+            Some(type_id) => match get_reflected_resource_ref(&self, type_id) {
+                Ok(reflected) => reflected_value_to_string(reflected),
+                Err(err) => format!("<Unreflectable: {}>", err),
             },
-            None => None,
-        };
-
-        let value = if let Some(reflected) = maybe_reflected {
-            reflected_value_to_string(reflected)
-        } else {
-            "<unreflectable>".to_string()
+            None => "Dynamic Type".to_string(),
         };
 
         Ok(ResourceInspection {
