@@ -278,13 +278,12 @@ impl EntityInspectExtensionTrait for World {
 
         let name = component_info.name();
         let type_id = component_info.type_id();
-        let type_registration = match type_id {
-            Some(type_id) => {
-                let registry = self.resource::<AppTypeRegistry>();
-                registry.read().get(type_id).cloned()
-            }
-            None => None,
-        };
+        let type_registration = type_id.and_then(|type_id| {
+            self.resource::<AppTypeRegistry>()
+                .read()
+                .get(type_id)
+                .cloned()
+        });
 
         let value = if settings.detail_level == ComponentDetailLevel::Names {
             None
