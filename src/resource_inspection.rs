@@ -60,20 +60,12 @@ pub enum ResourceInspectionError {
 
 /// Settings that can be used to customize resource inspection,
 /// changing how [`ResourceInspection`] is generated and displayed.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct ResourceInspectionSettings {
     /// Whether or not full type names should be displayed.
     ///
     /// Defaults to `false`.
     pub full_type_names: bool,
-}
-
-impl Default for ResourceInspectionSettings {
-    fn default() -> Self {
-        Self {
-            full_type_names: false,
-        }
-    }
 }
 
 /// An extension trait for inspecting resources.
@@ -140,7 +132,7 @@ impl ResourceInspectExtensionTrait for World {
         };
 
         let value = match type_id {
-            Some(type_id) => match get_reflected_resource_ref(&self, type_id) {
+            Some(type_id) => match get_reflected_resource_ref(self, type_id) {
                 Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
                 Err(err) => format!("<Unreflectable: {}>", err),
             },

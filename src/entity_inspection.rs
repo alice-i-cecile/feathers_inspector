@@ -225,7 +225,7 @@ impl EntityInspectExtensionTrait for World {
                 entity_ref
                     .archetype()
                     .components()
-                    .into_iter()
+                    .iter()
                     .map(|component_id| {
                         self.inspect_component_by_id(
                             *component_id,
@@ -278,31 +278,25 @@ impl EntityInspectExtensionTrait for World {
 
         let name = component_info.name();
         let type_id = component_info.type_id();
-        let type_registration = match type_id {
-            Some(type_id) => {
-                let registry = self.resource::<AppTypeRegistry>();
-                registry.read().get(type_id).cloned()
-            }
-            None => None,
-        };
+        let type_registration = type_id.and_then(|type_id| {
+            self.resource::<AppTypeRegistry>()
+                .read()
+                .get(type_id)
+                .cloned()
+        });
 
-        let value = if settings.detail_level == ComponentDetailLevel::Names {
-            None
-        } else {
-            Some(match type_id {
-                Some(type_id) => match get_reflected_component_ref(&self, entity, type_id) {
-                    Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
-                    Err(err) => format!("<Unreflectable: {}>", err),
-                },
-                None => "Dynamic Type".to_string(),
-            })
-        };
+        let value = (settings.detail_level != ComponentDetailLevel::Names).then(|| match type_id {
+            Some(type_id) => match get_reflected_component_ref(self, entity, type_id) {
+                Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
+                Err(err) => format!("<Unreflectable: {}>", err),
+            },
+            None => "Dynamic Type".to_string(),
+        });
 
-        let name_resolution_registry = self.resource::<name_resolution::NameResolutionRegistry>();
-        let name_definition_priority = match type_id {
-            Some(type_id) => name_resolution_registry.get_priority_by_type_id(type_id),
-            None => None,
-        };
+        let name_definition_priority = type_id.and_then(|type_id| {
+            self.resource::<name_resolution::NameResolutionRegistry>()
+                .get_priority_by_type_id(type_id)
+        });
 
         Ok(ComponentInspection {
             entity,

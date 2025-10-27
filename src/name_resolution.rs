@@ -27,7 +27,7 @@ impl EntityInspection {
     /// The caller can then fall back to a default name such as "Entity".
     pub fn resolve_name(&self) -> Option<String> {
         if let Some(custom_name) = &self.name {
-            return Some(custom_name.as_str().to_string());
+            Some(custom_name.as_str().to_string())
         } else {
             let Some(component_data) = &self.components else {
                 return None;
@@ -36,11 +36,8 @@ impl EntityInspection {
             let mut name_resolution_priorities = component_data
                 .iter()
                 .filter_map(|comp| {
-                    if let Some(priority) = comp.name_definition_priority {
-                        Some((comp.name.shortname().to_string(), priority))
-                    } else {
-                        None
-                    }
+                    comp.name_definition_priority
+                        .map(|priority| (comp.name.shortname().to_string(), priority))
                 })
                 .collect::<Vec<(String, i8)>>();
 
@@ -62,7 +59,7 @@ impl EntityInspection {
                 .collect::<Vec<String>>()
                 .join(" | ");
 
-            return Some(resolved_name);
+            Some(resolved_name)
         }
     }
 }
