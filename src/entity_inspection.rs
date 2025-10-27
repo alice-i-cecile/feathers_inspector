@@ -297,11 +297,10 @@ impl EntityInspectExtensionTrait for World {
             })
         };
 
-        let name_resolution_registry = self.resource::<name_resolution::NameResolutionRegistry>();
-        let name_definition_priority = match type_id {
-            Some(type_id) => name_resolution_registry.get_priority_by_type_id(type_id),
-            None => None,
-        };
+        let name_definition_priority = type_id.and_then(|type_id| {
+            self.resource::<name_resolution::NameResolutionRegistry>()
+                .get_priority_by_type_id(type_id)
+        });
 
         Ok(ComponentInspection {
             entity,
