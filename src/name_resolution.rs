@@ -36,11 +36,8 @@ impl EntityInspection {
             let mut name_resolution_priorities = component_data
                 .iter()
                 .filter_map(|comp| {
-                    if let Some(priority) = comp.name_definition_priority {
-                        Some((comp.name.shortname().to_string(), priority))
-                    } else {
-                        None
-                    }
+                    comp.name_definition_priority
+                        .map(|priority| (comp.name.shortname().to_string(), priority))
                 })
                 .collect::<Vec<(String, i8)>>();
 
