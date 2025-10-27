@@ -7,7 +7,9 @@
 use bevy::prelude::*;
 use feathers_inspector::{
     component_inspection::ComponentInspectionSettings,
-    entity_inspection::{EntityInspectExtensionTrait, InspectExtensionCommandsTrait},
+    entity_inspection::{
+        EntityInspectExtensionTrait, EntityInspectionSettings, InspectExtensionCommandsTrait,
+    },
     name_resolution::NameResolutionPlugin,
     resource_inspection::{ResourceInspectExtensionCommandsTrait, ResourceInspectionSettings},
 };
@@ -48,7 +50,7 @@ fn inspect_sprite_entities_when_e_pressed(
         for entity in entities.iter() {
             commands
                 .entity(entity)
-                .inspect(ComponentInspectionSettings::default());
+                .inspect(EntityInspectionSettings::default());
         }
     }
 }
@@ -61,8 +63,15 @@ fn inspect_all_entities_when_space_pressed(world: &World) {
         let mut entity_query = world.try_query::<Entity>().unwrap();
         let entities = entity_query.iter(world);
 
-        let inspection_results =
-            world.inspect_multiple(entities, ComponentInspectionSettings::default());
+        let inspection_results = world.inspect_multiple(
+            entities,
+            EntityInspectionSettings {
+                include_components: false,
+                component_settings: ComponentInspectionSettings {
+                    full_type_names: false,
+                },
+            },
+        );
 
         for inspection in inspection_results {
             match inspection {

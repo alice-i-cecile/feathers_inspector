@@ -29,8 +29,11 @@ impl EntityInspection {
         if let Some(custom_name) = &self.name {
             return Some(custom_name.as_str().to_string());
         } else {
-            let mut name_resolution_priorities = self
-                .components
+            let Some(component_data) = &self.components else {
+                return None;
+            };
+
+            let mut name_resolution_priorities = component_data
                 .iter()
                 .filter_map(|comp| {
                     if let Some(priority) = comp.name_definition_priority {

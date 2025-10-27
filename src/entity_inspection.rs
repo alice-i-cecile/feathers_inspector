@@ -34,7 +34,7 @@ pub struct EntityInspection {
     /// The name of the entity, if any.
     pub name: Option<Name>,
     /// The components on the entity, in inspection form.
-    pub components: Vec<ComponentInspection>,
+    pub components: Option<Vec<ComponentInspection>>,
     /// Information about how this entity was spawned.
     pub spawn_details: SpawnDetails,
 }
@@ -68,10 +68,12 @@ impl Display for EntityInspection {
 
         display_str.push_str("\nComponents:");
 
-        for component in &self.components {
-            display_str.push_str(&format!("\n- {}", component));
+        if let Some(components) = &self.components {
+            display_str.push_str("Components:");
+            for component in components {
+                display_str.push_str(&format!("\n- {}", component));
+            }
         }
-
         write!(f, "{display_str}")?;
 
         Ok(())
@@ -100,6 +102,26 @@ impl From<QueryEntityError> for EntityInspectionError {
     }
 }
 
+/// Settings for inspecting an individual entity.
+#[derive(Clone, Debug)]
+pub struct EntityInspectionSettings {
+    /// Should component information be provided?
+    ///
+    /// Defaults to true.
+    pub include_components: bool,
+    /// Settings used when inspecting components on the entity.
+    pub component_settings: ComponentInspectionSettings,
+}
+
+impl Default for EntityInspectionSettings {
+    fn default() -> Self {
+        Self {
+            include_components: true,
+            component_settings: ComponentInspectionSettings::default(),
+        }
+    }
+}
+
 /// An extension trait for inspecting entities.
 ///
 /// This is required because this crate is not part of Bevy itself.
@@ -115,14 +137,14 @@ pub trait EntityInspectExtensionTrait {
     fn inspect(
         &self,
         entity: Entity,
-        settings: ComponentInspectionSettings,
+        settings: EntityInspectionSettings,
     ) -> Result<EntityInspection, EntityInspectionError>;
 
     /// Inspects multiple entities.
     fn inspect_multiple(
         &self,
         entities: impl ExactSizeIterator<Item = Entity>,
-        settings: ComponentInspectionSettings,
+        settings: EntityInspectionSettings,
     ) -> Vec<Result<EntityInspection, EntityInspectionError>> {
         let mut inspections = Vec::with_capacity(entities.len());
         for entity in entities {
@@ -164,7 +186,7 @@ impl EntityInspectExtensionTrait for World {
     fn inspect(
         &self,
         entity: Entity,
-        settings: ComponentInspectionSettings,
+        settings: EntityInspectionSettings,
     ) -> Result<EntityInspection, EntityInspectionError> {
         let name = self.get::<Name>(entity).cloned();
 
@@ -176,13 +198,25 @@ impl EntityInspectExtensionTrait for World {
         // Temporary binding to avoid dropping borrow
         let entity_ref = self.entity(entity);
 
-        let components: Vec<ComponentInspection> = entity_ref
-            .archetype()
-            .components()
-            .into_iter()
-            .map(|component_id| self.inspect_component_by_id(*component_id, entity, settings))
-            .filter_map(Result::ok)
-            .collect();
+        let components = if settings.include_components {
+            Some(
+                entity_ref
+                    .archetype()
+                    .components()
+                    .into_iter()
+                    .map(|component_id| {
+                        self.inspect_component_by_id(
+                            *component_id,
+                            entity,
+                            settings.component_settings,
+                        )
+                    })
+                    .filter_map(Result::ok)
+                    .collect(),
+            )
+        } else {
+            None
+        };
 
         Ok(EntityInspection {
             entity,
@@ -255,7 +289,7 @@ pub trait InspectExtensionCommandsTrait {
     ///
     /// To inspect only a specific component on the entity, use
     /// [`inspect_component::<C>`](Self::inspect_component) instead.
-    fn inspect(&mut self, settings: ComponentInspectionSettings);
+    fn inspect(&mut self, settings: EntityInspectionSettings);
 
     /// Inspects the component of type `C` on the entity, logging details to the console using [`info!`].
     ///
@@ -264,7 +298,7 @@ pub trait InspectExtensionCommandsTrait {
 }
 
 impl InspectExtensionCommandsTrait for EntityCommands<'_> {
-    fn inspect(&mut self, settings: ComponentInspectionSettings) {
+    fn inspect(&mut self, settings: EntityInspectionSettings) {
         let entity = self.id();
 
         self.queue(move |entity_world_mut: EntityWorldMut| {
