@@ -6,7 +6,7 @@
 
 use bevy::prelude::*;
 use feathers_inspector::{
-    component_inspection::{ComponentDetailLevel, ComponentInspectionSettings},
+    component_inspection::ComponentInspectionSettings,
     entity_inspection::{
         EntityInspectExtensionTrait, EntityInspectionSettings, InspectExtensionCommandsTrait,
         MultipleEntityInspectionSettings,
