@@ -23,6 +23,7 @@ use crate::{
         ComponentDetailLevel, ComponentInspection, ComponentInspectionError,
         ComponentInspectionSettings,
     },
+    entity_grouping::EntityGrouping,
     name_resolution,
     reflection_tools::{get_reflected_component_ref, reflected_value_to_string},
 };
@@ -173,14 +174,7 @@ pub trait EntityInspectExtensionTrait {
         &self,
         entities: impl ExactSizeIterator<Item = Entity>,
         settings: MultipleEntityInspectionSettings,
-    ) -> Vec<Result<EntityInspection, EntityInspectionError>> {
-        let mut inspections = Vec::with_capacity(entities.len());
-        for entity in entities {
-            let inspection = self.inspect(entity, settings.entity_settings.clone());
-            inspections.push(inspection);
-        }
-        inspections
-    }
+    ) -> Vec<Result<EntityInspection, EntityInspectionError>>;
 
     /// Inspects the component corresponding to the provided [`ComponentId`].
     ///
@@ -252,6 +246,24 @@ impl EntityInspectExtensionTrait for World {
             components,
             spawn_details,
         })
+    }
+
+    fn inspect_multiple(
+        &self,
+        entities: impl ExactSizeIterator<Item = Entity>,
+        settings: MultipleEntityInspectionSettings,
+    ) -> Vec<Result<EntityInspection, EntityInspectionError>> {
+        {
+            let entity_grouping = EntityGrouping::generate(self, entities);
+            let entity_list = entity_grouping.flatten();
+
+            let mut inspections = Vec::with_capacity(entity_list.len());
+            for entity in entity_list {
+                let inspection = self.inspect(entity, settings.entity_settings.clone());
+                inspections.push(inspection);
+            }
+            inspections
+        }
     }
 
     fn inspect_component_by_id(
