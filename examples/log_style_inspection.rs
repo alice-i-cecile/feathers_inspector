@@ -7,7 +7,7 @@
 use bevy::prelude::*;
 use feathers_inspector::{
     component_inspection::ComponentInspectionSettings,
-    entity_inspection::InspectExtensionCommandsTrait,
+    entity_inspection::{EntityInspectExtensionTrait, InspectExtensionCommandsTrait},
     name_resolution::NameResolutionPlugin,
     resource_inspection::{ResourceInspectExtensionCommandsTrait, ResourceInspectionSettings},
 };
@@ -21,10 +21,11 @@ fn main() {
         .add_systems(
             Update,
             (
-                inspect_entities_when_e_pressed,
+                inspect_sprite_entities_when_e_pressed,
                 inspect_resource_when_r_pressed,
                 inspect_all_resources_when_a_pressed,
                 inspect_specific_component_when_c_pressed,
+                inspect_all_entities_when_space_pressed,
             ),
         )
         .run();
@@ -38,9 +39,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 }
 
-fn inspect_entities_when_e_pressed(
+fn inspect_sprite_entities_when_e_pressed(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    entities: Query<Entity>,
+    entities: Query<Entity, With<Sprite>>,
     mut commands: Commands,
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyE) {
@@ -48,6 +49,26 @@ fn inspect_entities_when_e_pressed(
             commands
                 .entity(entity)
                 .inspect(ComponentInspectionSettings::default());
+        }
+    }
+}
+
+fn inspect_all_entities_when_space_pressed(world: &World) {
+    if world
+        .resource::<ButtonInput<KeyCode>>()
+        .just_pressed(KeyCode::Space)
+    {
+        let mut entity_query = world.try_query::<Entity>().unwrap();
+        let entities = entity_query.iter(world);
+
+        let inspection_results =
+            world.inspect_multiple(entities, ComponentInspectionSettings::default());
+
+        for inspection in inspection_results {
+            match inspection {
+                Ok(inspection) => info!("{inspection}"),
+                Err(err) => info!("Failed to inspect an entity: {err}"),
+            }
         }
     }
 }

@@ -118,6 +118,20 @@ pub trait EntityInspectExtensionTrait {
         settings: ComponentInspectionSettings,
     ) -> Result<EntityInspection, EntityInspectionError>;
 
+    /// Inspects multiple entities.
+    fn inspect_multiple(
+        &self,
+        entities: impl ExactSizeIterator<Item = Entity>,
+        settings: ComponentInspectionSettings,
+    ) -> Vec<Result<EntityInspection, EntityInspectionError>> {
+        let mut inspections = Vec::with_capacity(entities.len());
+        for entity in entities {
+            let inspection = self.inspect(entity, settings.clone());
+            inspections.push(inspection);
+        }
+        inspections
+    }
+
     /// Inspects the component corresponding to the provided [`ComponentId`].
     ///
     /// The provided [`ComponentInspection`] contains details about the component,
@@ -144,6 +158,9 @@ pub trait EntityInspectExtensionTrait {
 }
 
 impl EntityInspectExtensionTrait for World {
+    // When upstreamed, this should be a method on `EntityRef`.
+    // It can't easily be one for now as we need access to the `World`
+    // to get information from the `AppTypeRegistry` and `NameResolutionRegistry`.
     fn inspect(
         &self,
         entity: Entity,
