@@ -40,6 +40,26 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         image: asset_server.load("ducky.png"),
         ..Default::default()
     });
+
+    let instructions = "\
+Output will be logged to the console: check your terminal window!
+
+Press 'E' to inspect all Sprite entities
+Press 'R' to inspect the AmbientLight resource
+Press 'A' to inspect all resources
+Press 'C' to inspect the Sprite component on all Sprite entities
+Press `Space` to inspect all entities"
+        .to_string();
+
+    commands.spawn((
+        Text::new(instructions),
+        Node {
+            position_type: PositionType::Absolute,
+            top: px(12),
+            left: px(12),
+            ..default()
+        },
+    ));
 }
 
 fn inspect_sprite_entities_when_e_pressed(

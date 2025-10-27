@@ -55,7 +55,7 @@
 - [x] add dedicated settings struct for entity inspection
 - [x] add dedicated settings struct for multiple entity inspection
 - [] group entities by archetype similarity
-- [] add on-screen instructions to log_style_inspection example
+- [x] add on-screen instructions to log_style_inspection example
 
 ## Inspector customization
 
