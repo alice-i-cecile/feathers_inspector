@@ -140,7 +140,7 @@ impl ResourceInspectExtensionTrait for World {
         };
 
         let value = match type_id {
-            Some(type_id) => match get_reflected_resource_ref(&self, type_id) {
+            Some(type_id) => match get_reflected_resource_ref(self, type_id) {
                 Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
                 Err(err) => format!("<Unreflectable: {}>", err),
             },

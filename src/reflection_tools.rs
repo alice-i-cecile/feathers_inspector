@@ -58,11 +58,11 @@ pub fn get_reflected_resource_ref(
 // This should be a method on `EntityRef` once upstreamed.
 // We should be able to access the AppTypeRegistry from the EntityRef directly safely
 // once upstreamed by using private world access tools.
-pub fn get_reflected_component_ref<'a>(
-    world: &'a World,
+pub fn get_reflected_component_ref(
+    world: &World,
     entity: Entity,
     type_id: TypeId,
-) -> Result<&'a dyn PartialReflect, ReflectionFetchError> {
+) -> Result<&dyn PartialReflect, ReflectionFetchError> {
     let app_type_registry = world.resource::<AppTypeRegistry>();
     let entity_ref = world.entity(entity);
 

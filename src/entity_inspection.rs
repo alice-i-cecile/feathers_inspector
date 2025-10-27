@@ -225,7 +225,7 @@ impl EntityInspectExtensionTrait for World {
                 entity_ref
                     .archetype()
                     .components()
-                    .into_iter()
+                    .iter()
                     .map(|component_id| {
                         self.inspect_component_by_id(
                             *component_id,
@@ -286,7 +286,7 @@ impl EntityInspectExtensionTrait for World {
         });
 
         let value = (settings.detail_level != ComponentDetailLevel::Names).then(|| match type_id {
-            Some(type_id) => match get_reflected_component_ref(&self, entity, type_id) {
+            Some(type_id) => match get_reflected_component_ref(self, entity, type_id) {
                 Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
                 Err(err) => format!("<Unreflectable: {}>", err),
             },

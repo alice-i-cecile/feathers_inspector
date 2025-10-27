@@ -27,7 +27,7 @@ impl EntityInspection {
     /// The caller can then fall back to a default name such as "Entity".
     pub fn resolve_name(&self) -> Option<String> {
         if let Some(custom_name) = &self.name {
-            return Some(custom_name.as_str().to_string());
+            Some(custom_name.as_str().to_string())
         } else {
             let Some(component_data) = &self.components else {
                 return None;
@@ -59,7 +59,7 @@ impl EntityInspection {
                 .collect::<Vec<String>>()
                 .join(" | ");
 
-            return Some(resolved_name);
+            Some(resolved_name)
         }
     }
 }
