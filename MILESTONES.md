@@ -34,11 +34,10 @@
 
 ## User-friendly names
 
-- [x] Trait-based design for default names
-- [x] Name-formatting based on component names
-- [x] Implement on foreign types from Bevy
-- [ ] Determine whether a component is `NameDefining` using reflection
-- [ ] Add priority system to name-defining components
+- [x] Add a name resolution solution
+  - [x] Can be implemented for user-defined types
+  - [x] Implement on foreign types from Bevy
+  - [x] Supports prioritization
 
 ## Spawn location
 
@@ -49,12 +48,13 @@
 
 - [] add an API to let users inspect multiple entities at once
 - [] group entities by archetype similarity
+- [] add on-screen instructions to log_style_inspection example
+- [] add settings struct for each inspection method, allowing users to pass it in
 
 ## Inspector customization
 
 - [] `InspectorSettings` trait for reflected type information
-- [] Customize display output based on `InspectorSettings`
-- [] Add settings struct for each inspection method, allowing users to pass it in
+- [] customize display output based on `InspectorSettings`
 
 ## Filtering and search
 

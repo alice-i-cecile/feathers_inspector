@@ -28,7 +28,7 @@ pub struct ComponentInspection {
     /// Is this component "name-defining"?
     ///
     /// If so, it will be prioritized for [name resolution](crate::name_resolution).
-    pub is_name_defining: bool,
+    pub name_definition_priority: Option<i8>,
     /// The [`TypeId`] of the resource.
     ///
     /// Note that dynamic types will not have a [`TypeId`].

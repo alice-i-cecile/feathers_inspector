@@ -1,6 +1,14 @@
 //! Rules and strategies for determining the inspection-displayed name of an entity.
 
-use bevy::ecs::component::Component;
+use bevy::core_pipeline::Skybox;
+use bevy::ecs::system::SystemIdMarker;
+use bevy::light::{FogVolume, IrradianceVolume, SunDisk};
+use bevy::pbr::wireframe::Wireframe;
+use bevy::pbr::{Atmosphere, Lightmap};
+use bevy::platform::collections::HashMap;
+use bevy::prelude::*;
+use bevy::window::Monitor;
+use core::any::TypeId;
 
 use crate::entity_inspection::EntityInspection;
 
@@ -21,106 +29,168 @@ impl EntityInspection {
         if let Some(custom_name) = &self.name {
             return Some(custom_name.as_str().to_string());
         } else {
-            let mut name_defining_components: Vec<String> = self
+            let mut name_resolution_priorities = self
                 .components
                 .iter()
-                .filter(|comp| comp.is_name_defining)
-                .map(|comp| comp.name.shortname().to_string())
-                .collect();
+                .filter_map(|comp| {
+                    if let Some(priority) = comp.name_definition_priority {
+                        Some((comp.name.shortname().to_string(), priority))
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<(String, i8)>>();
 
-            if !name_defining_components.is_empty() {
-                name_defining_components.sort();
-
-                let combined_name = name_defining_components.join(" | ");
-                return Some(combined_name);
-            } else {
-                None
+            if name_resolution_priorities.is_empty() {
+                return None;
             }
+
+            // Sort by priority (higher priority first), then by name alphabetically
+            name_resolution_priorities.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+
+            // Only include names with the highest priority
+            // PERF: we could do this more efficiently by combining the sort and filter steps
+            let highest_priority = name_resolution_priorities[0].1;
+            name_resolution_priorities.retain(|&(_, priority)| priority == highest_priority);
+
+            let resolved_name = name_resolution_priorities
+                .into_iter()
+                .map(|(name, _)| name)
+                .collect::<Vec<String>>()
+                .join(" | ");
+
+            return Some(resolved_name);
         }
     }
 }
 
-/// A marker trait for components that should define an entity's name when inspected.
+/// Stores the registered name-defining component types and their priorities.
 ///
-/// See [`EntityInspection::resolve_name`] for details on the name resolution rules.
+/// When determining an entity's name via [`EntityInspection::resolve_name`], components with higher priority values
+/// will take precedence over those with lower priority values.
 ///
-/// Note: this should probably be replaced with a method on [`Component`] itself
-/// once this crate is upstreamed into Bevy.
+/// Explicitly named entities (via the [`Name`] component) will always take precedence over name-defining components.
+///
+/// # Priority Conventions
+///
+/// - User-defined name-defining components should have a priority of `0`.
+/// - Library-defined components (in Bevy, or in third-party Bevy crates) that are name-defining should have a priority of `-10`.
+/// - Fallback components (e.g. [`Camera`]) should have a priority of `-20`.
+///
+/// Leaving space between these priority levels allows for future expansion and customization in tricky edge cases.
 ///
 /// # Usage
 ///
-/// ```
-/// use bevy::prelude::*;
+/// Components that should be "name-defining" should be registered in this registry
+/// using [`NameResolutionRegistry::register_name_defining_type`],
+/// typically in the plugin that defines the component.
+#[derive(Debug, Resource, Default)]
+pub struct NameResolutionRegistry {
+    /// A mapping of name-defining component TypeIds to their priority levels.
+    name_defining_types: HashMap<TypeId, i8>,
+}
+
+impl NameResolutionRegistry {
+    /// Creates a new, empty [`NameResolutionRegistry`].
+    pub const fn new() -> Self {
+        Self {
+            name_defining_types: HashMap::new(),
+        }
+    }
+
+    /// Registers a name-defining component type with the given priority.
+    ///
+    /// Higher priority components will take precedence when determining an entity's name.
+    pub fn register_name_defining_type<T: 'static>(&mut self, priority: i8) {
+        let type_id = TypeId::of::<T>();
+        self.name_defining_types.insert(type_id, priority);
+    }
+
+    /// Gets the priority of a name-defining component type, if registered.
+    pub fn get_priority<T: 'static>(&self) -> Option<i8> {
+        let type_id = TypeId::of::<T>();
+        self.get_priority_by_type_id(type_id)
+    }
+
+    /// Gets the priority of a name-defining component type by its [`TypeId`], if registered.
+    pub fn get_priority_by_type_id(&self, type_id: TypeId) -> Option<i8> {
+        self.name_defining_types.get(&type_id).cloned()
+    }
+
+    /// Removes a name-defining component type from the registry.
+    pub fn unregister_name_defining_type<T: 'static>(&mut self) {
+        let type_id = TypeId::of::<T>();
+        self.unregister_name_defining_type_by_type_id(type_id);
+    }
+
+    /// Removes a name-defining component type from the registry by its [`TypeId`].
+    pub fn unregister_name_defining_type_by_type_id(&mut self, type_id: TypeId) {
+        self.name_defining_types.remove(&type_id);
+    }
+}
+
+/// A plugin which registers name-defining components for Bevy's first-party types
+/// in the [`NameResolutionRegistry`] resource.
 ///
-/// #[derive(Component, Reflect)]
-/// #[reflect(NameDefining)]
-/// struct Player;
-/// ```
-pub trait NameDefining: Component {}
+/// When upstreamed, this plugin should not be necessary,
+/// as each name-defining component can register itself in its own plugin.
+pub struct NameResolutionPlugin;
+impl Plugin for NameResolutionPlugin {
+    fn build(&self, app: &mut App) {
+        let mut name_resolution_registry = NameResolutionRegistry::new();
 
-/// Implementations of [`NameDefining`] for common first-party `bevy` components.
-///
-/// When upstreamed, these should be added to the definitions of those components directly.
-mod bevy_name_defining_components {
-    use super::NameDefining;
-    use bevy::{
-        core_pipeline::Skybox,
-        ecs::system::SystemIdMarker,
-        light::{FogVolume, IrradianceVolume, SunDisk},
-        pbr::{Atmosphere, Lightmap, wireframe::Wireframe},
-        prelude::*,
-        window::Monitor,
-    };
+        // Windowing and input
+        name_resolution_registry.register_name_defining_type::<Window>(-10);
+        name_resolution_registry.register_name_defining_type::<Monitor>(-10);
+        name_resolution_registry.register_name_defining_type::<Gamepad>(-10);
 
-    // Windowing and input
-    impl NameDefining for Window {}
-    impl NameDefining for Monitor {}
-    impl NameDefining for Gamepad {}
+        // UI
+        name_resolution_registry.register_name_defining_type::<Node>(-20);
+        name_resolution_registry.register_name_defining_type::<Button>(-10);
+        name_resolution_registry.register_name_defining_type::<Text>(-10);
+        name_resolution_registry.register_name_defining_type::<TextSpan>(-10);
+        name_resolution_registry.register_name_defining_type::<Text2d>(-10);
+        name_resolution_registry.register_name_defining_type::<ImageNode>(-10);
+        name_resolution_registry.register_name_defining_type::<ViewportNode>(-10);
 
-    // UI
-    impl NameDefining for Node {}
-    impl NameDefining for Button {}
-    impl NameDefining for Text {}
-    impl NameDefining for TextSpan {}
-    impl NameDefining for Text2d {}
-    impl NameDefining for ImageNode {}
-    impl NameDefining for ViewportNode {}
+        // Cameras
+        name_resolution_registry.register_name_defining_type::<Camera>(-20);
+        name_resolution_registry.register_name_defining_type::<Camera2d>(-10);
+        name_resolution_registry.register_name_defining_type::<Camera3d>(-10);
 
-    // Cameras
-    impl NameDefining for Camera {}
-    impl NameDefining for Camera2d {}
-    impl NameDefining for Camera3d {}
+        // Lights
+        name_resolution_registry.register_name_defining_type::<DirectionalLight>(-10);
+        name_resolution_registry.register_name_defining_type::<PointLight>(-10);
+        name_resolution_registry.register_name_defining_type::<SpotLight>(-10);
+        name_resolution_registry.register_name_defining_type::<AmbientLight>(-10);
+        name_resolution_registry.register_name_defining_type::<LightProbe>(-10);
+        name_resolution_registry.register_name_defining_type::<IrradianceVolume>(-10);
+        name_resolution_registry.register_name_defining_type::<SunDisk>(-10);
+        name_resolution_registry.register_name_defining_type::<Lightmap>(-10);
 
-    // Lights
-    impl NameDefining for DirectionalLight {}
-    impl NameDefining for PointLight {}
-    impl NameDefining for SpotLight {}
-    impl NameDefining for AmbientLight {}
-    impl NameDefining for LightProbe {}
-    impl NameDefining for IrradianceVolume {}
-    impl NameDefining for SunDisk {}
-    impl NameDefining for Lightmap {}
+        // Core rendering components
+        name_resolution_registry.register_name_defining_type::<Sprite>(-10);
+        name_resolution_registry.register_name_defining_type::<Mesh2d>(-10);
+        name_resolution_registry.register_name_defining_type::<Mesh3d>(-10);
+        name_resolution_registry.register_name_defining_type::<Wireframe>(-10);
 
-    // Core rendering components
-    impl NameDefining for Sprite {}
-    impl NameDefining for Mesh2d {}
-    impl NameDefining for Mesh3d {}
-    impl NameDefining for Wireframe {}
+        // Atmospherics
+        name_resolution_registry.register_name_defining_type::<Skybox>(-10);
+        name_resolution_registry.register_name_defining_type::<FogVolume>(-10);
+        name_resolution_registry.register_name_defining_type::<Atmosphere>(-10);
+        name_resolution_registry.register_name_defining_type::<DistanceFog>(-10);
 
-    // Atmospherics
-    impl NameDefining for Skybox {}
-    impl NameDefining for FogVolume {}
-    impl NameDefining for Atmosphere {}
-    impl NameDefining for DistanceFog {}
+        // Animation
+        name_resolution_registry.register_name_defining_type::<AnimationPlayer>(-10);
 
-    // Animation
-    impl NameDefining for AnimationPlayer {}
+        // Audio
+        name_resolution_registry.register_name_defining_type::<AudioPlayer>(-10);
+        name_resolution_registry.register_name_defining_type::<AudioSink>(-10);
 
-    // Audio
-    impl NameDefining for AudioPlayer {}
-    impl NameDefining for AudioSink {}
+        // System-likes
+        name_resolution_registry.register_name_defining_type::<Observer>(-10);
+        name_resolution_registry.register_name_defining_type::<SystemIdMarker>(-10);
 
-    // System-likes
-    impl NameDefining for Observer {}
-    impl NameDefining for SystemIdMarker {}
+        app.insert_resource(name_resolution_registry);
+    }
 }

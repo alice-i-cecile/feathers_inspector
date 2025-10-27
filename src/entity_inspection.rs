@@ -20,6 +20,7 @@ use thiserror::Error;
 
 use crate::{
     component_inspection::{ComponentInspection, ComponentInspectionError},
+    name_resolution,
     reflection_tools::{get_reflected_component_ref, reflected_value_to_string},
 };
 
@@ -189,13 +190,18 @@ impl EntityInspectExtensionTrait for World {
             None => "Dynamic Type".to_string(),
         };
 
+        let name_resolution_registry = self.resource::<name_resolution::NameResolutionRegistry>();
+        let name_definition_priority = match type_id {
+            Some(type_id) => name_resolution_registry.get_priority_by_type_id(type_id),
+            None => None,
+        };
+
         Ok(ComponentInspection {
             entity,
             component_id,
             name,
             value,
-            // TODO: look up if this component is name-defining
-            is_name_defining: true,
+            name_definition_priority,
             type_id,
             type_registration,
         })

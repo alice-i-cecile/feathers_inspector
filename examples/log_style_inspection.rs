@@ -6,13 +6,15 @@
 
 use bevy::prelude::*;
 use feathers_inspector::{
-    entity_inspection::InspectExtensionCommandsTrait,
+    entity_inspection::InspectExtensionCommandsTrait, name_resolution::NameResolutionPlugin,
     resource_inspection::ResourceInspectExtensionCommandsTrait,
 };
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        // NOTE: will not be required once this crate is upstreamed
+        .add_plugins(NameResolutionPlugin)
         .add_systems(Startup, setup)
         .add_systems(
             Update,
