@@ -54,8 +54,13 @@
 - [x] add an API to let users inspect multiple entities at once
 - [x] add dedicated settings struct for entity inspection
 - [x] add dedicated settings struct for multiple entity inspection
-- [] group entities by archetype similarity
 - [x] add on-screen instructions to log_style_inspection example
+
+## Entity sorting
+
+- [] display entities of the same archetype together
+- [] sort archetypes by similarity
+- [] exclude sparse-set components and ensure relatively stable sorting
 
 ## Inspector customization
 
