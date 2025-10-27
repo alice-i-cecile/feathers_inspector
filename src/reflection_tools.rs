@@ -127,7 +127,7 @@ pub fn pretty_print_reflected_struct(dyn_struct: &dyn Struct, full_type_names: b
         let field_value_str = reflected_value_to_string(field_value, full_type_names);
         result.push_str(&format!("  {field_name}: {field_value_str},\n"));
     }
-    result.push_str("}");
+    result.push('}');
     result
 }
 
@@ -154,7 +154,7 @@ pub fn pretty_print_reflected_tuple_struct(
         let field_value_str = reflected_value_to_string(field_value, full_type_names);
         result.push_str(&format!("  {field_value_str},\n"));
     }
-    result.push_str(")");
+    result.push(')');
     result
 }
 
@@ -167,7 +167,7 @@ pub fn pretty_print_reflected_tuple(dyn_tuple: &dyn Tuple, full_type_names: bool
         let field_value_str = reflected_value_to_string(field_value, full_type_names);
         result.push_str(&format!("  {field_value_str},\n"));
     }
-    result.push_str(")");
+    result.push(')');
     result
 }
 
@@ -180,7 +180,7 @@ pub fn pretty_print_reflected_list(dyn_list: &dyn List, full_type_names: bool) -
         let element_str = reflected_value_to_string(element, full_type_names);
         result.push_str(&format!("  {element_str},\n"));
     }
-    result.push_str("]");
+    result.push(']');
     result
 }
 
@@ -193,7 +193,7 @@ pub fn pretty_print_reflected_array(dyn_array: &dyn Array, full_type_names: bool
         let element_str = reflected_value_to_string(element, full_type_names);
         result.push_str(&format!("  {element_str},\n"));
     }
-    result.push_str("]");
+    result.push(']');
     result
 }
 pub fn pretty_print_reflected_map(dyn_map: &dyn Map, full_type_names: bool) -> String {
@@ -206,7 +206,7 @@ pub fn pretty_print_reflected_map(dyn_map: &dyn Map, full_type_names: bool) -> S
         result.push_str(&format!("  {key_str}: {value_str},\n"));
     }
 
-    result.push_str("}");
+    result.push('}');
     result
 }
 
@@ -219,7 +219,7 @@ pub fn pretty_print_reflected_set(dyn_set: &dyn Set, full_type_names: bool) -> S
         result.push_str(&format!("  {element_str},\n"));
     }
 
-    result.push_str("}");
+    result.push('}');
     result
 }
 
@@ -250,7 +250,7 @@ pub fn pretty_print_reflected_enum(dyn_enum: &dyn Enum, full_type_names: bool) -
                 let field_value_str = reflected_value_to_string(field_value, full_type_names);
                 result.push_str(&format!("  {field_name}: {field_value_str},\n"));
             }
-            result.push_str("}");
+            result.push('}');
         }
         VariantType::Tuple => {
             result.push_str("(\n");
@@ -259,7 +259,7 @@ pub fn pretty_print_reflected_enum(dyn_enum: &dyn Enum, full_type_names: bool) -
                 let field_value_str = reflected_value_to_string(field_value, full_type_names);
                 result.push_str(&format!("  {field_value_str},\n"));
             }
-            result.push_str(")");
+            result.push(')');
         }
         VariantType::Unit => (),
     }
