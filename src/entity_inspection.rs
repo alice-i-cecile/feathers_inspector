@@ -285,17 +285,13 @@ impl EntityInspectExtensionTrait for World {
                 .cloned()
         });
 
-        let value = if settings.detail_level == ComponentDetailLevel::Names {
-            None
-        } else {
-            Some(match type_id {
-                Some(type_id) => match get_reflected_component_ref(&self, entity, type_id) {
-                    Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
-                    Err(err) => format!("<Unreflectable: {}>", err),
-                },
-                None => "Dynamic Type".to_string(),
-            })
-        };
+        let value = (settings.detail_level != ComponentDetailLevel::Names).then(|| match type_id {
+            Some(type_id) => match get_reflected_component_ref(&self, entity, type_id) {
+                Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
+                Err(err) => format!("<Unreflectable: {}>", err),
+            },
+            None => "Dynamic Type".to_string(),
+        });
 
         let name_definition_priority = type_id.and_then(|type_id| {
             self.resource::<name_resolution::NameResolutionRegistry>()
