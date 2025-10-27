@@ -19,7 +19,9 @@ use core::fmt::Display;
 use thiserror::Error;
 
 use crate::{
-    component_inspection::{ComponentInspection, ComponentInspectionError},
+    component_inspection::{
+        ComponentInspection, ComponentInspectionError, ComponentInspectionSettings,
+    },
     name_resolution,
     reflection_tools::{get_reflected_component_ref, reflected_value_to_string},
 };
@@ -110,7 +112,11 @@ pub trait EntityInspectExtensionTrait {
     ///
     /// The provided [`EntityInspection`] contains details about the entity,
     /// and can be logged using the [`Display`] trait.
-    fn inspect(&self, entity: Entity) -> Result<EntityInspection, EntityInspectionError>;
+    fn inspect(
+        &self,
+        entity: Entity,
+        settings: ComponentInspectionSettings,
+    ) -> Result<EntityInspection, EntityInspectionError>;
 
     /// Inspects the component corresponding to the provided [`ComponentId`].
     ///
@@ -123,6 +129,7 @@ pub trait EntityInspectExtensionTrait {
         &self,
         component_id: ComponentId,
         entity: Entity,
+        settings: ComponentInspectionSettings,
     ) -> Result<ComponentInspection, ComponentInspectionError>;
 
     /// Inspects the component of type `C`.
@@ -132,11 +139,16 @@ pub trait EntityInspectExtensionTrait {
     fn inspect_component<C: Component>(
         &self,
         entity: Entity,
+        settings: ComponentInspectionSettings,
     ) -> Result<ComponentInspection, ComponentInspectionError>;
 }
 
 impl EntityInspectExtensionTrait for World {
-    fn inspect(&self, entity: Entity) -> Result<EntityInspection, EntityInspectionError> {
+    fn inspect(
+        &self,
+        entity: Entity,
+        settings: ComponentInspectionSettings,
+    ) -> Result<EntityInspection, EntityInspectionError> {
         let name = self.get::<Name>(entity).cloned();
 
         // This unwrap is safe because `SpawnDetails` is always registered.
@@ -151,7 +163,7 @@ impl EntityInspectExtensionTrait for World {
             .archetype()
             .components()
             .into_iter()
-            .map(|component_id| self.inspect_component_by_id(*component_id, entity))
+            .map(|component_id| self.inspect_component_by_id(*component_id, entity, settings))
             .filter_map(Result::ok)
             .collect();
 
@@ -167,6 +179,7 @@ impl EntityInspectExtensionTrait for World {
         &self,
         component_id: ComponentId,
         entity: Entity,
+        settings: ComponentInspectionSettings,
     ) -> Result<ComponentInspection, ComponentInspectionError> {
         let component_info = self.components().get_info(component_id).ok_or(
             ComponentInspectionError::ComponentNotRegistered(type_name::<ComponentId>()),
@@ -184,7 +197,7 @@ impl EntityInspectExtensionTrait for World {
 
         let value = match type_id {
             Some(type_id) => match get_reflected_component_ref(&self, entity, type_id) {
-                Ok(reflected) => reflected_value_to_string(reflected),
+                Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
                 Err(err) => format!("<Unreflectable: {}>", err),
             },
             None => "Dynamic Type".to_string(),
@@ -210,11 +223,12 @@ impl EntityInspectExtensionTrait for World {
     fn inspect_component<C: Component>(
         &self,
         entity: Entity,
+        settings: ComponentInspectionSettings,
     ) -> Result<ComponentInspection, ComponentInspectionError> {
         let component_id = self.components().valid_component_id::<C>().ok_or(
             ComponentInspectionError::ComponentNotRegistered(type_name::<C>()),
         )?;
-        self.inspect_component_by_id(component_id, entity)
+        self.inspect_component_by_id(component_id, entity, settings)
     }
 }
 
@@ -224,21 +238,21 @@ pub trait InspectExtensionCommandsTrait {
     ///
     /// To inspect only a specific component on the entity, use
     /// [`inspect_component::<C>`](Self::inspect_component) instead.
-    fn inspect(&mut self);
+    fn inspect(&mut self, settings: ComponentInspectionSettings);
 
     /// Inspects the component of type `C` on the entity, logging details to the console using [`info!`].
     ///
     /// To inspect all components on the entity, use [`inspect`](Self::inspect) instead.
-    fn inspect_component<C: Component>(&mut self) {}
+    fn inspect_component<C: Component>(&mut self, settings: ComponentInspectionSettings);
 }
 
 impl InspectExtensionCommandsTrait for EntityCommands<'_> {
-    fn inspect(&mut self) {
+    fn inspect(&mut self, settings: ComponentInspectionSettings) {
         let entity = self.id();
 
         self.queue(move |entity_world_mut: EntityWorldMut| {
             let world = entity_world_mut.world();
-            let inspection = world.inspect(entity);
+            let inspection = world.inspect(entity, settings);
             match inspection {
                 Ok(inspection) => info!("{}", inspection),
                 Err(err) => warn!("Failed to inspect entity: {}", err),
@@ -246,12 +260,12 @@ impl InspectExtensionCommandsTrait for EntityCommands<'_> {
         });
     }
 
-    fn inspect_component<C: Component>(&mut self) {
+    fn inspect_component<C: Component>(&mut self, settings: ComponentInspectionSettings) {
         let entity = self.id();
 
         self.queue(move |entity_world_mut: EntityWorldMut| {
             let world = entity_world_mut.world();
-            match world.inspect_component::<C>(entity) {
+            match world.inspect_component::<C>(entity, settings) {
                 Ok(inspection) => info!("{}", inspection),
                 Err(err) => info!("Failed to inspect component: {}", err),
             }

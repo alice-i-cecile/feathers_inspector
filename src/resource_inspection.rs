@@ -58,15 +58,38 @@ pub enum ResourceInspectionError {
     ResourceNotFound(ComponentId),
 }
 
+/// Settings that can be used to customize resource inspection,
+/// changing how [`ResourceInspection`] is generated and displayed.
+#[derive(Clone, Copy, Debug)]
+pub struct ResourceInspectionSettings {
+    /// Whether or not full type names should be displayed.
+    ///
+    /// Defaults to `false`.
+    pub full_type_names: bool,
+}
+
+impl Default for ResourceInspectionSettings {
+    fn default() -> Self {
+        Self {
+            full_type_names: false,
+        }
+    }
+}
+
 /// An extension trait for inspecting resources.
-//////
+///
 /// This is required because this crate is not part of Bevy itself.
 pub trait ResourceInspectExtensionTrait {
-    /// Inspects the provided resource.
+    /// Inspects the provided resource type.
     ///
     /// The provided [`ResourceInspection`] contains details about the resource,
     /// and can be logged using the [`Display`] trait.
-    fn inspect_resource<R: Resource>(&self) -> Result<ResourceInspection, ResourceInspectionError>;
+    ///
+    /// The default values for [`ResourceInspectionSettings`] will be used.
+    fn inspect_resource<R: Resource>(
+        &self,
+        settings: ResourceInspectionSettings,
+    ) -> Result<ResourceInspection, ResourceInspectionError>;
 
     /// Inspects a resource by the provided [`ComponentId`].
     ///
@@ -74,25 +97,33 @@ pub trait ResourceInspectExtensionTrait {
     fn inspect_resource_by_id(
         &self,
         component_id: ComponentId,
+        settings: ResourceInspectionSettings,
     ) -> Result<ResourceInspection, ResourceInspectionError>;
 
     /// Inspects all resources in the world.
     ///
     /// Returns a vector of [`ResourceInspection`]s for all resources found.
-    fn inspect_all_resources(&self) -> Vec<ResourceInspection>;
+    fn inspect_all_resources(
+        &self,
+        settings: ResourceInspectionSettings,
+    ) -> Vec<ResourceInspection>;
 }
 
 impl ResourceInspectExtensionTrait for World {
-    fn inspect_resource<R: Resource>(&self) -> Result<ResourceInspection, ResourceInspectionError> {
+    fn inspect_resource<R: Resource>(
+        &self,
+        settings: ResourceInspectionSettings,
+    ) -> Result<ResourceInspection, ResourceInspectionError> {
         let component_id = self.components().resource_id::<R>().ok_or(
             ResourceInspectionError::ResourceNotRegistered(type_name::<R>()),
         )?;
-        self.inspect_resource_by_id(component_id)
+        self.inspect_resource_by_id(component_id, settings)
     }
 
     fn inspect_resource_by_id(
         &self,
         component_id: ComponentId,
+        settings: ResourceInspectionSettings,
     ) -> Result<ResourceInspection, ResourceInspectionError> {
         let component_info = self
             .components()
@@ -110,7 +141,7 @@ impl ResourceInspectExtensionTrait for World {
 
         let value = match type_id {
             Some(type_id) => match get_reflected_resource_ref(&self, type_id) {
-                Ok(reflected) => reflected_value_to_string(reflected),
+                Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
                 Err(err) => format!("<Unreflectable: {}>", err),
             },
             None => "Dynamic Type".to_string(),
@@ -125,12 +156,15 @@ impl ResourceInspectExtensionTrait for World {
         })
     }
 
-    fn inspect_all_resources(&self) -> Vec<ResourceInspection> {
+    fn inspect_all_resources(
+        &self,
+        settings: ResourceInspectionSettings,
+    ) -> Vec<ResourceInspection> {
         let mut inspections = Vec::new();
 
         for (component_info, _ptr) in self.iter_resources() {
             let component_id = component_info.id();
-            if let Ok(inspection) = self.inspect_resource_by_id(component_id) {
+            if let Ok(inspection) = self.inspect_resource_by_id(component_id, settings) {
                 inspections.push(inspection);
             }
         }
@@ -142,16 +176,16 @@ impl ResourceInspectExtensionTrait for World {
 /// An extension trait for inspecting resources via Commands.
 pub trait ResourceInspectExtensionCommandsTrait {
     /// Inspects the provided resource type, logging details to the console using [`info!`].
-    fn inspect_resource<R: Resource>(&mut self);
+    fn inspect_resource<R: Resource>(&mut self, settings: ResourceInspectionSettings);
 
     /// Inspects all resources in the world, logging details to the console using [`info!`].
-    fn inspect_all_resources(&mut self);
+    fn inspect_all_resources(&mut self, settings: ResourceInspectionSettings);
 }
 
 impl ResourceInspectExtensionCommandsTrait for Commands<'_, '_> {
-    fn inspect_resource<R: Resource>(&mut self) {
-        self.queue(|world: &mut World| {
-            let inspection = world.inspect_resource::<R>();
+    fn inspect_resource<R: Resource>(&mut self, settings: ResourceInspectionSettings) {
+        self.queue(move |world: &mut World| {
+            let inspection = world.inspect_resource::<R>(settings);
             match inspection {
                 Ok(inspection) => info!("{inspection}"),
                 Err(err) => warn!("Failed to inspect resource: {}", err),
@@ -159,9 +193,9 @@ impl ResourceInspectExtensionCommandsTrait for Commands<'_, '_> {
         });
     }
 
-    fn inspect_all_resources(&mut self) {
-        self.queue(|world: &mut World| {
-            let mut inspections = world.inspect_all_resources();
+    fn inspect_all_resources(&mut self, settings: ResourceInspectionSettings) {
+        self.queue(move |world: &mut World| {
+            let mut inspections = world.inspect_all_resources(settings);
             // Alphabetically sort the inspections by resource name
             inspections.sort_by(|a, b| {
                 a.name

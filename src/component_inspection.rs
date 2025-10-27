@@ -62,3 +62,20 @@ pub enum ComponentInspectionError {
     #[error("Component type {0} not registered in world")]
     ComponentNotRegistered(&'static str),
 }
+
+/// Settings for inspecting a component.
+#[derive(Clone, Copy, Debug)]
+pub struct ComponentInspectionSettings {
+    /// Should full type names be used when displaying component values?
+    ///
+    /// Defaults to `false`.
+    pub full_type_names: bool,
+}
+
+impl Default for ComponentInspectionSettings {
+    fn default() -> Self {
+        Self {
+            full_type_names: false,
+        }
+    }
+}

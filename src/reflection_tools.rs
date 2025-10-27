@@ -85,22 +85,28 @@ pub fn get_reflected_component_ref<'a>(
 /// Converts a reflected value to a string for debugging purposes.
 // When upstreamed, this should be a method on `PartialReflect`,
 // although much of it should be a `Display` impl on `ReflectRef`.
-pub fn reflected_value_to_string(reflected: &dyn PartialReflect) -> String {
+pub fn reflected_value_to_string(reflected: &dyn PartialReflect, full_type_names: bool) -> String {
     let reflect_ref = reflected.reflect_ref();
     match reflect_ref {
-        ReflectRef::Struct(dyn_struct) => pretty_print_reflected_struct(dyn_struct),
-        ReflectRef::TupleStruct(tuple_struct) => pretty_print_reflected_tuple_struct(tuple_struct),
-        ReflectRef::Tuple(tuple) => pretty_print_reflected_tuple(tuple),
-        ReflectRef::List(list) => pretty_print_reflected_list(list),
-        ReflectRef::Array(array) => pretty_print_reflected_array(array),
-        ReflectRef::Map(map) => pretty_print_reflected_map(map),
-        ReflectRef::Set(set) => pretty_print_reflected_set(set),
-        ReflectRef::Enum(_dyn_enum) => pretty_print_reflected_enum(_dyn_enum),
-        ReflectRef::Opaque(partial_reflect) => pretty_print_reflected_opaque(partial_reflect),
+        ReflectRef::Struct(dyn_struct) => {
+            pretty_print_reflected_struct(dyn_struct, full_type_names)
+        }
+        ReflectRef::TupleStruct(tuple_struct) => {
+            pretty_print_reflected_tuple_struct(tuple_struct, full_type_names)
+        }
+        ReflectRef::Tuple(tuple) => pretty_print_reflected_tuple(tuple, full_type_names),
+        ReflectRef::List(list) => pretty_print_reflected_list(list, full_type_names),
+        ReflectRef::Array(array) => pretty_print_reflected_array(array, full_type_names),
+        ReflectRef::Map(map) => pretty_print_reflected_map(map, full_type_names),
+        ReflectRef::Set(set) => pretty_print_reflected_set(set, full_type_names),
+        ReflectRef::Enum(dyn_enum) => pretty_print_reflected_enum(dyn_enum, full_type_names),
+        ReflectRef::Opaque(opaque_partial_reflect) => {
+            pretty_print_reflected_opaque(opaque_partial_reflect)
+        }
     }
 }
 
-pub fn pretty_print_reflected_struct(dyn_struct: &dyn Struct) -> String {
+pub fn pretty_print_reflected_struct(dyn_struct: &dyn Struct, full_type_names: bool) -> String {
     let mut result = String::new();
     let represented_type_info = dyn_struct.get_represented_type_info();
     let type_name = match represented_type_info {
@@ -108,20 +114,27 @@ pub fn pretty_print_reflected_struct(dyn_struct: &dyn Struct) -> String {
         None => "<Unknown Struct>",
     };
 
-    let short_type_name = ShortName::from(type_name);
-    result.push_str(&format!("{short_type_name} {{\n"));
+    if full_type_names {
+        result.push_str(&format!("{type_name} {{\n"));
+    } else {
+        let short_type_name = ShortName::from(type_name);
+        result.push_str(&format!("{short_type_name} {{\n"));
+    }
 
     for i in 0..dyn_struct.field_len() {
         let field_name = dyn_struct.name_at(i).unwrap_or("<Unknown Field>");
         let field_value = dyn_struct.field_at(i).unwrap();
-        let field_value_str = reflected_value_to_string(field_value);
+        let field_value_str = reflected_value_to_string(field_value, full_type_names);
         result.push_str(&format!("  {field_name}: {field_value_str},\n"));
     }
     result.push_str("}");
     result
 }
 
-pub fn pretty_print_reflected_tuple_struct(dyn_tuple_struct: &dyn TupleStruct) -> String {
+pub fn pretty_print_reflected_tuple_struct(
+    dyn_tuple_struct: &dyn TupleStruct,
+    full_type_names: bool,
+) -> String {
     let mut result = String::new();
     let represented_type_info = dyn_tuple_struct.get_represented_type_info();
     let type_name = match represented_type_info {
@@ -129,63 +142,67 @@ pub fn pretty_print_reflected_tuple_struct(dyn_tuple_struct: &dyn TupleStruct) -
         None => "<Unknown TupleStruct>",
     };
 
-    let short_type_name = ShortName::from(type_name);
-    result.push_str(&format!("{short_type_name}(\n"));
+    if full_type_names {
+        result.push_str(&format!("{type_name}(\n"));
+    } else {
+        let short_type_name = ShortName::from(type_name);
+        result.push_str(&format!("{short_type_name}(\n"));
+    }
 
     for i in 0..dyn_tuple_struct.field_len() {
         let field_value = dyn_tuple_struct.field(i).unwrap();
-        let field_value_str = reflected_value_to_string(field_value);
+        let field_value_str = reflected_value_to_string(field_value, full_type_names);
         result.push_str(&format!("  {field_value_str},\n"));
     }
     result.push_str(")");
     result
 }
 
-pub fn pretty_print_reflected_tuple(dyn_tuple: &dyn Tuple) -> String {
+pub fn pretty_print_reflected_tuple(dyn_tuple: &dyn Tuple, full_type_names: bool) -> String {
     let mut result = String::new();
     result.push_str("(\n");
 
     for i in 0..dyn_tuple.field_len() {
         let field_value = dyn_tuple.field(i).unwrap();
-        let field_value_str = reflected_value_to_string(field_value);
+        let field_value_str = reflected_value_to_string(field_value, full_type_names);
         result.push_str(&format!("  {field_value_str},\n"));
     }
     result.push_str(")");
     result
 }
 
-pub fn pretty_print_reflected_list(dyn_list: &dyn List) -> String {
+pub fn pretty_print_reflected_list(dyn_list: &dyn List, full_type_names: bool) -> String {
     let mut result = String::new();
     result.push_str("[\n");
 
     for i in 0..dyn_list.len() {
         let element = dyn_list.get(i).unwrap();
-        let element_str = reflected_value_to_string(element);
+        let element_str = reflected_value_to_string(element, full_type_names);
         result.push_str(&format!("  {element_str},\n"));
     }
     result.push_str("]");
     result
 }
 
-pub fn pretty_print_reflected_array(dyn_array: &dyn Array) -> String {
+pub fn pretty_print_reflected_array(dyn_array: &dyn Array, full_type_names: bool) -> String {
     let mut result = String::new();
     result.push_str("[\n");
 
     for i in 0..dyn_array.len() {
         let element = dyn_array.get(i).unwrap();
-        let element_str = reflected_value_to_string(element);
+        let element_str = reflected_value_to_string(element, full_type_names);
         result.push_str(&format!("  {element_str},\n"));
     }
     result.push_str("]");
     result
 }
-pub fn pretty_print_reflected_map(dyn_map: &dyn Map) -> String {
+pub fn pretty_print_reflected_map(dyn_map: &dyn Map, full_type_names: bool) -> String {
     let mut result = String::new();
     result.push_str("{\n");
 
     for (key, value) in dyn_map.iter() {
-        let key_str = reflected_value_to_string(key);
-        let value_str = reflected_value_to_string(value);
+        let key_str = reflected_value_to_string(key, full_type_names);
+        let value_str = reflected_value_to_string(value, full_type_names);
         result.push_str(&format!("  {key_str}: {value_str},\n"));
     }
 
@@ -193,12 +210,12 @@ pub fn pretty_print_reflected_map(dyn_map: &dyn Map) -> String {
     result
 }
 
-pub fn pretty_print_reflected_set(dyn_set: &dyn Set) -> String {
+pub fn pretty_print_reflected_set(dyn_set: &dyn Set, full_type_names: bool) -> String {
     let mut result = String::new();
     result.push_str("{\n");
 
     for element in dyn_set.iter() {
-        let element_str = reflected_value_to_string(element);
+        let element_str = reflected_value_to_string(element, full_type_names);
         result.push_str(&format!("  {element_str},\n"));
     }
 
@@ -206,15 +223,23 @@ pub fn pretty_print_reflected_set(dyn_set: &dyn Set) -> String {
     result
 }
 
-pub fn pretty_print_reflected_enum(dyn_enum: &dyn Enum) -> String {
+pub fn pretty_print_reflected_enum(dyn_enum: &dyn Enum, full_type_names: bool) -> String {
     let mut result = String::new();
     let type_name = match dyn_enum.get_represented_type_info() {
         Some(info) => info.type_path(),
         None => "<Unknown Enum>",
     };
-    let short_type_name = ShortName::from(type_name);
+
     let variant = dyn_enum.variant_name();
-    result.push_str(&format!("{short_type_name}::{variant}"));
+
+    if full_type_names {
+        result.push_str(&format!("{type_name}::{variant}"));
+    } else {
+        result.push_str(&format!(
+            "{short_type_name}::{variant}",
+            short_type_name = ShortName::from(type_name)
+        ));
+    }
 
     match dyn_enum.variant_type() {
         VariantType::Struct => {
@@ -222,7 +247,7 @@ pub fn pretty_print_reflected_enum(dyn_enum: &dyn Enum) -> String {
             for i in 0..dyn_enum.field_len() {
                 let field_name = dyn_enum.name_at(i).unwrap_or("<Unknown Field>");
                 let field_value = dyn_enum.field_at(i).unwrap();
-                let field_value_str = reflected_value_to_string(field_value);
+                let field_value_str = reflected_value_to_string(field_value, full_type_names);
                 result.push_str(&format!("  {field_name}: {field_value_str},\n"));
             }
             result.push_str("}");
@@ -231,7 +256,7 @@ pub fn pretty_print_reflected_enum(dyn_enum: &dyn Enum) -> String {
             result.push_str("(\n");
             for i in 0..dyn_enum.field_len() {
                 let field_value = dyn_enum.field_at(i).unwrap();
-                let field_value_str = reflected_value_to_string(field_value);
+                let field_value_str = reflected_value_to_string(field_value, full_type_names);
                 result.push_str(&format!("  {field_value_str},\n"));
             }
             result.push_str(")");

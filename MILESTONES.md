@@ -44,12 +44,16 @@
 - [x] add spawn location to `EntityInspection`
 - [x] gather and store `SpawnDetails` with more information
 
+## Basic settings
+
+- [x] add settings struct for each inspection method, allowing users to pass it in
+- [x] allow users to toggle short vs long type names
+
 ## Inspect all entities
 
 - [] add an API to let users inspect multiple entities at once
 - [] group entities by archetype similarity
 - [] add on-screen instructions to log_style_inspection example
-- [] add settings struct for each inspection method, allowing users to pass it in
 
 ## Inspector customization
 

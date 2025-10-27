@@ -6,8 +6,10 @@
 
 use bevy::prelude::*;
 use feathers_inspector::{
-    entity_inspection::InspectExtensionCommandsTrait, name_resolution::NameResolutionPlugin,
-    resource_inspection::ResourceInspectExtensionCommandsTrait,
+    component_inspection::ComponentInspectionSettings,
+    entity_inspection::InspectExtensionCommandsTrait,
+    name_resolution::NameResolutionPlugin,
+    resource_inspection::{ResourceInspectExtensionCommandsTrait, ResourceInspectionSettings},
 };
 
 fn main() {
@@ -43,7 +45,9 @@ fn inspect_entities_when_e_pressed(
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyE) {
         for entity in entities.iter() {
-            commands.entity(entity).inspect();
+            commands
+                .entity(entity)
+                .inspect(ComponentInspectionSettings::default());
         }
     }
 }
@@ -53,7 +57,9 @@ fn inspect_resource_when_r_pressed(
     mut commands: Commands,
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyR) {
-        commands.inspect_resource::<AmbientLight>();
+        commands.inspect_resource::<AmbientLight>(ResourceInspectionSettings {
+            full_type_names: true,
+        });
     }
 }
 
@@ -62,7 +68,7 @@ fn inspect_all_resources_when_a_pressed(
     mut commands: Commands,
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyA) {
-        commands.inspect_all_resources();
+        commands.inspect_all_resources(ResourceInspectionSettings::default());
     }
 }
 
@@ -73,7 +79,9 @@ fn inspect_specific_component_when_c_pressed(
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyC) {
         for entity in query.iter() {
-            commands.entity(entity).inspect_component::<Sprite>();
+            commands
+                .entity(entity)
+                .inspect_component::<Sprite>(ComponentInspectionSettings::default());
         }
     }
 }
