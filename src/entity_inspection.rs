@@ -124,6 +124,32 @@ impl Default for EntityInspectionSettings {
     }
 }
 
+/// Settings for inspecting multiple entities at once.
+#[derive(Clone, Debug)]
+pub struct MultipleEntityInspectionSettings {
+    /// Settings used when inspecting each individual entity.
+    ///
+    /// Note that the default values are not the same as [`EntityInspectionSettings::default`].
+    ///
+    /// By default, only component names are included to improve performance
+    /// and improve readability when inspecting many entities at once.
+    pub entity_settings: EntityInspectionSettings,
+}
+
+impl Default for MultipleEntityInspectionSettings {
+    fn default() -> Self {
+        Self {
+            entity_settings: EntityInspectionSettings {
+                component_settings: ComponentInspectionSettings {
+                    detail_level: ComponentDetailLevel::Names,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        }
+    }
+}
+
 /// An extension trait for inspecting entities.
 ///
 /// This is required because this crate is not part of Bevy itself.
@@ -146,11 +172,11 @@ pub trait EntityInspectExtensionTrait {
     fn inspect_multiple(
         &self,
         entities: impl ExactSizeIterator<Item = Entity>,
-        settings: EntityInspectionSettings,
+        settings: MultipleEntityInspectionSettings,
     ) -> Vec<Result<EntityInspection, EntityInspectionError>> {
         let mut inspections = Vec::with_capacity(entities.len());
         for entity in entities {
-            let inspection = self.inspect(entity, settings.clone());
+            let inspection = self.inspect(entity, settings.entity_settings.clone());
             inspections.push(inspection);
         }
         inspections

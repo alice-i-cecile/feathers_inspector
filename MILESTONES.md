@@ -53,7 +53,7 @@
 
 - [x] add an API to let users inspect multiple entities at once
 - [x] add dedicated settings struct for entity inspection
-- [ ] add dedicated settings struct for multiple entity inspection
+- [x] add dedicated settings struct for multiple entity inspection
 - [] group entities by archetype similarity
 - [] add on-screen instructions to log_style_inspection example
 

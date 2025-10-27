@@ -9,6 +9,7 @@ use feathers_inspector::{
     component_inspection::{ComponentDetailLevel, ComponentInspectionSettings},
     entity_inspection::{
         EntityInspectExtensionTrait, EntityInspectionSettings, InspectExtensionCommandsTrait,
+        MultipleEntityInspectionSettings,
     },
     name_resolution::NameResolutionPlugin,
     resource_inspection::{ResourceInspectExtensionCommandsTrait, ResourceInspectionSettings},
@@ -63,16 +64,8 @@ fn inspect_all_entities_when_space_pressed(world: &World) {
         let mut entity_query = world.try_query::<Entity>().unwrap();
         let entities = entity_query.iter(world);
 
-        let inspection_results = world.inspect_multiple(
-            entities,
-            EntityInspectionSettings {
-                include_components: true,
-                component_settings: ComponentInspectionSettings {
-                    detail_level: ComponentDetailLevel::Names,
-                    full_type_names: false,
-                },
-            },
-        );
+        let inspection_results =
+            world.inspect_multiple(entities, MultipleEntityInspectionSettings::default());
 
         for inspection in inspection_results {
             match inspection {
