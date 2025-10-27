@@ -24,7 +24,7 @@ pub struct ComponentInspection {
     ///
     /// This information is gathered via reflection,
     /// and used for debugging purposes.
-    pub value: String,
+    pub value: Option<String>,
     /// Is this component "name-defining"?
     ///
     /// If so, it will be prioritized for [name resolution](crate::name_resolution).
@@ -47,7 +47,13 @@ pub struct ComponentInspection {
 
 impl Display for ComponentInspection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}", self.name.shortname(), self.value)?;
+        let shortname = self.name.shortname();
+
+        match &self.value {
+            Some(value) => write!(f, "{shortname}: {value}")?,
+            None => write!(f, "{shortname}")?,
+        }
+
         Ok(())
     }
 }
@@ -66,15 +72,37 @@ pub enum ComponentInspectionError {
 /// Settings for inspecting a component.
 #[derive(Clone, Copy, Debug)]
 pub struct ComponentInspectionSettings {
+    /// How much detail to include when inspecting component values.
+    ///
+    /// Defaults to [`ComponentDetailLevel::Values`].
+    pub detail_level: ComponentDetailLevel,
     /// Should full type names be used when displaying component values?
     ///
     /// Defaults to `false`.
     pub full_type_names: bool,
 }
 
+/// The amount of component information to include when inspecting an entity.
+///
+/// This impacts the values held in the `components` field of [`EntityInspection`](crate::entity_inspection::EntityInspection),
+/// or inside of [`ComponentInspection`] if inspecting a single component.
+///
+/// Gathering full component values can be expensive,
+/// so this setting allows users to limit the amount of information gathered
+/// when inspecting many entities or components at once.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum ComponentDetailLevel {
+    /// Only component type names are provided.
+    Names,
+    /// Full component information, including values, is provided.
+    #[default]
+    Values,
+}
+
 impl Default for ComponentInspectionSettings {
     fn default() -> Self {
         Self {
+            detail_level: ComponentDetailLevel::Values,
             full_type_names: false,
         }
     }

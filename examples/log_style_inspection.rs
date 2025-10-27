@@ -6,7 +6,7 @@
 
 use bevy::prelude::*;
 use feathers_inspector::{
-    component_inspection::ComponentInspectionSettings,
+    component_inspection::{ComponentDetailLevel, ComponentInspectionSettings},
     entity_inspection::{
         EntityInspectExtensionTrait, EntityInspectionSettings, InspectExtensionCommandsTrait,
     },
@@ -66,8 +66,9 @@ fn inspect_all_entities_when_space_pressed(world: &World) {
         let inspection_results = world.inspect_multiple(
             entities,
             EntityInspectionSettings {
-                include_components: false,
+                include_components: true,
                 component_settings: ComponentInspectionSettings {
+                    detail_level: ComponentDetailLevel::Names,
                     full_type_names: false,
                 },
             },

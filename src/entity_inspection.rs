@@ -20,7 +20,8 @@ use thiserror::Error;
 
 use crate::{
     component_inspection::{
-        ComponentInspection, ComponentInspectionError, ComponentInspectionSettings,
+        ComponentDetailLevel, ComponentInspection, ComponentInspectionError,
+        ComponentInspectionSettings,
     },
     name_resolution,
     reflection_tools::{get_reflected_component_ref, reflected_value_to_string},
@@ -66,10 +67,8 @@ impl Display for EntityInspection {
             );
         }
 
-        display_str.push_str("\nComponents:");
-
         if let Some(components) = &self.components {
-            display_str.push_str("Components:");
+            display_str.push_str("\nComponents:");
             for component in components {
                 display_str.push_str(&format!("\n- {}", component));
             }
@@ -105,9 +104,12 @@ impl From<QueryEntityError> for EntityInspectionError {
 /// Settings for inspecting an individual entity.
 #[derive(Clone, Debug)]
 pub struct EntityInspectionSettings {
-    /// Should component information be provided?
+    /// Should component information be included in the inspection?
     ///
-    /// Defaults to true.
+    /// Note that component-based name resolution will not work if components are not included.
+    ///
+    /// The detail level of component information can be further configured
+    /// using [`ComponentInspectionSettings::detail_level`].
     pub include_components: bool,
     /// Settings used when inspecting components on the entity.
     pub component_settings: ComponentInspectionSettings,
@@ -246,12 +248,16 @@ impl EntityInspectExtensionTrait for World {
             None => None,
         };
 
-        let value = match type_id {
-            Some(type_id) => match get_reflected_component_ref(&self, entity, type_id) {
-                Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
-                Err(err) => format!("<Unreflectable: {}>", err),
-            },
-            None => "Dynamic Type".to_string(),
+        let value = if settings.detail_level == ComponentDetailLevel::Names {
+            None
+        } else {
+            Some(match type_id {
+                Some(type_id) => match get_reflected_component_ref(&self, entity, type_id) {
+                    Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
+                    Err(err) => format!("<Unreflectable: {}>", err),
+                },
+                None => "Dynamic Type".to_string(),
+            })
         };
 
         let name_resolution_registry = self.resource::<name_resolution::NameResolutionRegistry>();
