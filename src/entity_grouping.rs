@@ -114,9 +114,9 @@ struct Cluster {
 /// Holds values for cluster distance evaluation and merging.
 #[derive(Clone, Copy)]
 struct ClusterPairMetadata {
-    /// The `Cluster` with the lower archetype index.
+    /// The `Cluster` with the lower vector index.
     low: usize,
-    /// The `Cluster` with the lower archetype index.
+    /// The `Cluster` with the higher vector index.
     high: usize,
     /// The distance between the two `Cluster`s.
     distance: f32,
