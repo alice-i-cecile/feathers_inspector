@@ -169,7 +169,7 @@ fn clustering_pass(clusters: &mut Vec<Cluster>) {
 }
 
 /// Finds the closest pair among the given `clusters`.
-fn find_closest_pair(clusters: &mut Vec<Cluster>) -> ClusterPairMetadata {
+fn find_closest_pair(clusters: &[Cluster]) -> ClusterPairMetadata {
     const EPSILON: f32 = 1e-5;
     let mut nearest_pair = ClusterPairMetadata {
         low: 0,
