@@ -5,6 +5,7 @@ use bevy::ecs::system::SystemIdMarker;
 use bevy::light::{FogVolume, IrradianceVolume, SunDisk};
 use bevy::pbr::wireframe::Wireframe;
 use bevy::pbr::{Atmosphere, Lightmap};
+use bevy::picking::pointer::PointerId;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use bevy::window::Monitor;
@@ -143,6 +144,7 @@ impl Plugin for NameResolutionPlugin {
         name_resolution_registry.register_name_defining_type::<Window>(-10);
         name_resolution_registry.register_name_defining_type::<Monitor>(-10);
         name_resolution_registry.register_name_defining_type::<Gamepad>(-10);
+        name_resolution_registry.register_name_defining_type::<PointerId>(-10);
 
         // UI
         name_resolution_registry.register_name_defining_type::<Node>(-20);
