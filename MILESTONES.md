@@ -58,9 +58,8 @@
 
 ## Entity sorting
 
-- [] display entities of the same archetype together
-- [] sort archetypes by similarity
-- [] exclude sparse-set components and ensure relatively stable sorting
+- [x] display entities of the same archetype together
+- [x] sort archetypes by similarity
 
 ## Inspector customization
 
@@ -136,4 +135,7 @@
   - Lots of work
 - Spawn, despawn, insert, remove components, reparenting...
   - Really wants value editing to be useful
+- Advanced entity sorting
+  - Exclude sparse-set components and ensure relatively stable sorting
+  - Persist entity clusters and incrementally recompute
 

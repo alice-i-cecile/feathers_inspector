@@ -122,7 +122,7 @@ struct ClusterPairMetadata {
     distance: f32,
 }
 
-/// Generates an `EntityGrouping` via agglomerative clustering.
+/// Generates an [`EntityGrouping`] via agglomerative clustering.
 fn cluster_archetypes(
     entities_by_archetype: HashMap<ArchetypeId, Vec<Entity>>,
     components_by_archetype: HashMap<ArchetypeId, HashSet<ComponentId>>,
@@ -134,7 +134,7 @@ fn cluster_archetypes(
     clusters.pop().expect("`clusters.len() == 1`").group
 }
 
-/// Creates one `Cluster` per archetype.
+/// Creates one [`Cluster`] per archetype.
 fn seed_clusters(
     mut entities_by_archetype: HashMap<ArchetypeId, Vec<Entity>>,
     components_by_archetype: HashMap<ArchetypeId, HashSet<ComponentId>>,
@@ -162,7 +162,7 @@ fn seed_clusters(
     clusters
 }
 
-/// Finds and merges the pair of `Cluster`s with the highest similarity.
+/// Finds and merges the pair of [`Cluster`]s with the highest similarity.
 fn clustering_pass(clusters: &mut Vec<Cluster>) {
     let nearest_pair = find_closest_pair(clusters);
     merge_clusters(clusters, nearest_pair);
