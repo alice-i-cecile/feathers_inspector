@@ -63,8 +63,11 @@
 
 ## Inspector customization
 
-- [] `InspectorSettings` trait for reflected type information
-- [] customize display output based on `InspectorSettings`
+- [x] define a stub `Inspectable` trait for reflected type information
+- [] customize the precision, increment and range of numbers
+- [] hide fields from the inspector
+- [] customize display output based on `Inspectable`
+- [] add a derive macro
 
 ## Filtering and search
 
