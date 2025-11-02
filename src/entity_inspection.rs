@@ -24,7 +24,7 @@ use crate::{
         ComponentInspectionSettings,
     },
     entity_grouping::EntityGrouping,
-    name_resolution,
+    entity_name_resolution,
     reflection_tools::{get_reflected_component_ref, reflected_value_to_string},
 };
 
@@ -316,7 +316,7 @@ impl EntityInspectExtensionTrait for World {
         });
 
         let name_definition_priority = type_id.and_then(|type_id| {
-            self.resource::<name_resolution::NameResolutionRegistry>()
+            self.resource::<entity_name_resolution::NameResolutionRegistry>()
                 .get_priority_by_type_id(type_id)
         });
 

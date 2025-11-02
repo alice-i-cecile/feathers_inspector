@@ -11,7 +11,7 @@ use feathers_inspector::{
         EntityInspectExtensionTrait, EntityInspectionSettings, InspectExtensionCommandsTrait,
         MultipleEntityInspectionSettings,
     },
-    name_resolution::NameResolutionPlugin,
+    entity_name_resolution::NameResolutionPlugin,
     resource_inspection::{ResourceInspectExtensionCommandsTrait, ResourceInspectionSettings},
 };
 

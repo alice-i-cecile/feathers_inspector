@@ -5,6 +5,6 @@
 pub mod component_inspection;
 pub mod entity_grouping;
 pub mod entity_inspection;
-pub mod name_resolution;
+pub mod entity_name_resolution;
 pub mod reflection_tools;
 pub mod resource_inspection;
