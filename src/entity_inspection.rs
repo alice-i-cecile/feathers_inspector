@@ -132,7 +132,19 @@ pub struct MultipleEntityInspectionSettings {
     ///
     /// Only entities with names containing this substring will be inspected.
     /// If `None`, all entities will be inspected.
+    ///
+    /// Defaults to `None`.
     pub name_filter: Option<String>,
+    /// Components that must be present on each entity to be inspected.
+    /// If empty, no component presence filtering will be applied.
+    ///
+    /// Defaults to an empty list.
+    pub with_component_filter: Vec<ComponentId>,
+    /// Components that must not be present on each entity to be inspected.
+    /// If empty, no component absence filtering will be applied.
+    ///
+    /// Defaults to an empty list.
+    pub without_component_filter: Vec<ComponentId>,
     /// Settings used when inspecting each individual entity.
     ///
     /// Note that the default values are not the same as [`EntityInspectionSettings::default`].
@@ -146,6 +158,8 @@ impl Default for MultipleEntityInspectionSettings {
     fn default() -> Self {
         Self {
             name_filter: None,
+            with_component_filter: Vec::new(),
+            without_component_filter: Vec::new(),
             entity_settings: EntityInspectionSettings {
                 component_settings: ComponentInspectionSettings {
                     detail_level: ComponentDetailLevel::Names,
@@ -263,13 +277,7 @@ impl EntityInspectExtensionTrait for World {
             let entity_grouping = EntityGrouping::generate(self, entities);
             let mut entity_list = entity_grouping.flatten();
 
-            if let Some(name_filter) = settings.name_filter {
-                entity_list.retain(|entity| {
-                    self.get::<Name>(*entity)
-                        .map(|name| name.contains(&name_filter))
-                        .unwrap_or(false)
-                });
-            }
+            filter_entity_list_for_inspection(self, &mut entity_list, &settings);
 
             let mut inspections = Vec::with_capacity(entity_list.len());
             for entity in entity_list {
@@ -374,4 +382,52 @@ impl InspectExtensionCommandsTrait for EntityCommands<'_> {
             }
         });
     }
+}
+
+/// Filters the provided entity list in-place according to the provided [`MultipleEntityInspectionSettings`].
+///
+/// Calls [`does_entity_match_filter_for_inspection`] for each entity.
+// PERF: this might be faster if you build a dynamic query instead of checking each entity individually.
+pub fn filter_entity_list_for_inspection(
+    world: &World,
+    entities: &mut Vec<Entity>,
+    settings: &MultipleEntityInspectionSettings,
+) {
+    entities.retain(|entity| does_entity_match_inspection_filter(world, *entity, settings));
+}
+
+/// Checks if a single entity matches the provided [`MultipleEntityInspectionSettings`].
+fn does_entity_match_inspection_filter(
+    world: &World,
+    entity: Entity,
+    settings: &MultipleEntityInspectionSettings,
+) -> bool {
+    let entity_ref = match world.get_entity(entity) {
+        Ok(entity_ref) => entity_ref,
+        Err(_) => return false,
+    };
+
+    if let Some(name_filter) = &settings.name_filter {
+        let name_matches = world
+            .get::<Name>(entity)
+            .map(|name| name.contains(name_filter))
+            .unwrap_or(false);
+        if !name_matches {
+            return false;
+        }
+    }
+
+    for component_id in &settings.with_component_filter {
+        if !entity_ref.contains_id(*component_id) {
+            return false;
+        }
+    }
+
+    for component_id in &settings.without_component_filter {
+        if entity_ref.contains_id(*component_id) {
+            return false;
+        }
+    }
+
+    true
 }

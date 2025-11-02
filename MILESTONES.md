@@ -68,10 +68,16 @@
 
 ## Filtering and search
 
-- [] allow users to pass in a search parameter to settings for relevant inspection methods
-- [] search by component presence
-- [] search by component absence
+- [x] allow users to pass in a search parameter to settings for relevant inspection methods
+- [x] search by component presence
+- [x] search by component absence
 - [x] search by name
+
+## Text-only editing
+
+- [] Add a nice way to fuzzily map component / resource names to a `ComponentId`
+- [] Expose a convenient mutable reflection API: `get_reflected_component_mut` / `get_reflected_resource_mut`
+- [] Add an example for how to turn reflected strings into value changes
 
 ## BRP inspection
 
@@ -130,7 +136,7 @@
 
 ## Out-of scope
 
-- Value editing
+- GUI value editing
   - Needs text input
   - Lots of work
 - Spawn, despawn, insert, remove components, reparenting...
@@ -138,4 +144,6 @@
 - Advanced entity sorting
   - Exclude sparse-set components and ensure relatively stable sorting
   - Persist entity clusters and incrementally recompute
+- GUI-based search
+  - Requires text input to work well
 
