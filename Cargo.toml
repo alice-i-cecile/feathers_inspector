@@ -17,6 +17,7 @@ opt-level = 3
 
 [dependencies]
 bevy = { version = "0.17", features = ["track_location"] }
+strsim = "0.11.1"
 thiserror = "2.0.17"
 
 # These lints may be important signals about code quality, but normal Bevy code
