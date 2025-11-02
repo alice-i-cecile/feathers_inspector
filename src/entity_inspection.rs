@@ -128,6 +128,11 @@ impl Default for EntityInspectionSettings {
 /// Settings for inspecting multiple entities at once.
 #[derive(Clone, Debug)]
 pub struct MultipleEntityInspectionSettings {
+    /// A string to search for within entity names.
+    ///
+    /// Only entities with names containing this substring will be inspected.
+    /// If `None`, all entities will be inspected.
+    pub name_filter: Option<String>,
     /// Settings used when inspecting each individual entity.
     ///
     /// Note that the default values are not the same as [`EntityInspectionSettings::default`].
@@ -140,6 +145,7 @@ pub struct MultipleEntityInspectionSettings {
 impl Default for MultipleEntityInspectionSettings {
     fn default() -> Self {
         Self {
+            name_filter: None,
             entity_settings: EntityInspectionSettings {
                 component_settings: ComponentInspectionSettings {
                     detail_level: ComponentDetailLevel::Names,
@@ -255,7 +261,15 @@ impl EntityInspectExtensionTrait for World {
     ) -> Vec<Result<EntityInspection, EntityInspectionError>> {
         {
             let entity_grouping = EntityGrouping::generate(self, entities);
-            let entity_list = entity_grouping.flatten();
+            let mut entity_list = entity_grouping.flatten();
+
+            if let Some(name_filter) = settings.name_filter {
+                entity_list.retain(|entity| {
+                    self.get::<Name>(*entity)
+                        .map(|name| name.contains(&name_filter))
+                        .unwrap_or(false)
+                });
+            }
 
             let mut inspections = Vec::with_capacity(entity_list.len());
             for entity in entity_list {

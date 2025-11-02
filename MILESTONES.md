@@ -71,7 +71,7 @@
 - [] allow users to pass in a search parameter to settings for relevant inspection methods
 - [] search by component presence
 - [] search by component absence
-- [] search by name
+- [x] search by name
 
 ## BRP inspection
 
