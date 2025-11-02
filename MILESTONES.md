@@ -61,7 +61,7 @@
 - [x] display entities of the same archetype together
 - [x] sort archetypes by similarity
 
-## Inspector customization
+## Tweak inspector output for your type
 
 - [x] define a stub `Inspectable` trait for reflected type information
 - [] customize the precision, increment and range of numbers
@@ -81,6 +81,15 @@
 - [x] Add a nice way to fuzzily map component / resource names to a `ComponentId`
 - [x] Expose a convenient mutable reflection API: `get_reflected_component_mut` / `get_reflected_resource_mut`
 - [] Add an example for how to turn reflected strings into value changes
+
+## Component metadata
+
+- [] Add an API to get more information about resource / component types in general
+  - [] Full path
+  - [] Reflected docs
+  - [] How many entities have this component
+- [] Optionally compute summary stats about component values
+- [] Add this information when inspecting resources
 
 ## BRP inspection
 
