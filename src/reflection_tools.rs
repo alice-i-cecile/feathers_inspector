@@ -54,6 +54,33 @@ pub fn get_reflected_resource_ref(
     Ok(reflected)
 }
 
+/// Gets a reflected mutable reference to a resource from the world.
+// This should be a method on `World` once upstreamed.
+pub fn get_reflected_resource_mut<'w>(
+    world: &'w mut World,
+    type_id: TypeId,
+) -> Result<Mut<'w, dyn Reflect>, ReflectionFetchError> {
+    let type_registry = world.resource::<AppTypeRegistry>();
+    let type_registry_read_lock = type_registry.read();
+    let Some(type_registration) = type_registry_read_lock.get(type_id) else {
+        return Err(ReflectionFetchError::NotRegistered(type_id));
+    };
+
+    // We must explicitly drop the read lock in order to acquire a mutable borrow of the world.
+    // To do this, we must clone the `TypeRegistration` that we need.
+    let type_registration = type_registration.clone();
+    drop(type_registry_read_lock);
+
+    let Some(reflect_resource) = type_registration.data::<ReflectResource>() else {
+        return Err(ReflectionFetchError::MissingReflectTrait(type_id));
+    };
+
+    let Ok(reflected) = reflect_resource.reflect_mut(world) else {
+        return Err(ReflectionFetchError::ReflectionRetrievalFailed(type_id));
+    };
+    Ok(reflected)
+}
+
 /// Gets a reflected reference to a component from an entity in the world.
 // This should be a method on `EntityRef` once upstreamed.
 // We should be able to access the AppTypeRegistry from the EntityRef directly safely
@@ -76,6 +103,37 @@ pub fn get_reflected_component_ref(
     };
 
     let Some(reflected) = reflect_component.reflect(entity_ref) else {
+        return Err(ReflectionFetchError::ReflectionRetrievalFailed(type_id));
+    };
+
+    Ok(reflected)
+}
+
+/// Gets a reflected mutable reference to a component from an entity in the world.
+// This should be a method on `EntityMut` once upstreamed.
+pub fn get_reflected_component_mut<'w>(
+    world: &'w mut World,
+    entity: Entity,
+    type_id: TypeId,
+) -> Result<Mut<'w, dyn Reflect>, ReflectionFetchError> {
+    let app_type_registry = world.resource::<AppTypeRegistry>();
+
+    let type_registry_read_lock = app_type_registry.read();
+    let Some(type_registration) = type_registry_read_lock.get(type_id) else {
+        return Err(ReflectionFetchError::NotRegistered(type_id));
+    };
+
+    // We must explicitly drop the read lock in order to acquire a mutable borrow of the world.
+    // To do this, we must clone the `TypeRegistration` that we need.
+    let type_registration = type_registration.clone();
+    drop(type_registry_read_lock);
+
+    let Some(reflect_component) = type_registration.data::<ReflectComponent>() else {
+        return Err(ReflectionFetchError::MissingReflectTrait(type_id));
+    };
+
+    let entity_mut = world.entity_mut(entity);
+    let Some(reflected) = reflect_component.reflect_mut(entity_mut) else {
         return Err(ReflectionFetchError::ReflectionRetrievalFailed(type_id));
     };
 
