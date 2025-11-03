@@ -141,7 +141,8 @@ impl ComponentTypeMetadata {
 
         let name_definition_priority = match type_id {
             Some(type_id) => world
-                .resource::<NameResolutionRegistry>()
+                .get_resource::<NameResolutionRegistry>()
+                .expect("`NameResolutionPlugin` must be present")
                 .get_priority_by_type_id(type_id),
             None => None,
         };
