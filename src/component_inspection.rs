@@ -140,7 +140,7 @@ impl ComponentMetadataMap {
     ///
     /// This can be useful when you want to start with an empty map,
     /// and only populate it with specific component metadata as needed.
-    pub fn empty() -> Self {
+    pub const fn empty() -> Self {
         Self {
             map: HashMap::new(),
         }
