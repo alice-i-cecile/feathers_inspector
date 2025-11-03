@@ -220,10 +220,10 @@ impl ComponentMetadataMap {
     pub fn update(&mut self, world: &World) {
         for component_info in world.components().iter_registered() {
             let component_id = component_info.id();
-            if !self.map.contains_key(&component_id) {
-                if let Ok(metadata) = ComponentTypeMetadata::new(world, component_id) {
-                    self.map.insert(component_id, metadata);
-                }
+            if !self.map.contains_key(&component_id)
+                && let Ok(metadata) = ComponentTypeMetadata::new(world, component_id)
+            {
+                self.map.insert(component_id, metadata);
             }
         }
     }
