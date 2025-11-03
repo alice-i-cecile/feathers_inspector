@@ -290,8 +290,8 @@ impl EntityInspectExtensionTrait for World {
                             metadata,
                             settings.component_settings,
                         ),
-                        None => Err(ComponentInspectionError::ComponentNotRegistered(
-                            "Unknown ComponentId",
+                        None => Err(ComponentInspectionError::ComponentIdNotRegistered(
+                            *component_id,
                         )),
                     })
                     .filter_map(Result::ok)

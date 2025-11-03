@@ -78,7 +78,7 @@ impl ComponentTypeMetadata {
     /// Extracts the required metadata from the world for the given component ID.
     pub fn new(world: &World, component_id: ComponentId) -> Result<Self, ComponentInspectionError> {
         let component_info = world.components().get_info(component_id).ok_or(
-            ComponentInspectionError::ComponentNotRegistered("Unknown ComponentId"),
+            ComponentInspectionError::ComponentIdNotRegistered(component_id),
         )?;
 
         let name = component_info.name();
@@ -191,6 +191,9 @@ pub enum ComponentInspectionError {
     /// The component type was not registered in the world.
     #[error("Component type {0} not registered in world")]
     ComponentNotRegistered(&'static str),
+    /// The component ID provided was not registered in the world.
+    #[error("ComponentId {0:?} not registered in world")]
+    ComponentIdNotRegistered(ComponentId),
 }
 
 /// Settings for inspecting a component.
