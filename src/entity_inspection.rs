@@ -326,7 +326,7 @@ impl EntityInspectExtensionTrait for World {
             let mut inspections = Vec::with_capacity(entity_list.len());
             for entity in entity_list {
                 let inspection =
-                    self.inspect_cached(entity, &settings.entity_settings, &metadata_map);
+                    self.inspect_cached(entity, &settings.entity_settings, metadata_map);
                 inspections.push(inspection);
             }
             inspections
