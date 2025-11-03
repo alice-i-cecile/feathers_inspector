@@ -91,8 +91,8 @@
   - [] Reflected docs
   - [] How many entities have this component
 - [] Report the size in bytes of:
-  - [] Individual components
-  - [] Resources
+  - [x] Individual components
+  - [x] Resources
   - [] Entities
 - [] Report interesting metadata for resources in `ResourceInspection`
 - [] Optionally compute summary stats about component values

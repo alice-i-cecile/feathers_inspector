@@ -1,5 +1,6 @@
 //! Types and traits for inspecting Bevy resources.
 
+use crate::memory_size::MemorySize;
 use crate::reflection_tools::{get_reflected_resource_ref, reflected_value_to_string};
 use bevy::reflect::TypeRegistration;
 use bevy::{ecs::component::ComponentId, prelude::*};
@@ -26,6 +27,10 @@ pub struct ResourceInspection {
     ///
     /// Note that dynamic types will not have a [`TypeId`].
     pub type_id: Option<TypeId>,
+    /// The size of the resource in memory.
+    ///
+    /// This is computed using [`core::alloc::size_of_val`], and requires reflection of the resource value.
+    pub memory_size: Option<MemorySize>,
     /// The type information of the resource.
     ///
     /// This contains metadata about the resource's type,
@@ -41,7 +46,10 @@ pub struct ResourceInspection {
 impl Display for ResourceInspection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let short_name = self.name.shortname();
-        write!(f, "{}: {}", short_name, self.value)?;
+        match &self.memory_size {
+            Some(size) => write!(f, "{} ({}): {}", short_name, size, self.value)?,
+            None => write!(f, "{}: {}", short_name, self.value)?,
+        }
 
         Ok(())
     }
@@ -131,12 +139,15 @@ impl ResourceInspectExtensionTrait for World {
             None => None,
         };
 
-        let value = match type_id {
+        let (value, memory_size) = match type_id {
             Some(type_id) => match get_reflected_resource_ref(self, type_id) {
-                Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
-                Err(err) => format!("<Unreflectable: {}>", err),
+                Ok(reflected) => (
+                    reflected_value_to_string(reflected, settings.full_type_names),
+                    Some(MemorySize::new(size_of_val(reflected))),
+                ),
+                Err(err) => (format!("<Unreflectable: {}>", err), None),
             },
-            None => "Dynamic Type".to_string(),
+            None => ("Dynamic Type".to_string(), None),
         };
 
         Ok(ResourceInspection {
@@ -144,6 +155,7 @@ impl ResourceInspectExtensionTrait for World {
             name,
             value,
             type_id,
+            memory_size,
             type_registration,
         })
     }
