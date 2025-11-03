@@ -346,20 +346,29 @@ impl EntityInspectExtensionTrait for World {
 
         let name = component_info.name();
 
-        let value = (settings.detail_level != ComponentDetailLevel::Names).then(|| match metadata
-            .type_id
-        {
-            Some(type_id) => match get_reflected_component_ref(self, entity, type_id) {
-                Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
-                Err(err) => format!("<Unreflectable: {}>", err),
-            },
-            None => "Dynamic Type".to_string(),
-        });
+        let (value, size_bytes) = if settings.detail_level == ComponentDetailLevel::Names {
+            (None, None)
+        } else {
+            match metadata.type_id {
+                Some(type_id) => match get_reflected_component_ref(self, entity, type_id) {
+                    Ok(reflected) => (
+                        Some(reflected_value_to_string(
+                            reflected,
+                            settings.full_type_names,
+                        )),
+                        Some(size_of_val(reflected)),
+                    ),
+                    Err(err) => (Some(format!("<Unreflectable: {}>", err)), None),
+                },
+                None => (Some("Dynamic Type".to_string()), None),
+            }
+        };
 
         Ok(ComponentInspection {
             entity,
             component_id,
             name,
+            size_bytes,
             value,
         })
     }

@@ -28,6 +28,15 @@ pub struct ComponentInspection {
     ///
     /// This is duplicated from the metadata for convenience and [`Display`] printing.
     pub name: DebugName,
+    /// The size, in bytes, of the component value.
+    ///
+    /// Note that this may differ from the size of the component type
+    /// if the component is a dynamically-sized type: heap-allocated data is not included.
+    ///
+    /// Computing this value requires reflection of the component value.
+    /// As a result, it may be `None` if the component type is not reflected and registered,
+    /// or if [`ComponentDetailLevel::Names`] was specified when inspecting the component.
+    pub size_bytes: Option<usize>,
     /// The value of the component as a string.
     ///
     /// This information is gathered via reflection,
