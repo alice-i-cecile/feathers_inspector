@@ -82,7 +82,8 @@ pub fn get_reflected_resource_mut<'w>(
 }
 
 /// Gets a reflected reference to a component from an entity in the world.
-// This should be a method on `EntityRef` once upstreamed.
+// This should be a method on `EntityRef` once upstreamed,
+// and `World::get_reflect_mut` should be removed.
 // We should be able to access the AppTypeRegistry from the EntityRef directly safely
 // once upstreamed by using private world access tools.
 pub fn get_reflected_component_ref(
@@ -110,7 +111,8 @@ pub fn get_reflected_component_ref(
 }
 
 /// Gets a reflected mutable reference to a component from an entity in the world.
-// This should be a method on `EntityMut` once upstreamed.
+// This should be a method on `EntityMut` once upstreamed,
+// and `World::get_reflect_mut` should be removed.
 pub fn get_reflected_component_mut<'w>(
     world: &'w mut World,
     entity: Entity,
