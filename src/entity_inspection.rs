@@ -35,6 +35,15 @@ pub struct EntityInspection {
     pub entity: Entity,
     /// The name of the entity, if any.
     pub name: Option<Name>,
+    /// The total size of the entity in memory.
+    ///
+    /// This is computed as the sum of the sizes of all its components,
+    /// and is likely to be an underestimate as non-reflected components
+    /// will not contribute to the total size.
+    ///
+    /// If [`include_components`](EntityInspectionSettings::include_components) is false,
+    /// this will always be [`None`].
+    pub total_memory_size: Option<MemorySize>,
     /// The components on the entity, in inspection form.
     pub components: Option<Vec<ComponentInspection>>,
     /// Information about how this entity was spawned.
@@ -50,6 +59,9 @@ impl Display for EntityInspection {
             None => "Entity",
         };
         display_str.push_str(&format!("{name_str} ({})", self.entity));
+        if let Some(total_size) = &self.total_memory_size {
+            display_str.push_str(&format!("\nMemory Size: {}", total_size));
+        }
 
         let maybe_location = &self.spawn_details.spawned_by();
         let tick = &self.spawn_details.spawn_tick();
@@ -278,33 +290,40 @@ impl EntityInspectExtensionTrait for World {
         // Temporary binding to avoid dropping borrow
         let entity_ref = self.entity(entity);
 
-        let components = if settings.include_components {
-            Some(
-                entity_ref
-                    .archetype()
-                    .components()
-                    .iter()
-                    .map(|component_id| match metadata_map.get(component_id) {
-                        Some(metadata) => self.inspect_component_by_id(
-                            *component_id,
-                            entity,
-                            metadata,
-                            settings.component_settings,
-                        ),
-                        None => Err(ComponentInspectionError::ComponentIdNotRegistered(
-                            *component_id,
-                        )),
-                    })
-                    .filter_map(Result::ok)
-                    .collect(),
-            )
+        let (components, total_memory_size) = if settings.include_components {
+            let components: Vec<ComponentInspection> = entity_ref
+                .archetype()
+                .components()
+                .iter()
+                .map(|component_id| match metadata_map.get(component_id) {
+                    Some(metadata) => self.inspect_component_by_id(
+                        *component_id,
+                        entity,
+                        metadata,
+                        settings.component_settings,
+                    ),
+                    None => Err(ComponentInspectionError::ComponentIdNotRegistered(
+                        *component_id,
+                    )),
+                })
+                .filter_map(Result::ok)
+                .collect();
+
+            let total_bytes = components
+                .iter()
+                .filter_map(|comp| comp.memory_size.as_ref())
+                .fold(0usize, |acc, size| acc + size.as_bytes());
+            let total_memory_size = MemorySize::new(total_bytes);
+
+            (Some(components), Some(total_memory_size))
         } else {
-            None
+            (None, None)
         };
 
         Ok(EntityInspection {
             entity,
             name,
+            total_memory_size,
             components,
             spawn_details,
         })

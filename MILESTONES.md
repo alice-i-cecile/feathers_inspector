@@ -90,10 +90,10 @@
   - [x] Full path
   - [] Reflected docs
   - [] How many entities have this component
-- [] Report the size in bytes of:
+- [x] Report the size in bytes of:
   - [x] Individual components
   - [x] Resources
-  - [] Entities
+  - [x] Entities
 - [] Report interesting metadata for resources in `ResourceInspection`
 - [] Optionally compute summary stats about component values
 - [] Add this information when inspecting resources
