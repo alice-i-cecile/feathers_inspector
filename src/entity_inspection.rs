@@ -21,10 +21,9 @@ use thiserror::Error;
 use crate::{
     component_inspection::{
         ComponentDetailLevel, ComponentInspection, ComponentInspectionError,
-        ComponentInspectionSettings,
+        ComponentInspectionSettings, ComponentMetadataMap, ComponentTypeMetadata,
     },
     entity_grouping::EntityGrouping,
-    entity_name_resolution,
     reflection_tools::{get_reflected_component_ref, reflected_value_to_string},
 };
 
@@ -45,12 +44,11 @@ impl Display for EntityInspection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut display_str = String::new();
 
-        // Name and entity ID
-        display_str.push_str(&format!(
-            "{} ({})",
-            self.resolve_name().unwrap_or("Entity".to_string()),
-            self.entity
-        ));
+        let name_str = match &self.name {
+            Some(name) => name.as_str(),
+            None => "Entity",
+        };
+        display_str.push_str(&format!("{name_str} ({})", self.entity));
 
         let maybe_location = &self.spawn_details.spawned_by();
         let tick = &self.spawn_details.spawn_tick();
@@ -189,11 +187,30 @@ pub trait EntityInspectExtensionTrait {
         settings: EntityInspectionSettings,
     ) -> Result<EntityInspection, EntityInspectionError>;
 
+    /// Inspects the provided entity, using cached [`ComponentTypeMetadata`] for component type information.
+    ///
+    /// This method should be preferred when inspecting many entities,
+    /// as it avoids re-computing component type metadata for each entity.
+    fn inspect_cached(
+        &self,
+        entity: Entity,
+        settings: &EntityInspectionSettings,
+        metadata_map: &ComponentMetadataMap,
+    ) -> Result<EntityInspection, EntityInspectionError>;
+
     /// Inspects multiple entities.
+    ///
+    /// The metadata_map parameter is mutable to allow caching of component metadata
+    /// as needed during the inspection process. Any previously cached metadata will be reused,
+    /// while new metadata will be added to the map for future use.
+    ///
+    /// If you need to update the metadata of component types between inspections,
+    /// you should clear or modify the `metadata_map` before calling this method.
     fn inspect_multiple(
         &self,
         entities: impl ExactSizeIterator<Item = Entity>,
         settings: MultipleEntityInspectionSettings,
+        metadata_map: &mut ComponentMetadataMap,
     ) -> Vec<Result<EntityInspection, EntityInspectionError>>;
 
     /// Inspects the component corresponding to the provided [`ComponentId`].
@@ -201,12 +218,18 @@ pub trait EntityInspectExtensionTrait {
     /// The provided [`ComponentInspection`] contains details about the component,
     /// and can be logged using the [`Display`] trait.
     ///
+    /// This is a low-level method; you will need to provide
+    /// the appropriate [`ComponentTypeMetadata`] for the component being inspected.
+    /// This can be obtained using [`ComponentTypeMetadata::new`], and should be cached
+    /// if inspecting many components of the same type.
+    ///
     /// If you only want to inspect a specific component type, consider using
     /// [`inspect_component::<C>`](Self::inspect_component) instead.
     fn inspect_component_by_id(
         &self,
         component_id: ComponentId,
         entity: Entity,
+        metadata: &ComponentTypeMetadata,
         settings: ComponentInspectionSettings,
     ) -> Result<ComponentInspection, ComponentInspectionError>;
 
@@ -214,6 +237,10 @@ pub trait EntityInspectExtensionTrait {
     ///
     /// The provided [`ComponentInspection`] contains details about the component,
     /// and can be logged using the [`Display`] trait.
+    ///
+    /// If you intend to call this method multiple times for the same component type,
+    /// consider using [`inspect_component_by_id`](Self::inspect_component_by_id)
+    /// with cached [`ComponentTypeMetadata`] instead for better performance.
     fn inspect_component<C: Component>(
         &self,
         entity: Entity,
@@ -229,6 +256,16 @@ impl EntityInspectExtensionTrait for World {
         &self,
         entity: Entity,
         settings: EntityInspectionSettings,
+    ) -> Result<EntityInspection, EntityInspectionError> {
+        let metadata_map = ComponentMetadataMap::for_entity(self, entity);
+        self.inspect_cached(entity, &settings, &metadata_map)
+    }
+
+    fn inspect_cached(
+        &self,
+        entity: Entity,
+        settings: &EntityInspectionSettings,
+        metadata_map: &ComponentMetadataMap,
     ) -> Result<EntityInspection, EntityInspectionError> {
         let name = self.get::<Name>(entity).cloned();
 
@@ -246,12 +283,16 @@ impl EntityInspectExtensionTrait for World {
                     .archetype()
                     .components()
                     .iter()
-                    .map(|component_id| {
-                        self.inspect_component_by_id(
+                    .map(|component_id| match metadata_map.get(component_id) {
+                        Some(metadata) => self.inspect_component_by_id(
                             *component_id,
                             entity,
+                            metadata,
                             settings.component_settings,
-                        )
+                        ),
+                        None => Err(ComponentInspectionError::ComponentNotRegistered(
+                            "Unknown ComponentId",
+                        )),
                     })
                     .filter_map(Result::ok)
                     .collect(),
@@ -272,8 +313,11 @@ impl EntityInspectExtensionTrait for World {
         &self,
         entities: impl ExactSizeIterator<Item = Entity>,
         settings: MultipleEntityInspectionSettings,
+        metadata_map: &mut ComponentMetadataMap,
     ) -> Vec<Result<EntityInspection, EntityInspectionError>> {
         {
+            metadata_map.update(self);
+
             let entity_grouping = EntityGrouping::generate(self, entities);
             let mut entity_list = entity_grouping.flatten();
 
@@ -281,7 +325,8 @@ impl EntityInspectExtensionTrait for World {
 
             let mut inspections = Vec::with_capacity(entity_list.len());
             for entity in entity_list {
-                let inspection = self.inspect(entity, settings.entity_settings.clone());
+                let inspection =
+                    self.inspect_cached(entity, &settings.entity_settings, &metadata_map);
                 inspections.push(inspection);
             }
             inspections
@@ -292,6 +337,7 @@ impl EntityInspectExtensionTrait for World {
         &self,
         component_id: ComponentId,
         entity: Entity,
+        metadata: &ComponentTypeMetadata,
         settings: ComponentInspectionSettings,
     ) -> Result<ComponentInspection, ComponentInspectionError> {
         let component_info = self.components().get_info(component_id).ok_or(
@@ -299,15 +345,10 @@ impl EntityInspectExtensionTrait for World {
         )?;
 
         let name = component_info.name();
-        let type_id = component_info.type_id();
-        let type_registration = type_id.and_then(|type_id| {
-            self.resource::<AppTypeRegistry>()
-                .read()
-                .get(type_id)
-                .cloned()
-        });
 
-        let value = (settings.detail_level != ComponentDetailLevel::Names).then(|| match type_id {
+        let value = (settings.detail_level != ComponentDetailLevel::Names).then(|| match metadata
+            .type_id
+        {
             Some(type_id) => match get_reflected_component_ref(self, entity, type_id) {
                 Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
                 Err(err) => format!("<Unreflectable: {}>", err),
@@ -315,19 +356,11 @@ impl EntityInspectExtensionTrait for World {
             None => "Dynamic Type".to_string(),
         });
 
-        let name_definition_priority = type_id.and_then(|type_id| {
-            self.resource::<entity_name_resolution::NameResolutionRegistry>()
-                .get_priority_by_type_id(type_id)
-        });
-
         Ok(ComponentInspection {
             entity,
             component_id,
             name,
             value,
-            name_definition_priority,
-            type_id,
-            type_registration,
         })
     }
 
@@ -339,7 +372,12 @@ impl EntityInspectExtensionTrait for World {
         let component_id = self.components().valid_component_id::<C>().ok_or(
             ComponentInspectionError::ComponentNotRegistered(type_name::<C>()),
         )?;
-        self.inspect_component_by_id(component_id, entity, settings)
+
+        // We're generating this on the fly; this is fine for a convenience method
+        // intended for occasional logging.
+        let metadata = ComponentTypeMetadata::new(self, component_id)?;
+
+        self.inspect_component_by_id(component_id, entity, &metadata, settings)
     }
 }
 

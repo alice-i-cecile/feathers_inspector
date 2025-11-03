@@ -1,6 +1,7 @@
 //! Rules and strategies for determining the inspection-displayed name of an entity.
 
 use bevy::core_pipeline::Skybox;
+use bevy::ecs::component::ComponentId;
 use bevy::ecs::system::SystemIdMarker;
 use bevy::light::{FogVolume, IrradianceVolume, SunDisk};
 use bevy::pbr::wireframe::Wireframe;
@@ -11,6 +12,7 @@ use bevy::prelude::*;
 use bevy::window::Monitor;
 use core::any::TypeId;
 
+use crate::component_inspection::ComponentTypeMetadata;
 use crate::entity_inspection::EntityInspection;
 
 impl EntityInspection {
@@ -26,7 +28,10 @@ impl EntityInspection {
     ///
     /// Otherwise, [`None`] is returned.
     /// The caller can then fall back to a default name such as "Entity".
-    pub fn resolve_name(&self) -> Option<String> {
+    pub fn resolve_name(
+        &self,
+        metadata_map: &HashMap<ComponentId, ComponentTypeMetadata>,
+    ) -> Option<String> {
         if let Some(custom_name) = &self.name {
             Some(custom_name.as_str().to_string())
         } else {
@@ -36,9 +41,12 @@ impl EntityInspection {
 
             let mut name_resolution_priorities = component_data
                 .iter()
-                .filter_map(|comp| {
-                    comp.name_definition_priority
-                        .map(|priority| (comp.name.shortname().to_string(), priority))
+                .filter_map(|comp_inspection| {
+                    let name_definition_priority = metadata_map
+                        .get(&comp_inspection.component_id)?
+                        .name_definition_priority;
+                    name_definition_priority
+                        .map(|priority| (comp_inspection.name.shortname().to_string(), priority))
                 })
                 .collect::<Vec<(String, i8)>>();
 

@@ -1,17 +1,22 @@
 //! Types and traits for inspecting Bevy entities.
 
+use bevy::platform::collections::HashMap;
 use bevy::{ecs::component::ComponentId, prelude::*, reflect::TypeRegistration};
 use core::any::TypeId;
 use core::fmt::Display;
 use thiserror::Error;
 
+use crate::entity_name_resolution::NameResolutionRegistry;
+
 /// The result of inspecting a component.
 ///
 /// Log this using the [`Display`] trait to see details about the component.
 /// [`Debug`] can also be used for more detailed but harder to-read output.
-// PERF: much of this information is duplicated across all components of the same type.
-// TypeRegistration is particularly heavy.
-// Should we create a shared `ComponentRegistry` type to store this info once per type?
+///
+/// This should be paired with [`ComponentTypeMetadata`] to get full type information.
+/// [`ComponentTypeMetadata`] can be retrieved via [`World::get_component_type_metadata`],
+/// and is relatively heavy to compute and store. You should cache it if inspecting many
+/// components of the same type.
 #[derive(Clone, Debug)]
 pub struct ComponentInspection {
     /// The entity that owns the component.
@@ -25,24 +30,6 @@ pub struct ComponentInspection {
     /// This information is gathered via reflection,
     /// and used for debugging purposes.
     pub value: Option<String>,
-    /// Is this component "name-defining"?
-    ///
-    /// If so, it will be prioritized for [name resolution](crate::name_resolution).
-    pub name_definition_priority: Option<i8>,
-    /// The [`TypeId`] of the resource.
-    ///
-    /// Note that dynamic types will not have a [`TypeId`].
-    pub type_id: Option<TypeId>,
-    /// The type information of the resource.
-    ///
-    /// This contains metadata about the resource's type,
-    /// such as its fields and methods,
-    /// as well as any reflected traits it implements.
-    ///
-    /// Note: this may be `None` if the type is not reflected and registered in the type registry.
-    /// Currently, generic types need to be manually registered,
-    /// and dynamically-typed resources cannot be registered.
-    pub type_registration: Option<TypeRegistration>,
 }
 
 impl Display for ComponentInspection {
@@ -55,6 +42,143 @@ impl Display for ComponentInspection {
         }
 
         Ok(())
+    }
+}
+
+/// Metadata about a specific component type.
+///
+/// Log this using the [`Display`] trait to see details about the component type.
+#[derive(Clone, Debug)]
+pub struct ComponentTypeMetadata {
+    /// The ComponentId of the component type.
+    pub component_id: ComponentId,
+    /// The type name of the component.
+    pub name: DebugName,
+    /// The [`TypeId`] of the component type.
+    ///
+    /// Note that dynamic types will not have a [`TypeId`].
+    pub type_id: Option<TypeId>,
+    /// The name definition priority of the component type.
+    /// Higher values indicate higher priority.
+    /// `None` indicates that the component does not define names.
+    pub name_definition_priority: Option<i8>,
+    /// The type information of the component.
+    ///
+    /// This contains metadata about the component's type,
+    /// such as its fields and methods,
+    /// as well as any reflected traits it implements.
+    ///
+    /// Note: this may be `None` if the type is not reflected and registered in the type registry.
+    /// Currently, generic types need to be manually registered,
+    /// and dynamically-typed components cannot be registered.
+    pub type_registration: Option<TypeRegistration>,
+}
+
+impl ComponentTypeMetadata {
+    /// Extracts the required metadata from the world for the given component ID.
+    pub fn new(world: &World, component_id: ComponentId) -> Result<Self, ComponentInspectionError> {
+        let component_info = world.components().get_info(component_id).ok_or(
+            ComponentInspectionError::ComponentNotRegistered("Unknown ComponentId"),
+        )?;
+
+        let name = component_info.name();
+        let type_id = component_info.type_id();
+        let type_registration = type_id.and_then(|type_id| {
+            world
+                .resource::<AppTypeRegistry>()
+                .read()
+                .get(type_id)
+                .cloned()
+        });
+
+        let name_definition_priority = match type_id {
+            Some(type_id) => world
+                .resource::<NameResolutionRegistry>()
+                .get_priority_by_type_id(type_id),
+            None => None,
+        };
+
+        Ok(Self {
+            component_id,
+            name,
+            type_id,
+            name_definition_priority,
+            type_registration,
+        })
+    }
+}
+
+/// A map of component IDs to their corresponding metadata.
+///
+/// This is useful for caching component metadata
+/// when inspecting multiple entities or components.
+#[derive(Clone, Debug, Deref, DerefMut)]
+pub struct ComponentMetadataMap {
+    pub map: HashMap<ComponentId, ComponentTypeMetadata>,
+}
+
+impl ComponentMetadataMap {
+    /// Creates a new [`ComponentMetadataMap`] by generating metadata for all registered component types in the world.
+    ///
+    /// This can be an expensive operation, so it is recommended to cache the resulting map.
+    ///
+    /// This method is used in the [`FromWorld`] implementation for [`ComponentMetadataMap`].
+    pub fn generate(world: &World) -> Self {
+        let mut map = HashMap::new();
+
+        for component_info in world.components().iter_registered() {
+            let component_id = component_info.id();
+            if let Ok(metadata) = ComponentTypeMetadata::new(world, component_id) {
+                map.insert(component_id, metadata);
+            }
+        }
+
+        Self { map }
+    }
+
+    /// Creates an empty [`ComponentMetadataMap`].
+    ///
+    /// This can be useful when you want to start with an empty map,
+    /// and only populate it with specific component metadata as needed.
+    pub fn empty() -> Self {
+        Self {
+            map: HashMap::new(),
+        }
+    }
+
+    /// Creates a new [`ComponentMetadataMap`] with data for the components of the specified entity.
+    ///
+    /// Be wary of time-of-check to time-of-use issues if the entity's components change after this is called.
+    pub fn for_entity(world: &World, entity: Entity) -> Self {
+        let mut map = HashMap::new();
+        if let Ok(entity_ref) = world.get_entity(entity) {
+            for component_id in entity_ref.archetype().components() {
+                if let Ok(metadata) = ComponentTypeMetadata::new(world, *component_id) {
+                    map.insert(*component_id, metadata);
+                }
+            }
+        }
+        Self { map }
+    }
+
+    /// Updates the metadata, scanning for any new component types that do not yet have metadata entries.
+    ///
+    /// Existing entries will not be modified.
+    pub fn update(&mut self, world: &World) {
+        for component_info in world.components().iter_registered() {
+            let component_id = component_info.id();
+            if !self.map.contains_key(&component_id) {
+                if let Ok(metadata) = ComponentTypeMetadata::new(world, component_id) {
+                    self.map.insert(component_id, metadata);
+                }
+            }
+        }
+    }
+}
+
+impl FromWorld for ComponentMetadataMap {
+    fn from_world(world: &mut World) -> Self {
+        ComponentMetadataMap::generate(world)
     }
 }
 

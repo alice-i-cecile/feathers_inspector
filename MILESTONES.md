@@ -84,6 +84,7 @@
 
 ## Component metadata
 
+- [x] Don't recompute component metadata for every single entity
 - [] Add an API to get more information about resource / component types in general
   - [] Full path
   - [] Reflected docs

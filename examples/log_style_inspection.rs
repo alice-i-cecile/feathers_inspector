@@ -6,7 +6,7 @@
 
 use bevy::prelude::*;
 use feathers_inspector::{
-    component_inspection::ComponentInspectionSettings,
+    component_inspection::{ComponentInspectionSettings, ComponentMetadataMap},
     entity_inspection::{
         EntityInspectExtensionTrait, EntityInspectionSettings, InspectExtensionCommandsTrait,
         MultipleEntityInspectionSettings,
@@ -76,7 +76,12 @@ fn inspect_sprite_entities_when_e_pressed(
     }
 }
 
-fn inspect_all_entities_when_space_pressed(world: &World) {
+fn inspect_all_entities_when_space_pressed(
+    world: &World,
+    // Computing and storing the metadata for each component type can be expensive,
+    // so we cache it across frames using a Local system parameter.
+    mut metadata_map: Local<ComponentMetadataMap>,
+) {
     if world
         .resource::<ButtonInput<KeyCode>>()
         .just_pressed(KeyCode::Space)
@@ -84,8 +89,11 @@ fn inspect_all_entities_when_space_pressed(world: &World) {
         let mut entity_query = world.try_query::<Entity>().unwrap();
         let entities = entity_query.iter(world);
 
-        let inspection_results =
-            world.inspect_multiple(entities, MultipleEntityInspectionSettings::default());
+        let inspection_results = world.inspect_multiple(
+            entities,
+            MultipleEntityInspectionSettings::default(),
+            &mut metadata_map,
+        );
 
         for inspection in inspection_results {
             match inspection {
