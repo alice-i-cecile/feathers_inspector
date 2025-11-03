@@ -24,6 +24,7 @@ use crate::{
         ComponentInspectionSettings, ComponentMetadataMap, ComponentTypeMetadata,
     },
     entity_grouping::EntityGrouping,
+    memory_size::MemorySize,
     reflection_tools::{get_reflected_component_ref, reflected_value_to_string},
 };
 
@@ -346,7 +347,7 @@ impl EntityInspectExtensionTrait for World {
 
         let name = component_info.name();
 
-        let (value, size_bytes) = if settings.detail_level == ComponentDetailLevel::Names {
+        let (value, memory_size) = if settings.detail_level == ComponentDetailLevel::Names {
             (None, None)
         } else {
             match metadata.type_id {
@@ -356,7 +357,7 @@ impl EntityInspectExtensionTrait for World {
                             reflected,
                             settings.full_type_names,
                         )),
-                        Some(size_of_val(reflected)),
+                        Some(MemorySize::new(size_of_val(reflected))),
                     ),
                     Err(err) => (Some(format!("<Unreflectable: {}>", err)), None),
                 },
@@ -368,7 +369,7 @@ impl EntityInspectExtensionTrait for World {
             entity,
             component_id,
             name,
-            size_bytes,
+            memory_size,
             value,
         })
     }

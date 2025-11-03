@@ -8,6 +8,7 @@ use core::fmt::Display;
 use thiserror::Error;
 
 use crate::entity_name_resolution::NameResolutionRegistry;
+use crate::memory_size::MemorySize;
 
 /// The result of inspecting a component.
 ///
@@ -36,7 +37,7 @@ pub struct ComponentInspection {
     /// Computing this value requires reflection of the component value.
     /// As a result, it may be `None` if the component type is not reflected and registered,
     /// or if [`ComponentDetailLevel::Names`] was specified when inspecting the component.
-    pub size_bytes: Option<usize>,
+    pub memory_size: Option<MemorySize>,
     /// The value of the component as a string.
     ///
     /// This information is gathered via reflection,
@@ -49,8 +50,14 @@ impl Display for ComponentInspection {
         let shortname = self.name.shortname();
 
         match &self.value {
-            Some(value) => write!(f, "{shortname}: {value}")?,
-            None => write!(f, "{shortname}")?,
+            Some(value) => match &self.memory_size {
+                Some(size) => write!(f, "{shortname} ({}): {value}", size)?,
+                None => write!(f, "{shortname}: {value}")?,
+            },
+            None => match &self.memory_size {
+                Some(size) => write!(f, "{shortname} ({})", size)?,
+                None => write!(f, "{shortname}")?,
+            },
         }
 
         Ok(())
@@ -87,7 +94,7 @@ pub struct ComponentTypeMetadata {
     ///
     /// This is computed via [`core::alloc::Layout`], and does not include any heap allocations.
     /// For dynamically-sized types, this is the size of the pointer or handle stored in the ECS.
-    pub size_bytes: usize,
+    pub memory_size: MemorySize,
     /// The name definition priority of the component type.
     /// Higher values indicate higher priority.
     /// `None` indicates that the component does not define names.
@@ -130,7 +137,7 @@ impl ComponentTypeMetadata {
                 .cloned()
         });
 
-        let size_bytes = component_info.layout().size();
+        let memory_size = MemorySize::new(component_info.layout().size());
 
         let name_definition_priority = match type_id {
             Some(type_id) => world
@@ -144,7 +151,7 @@ impl ComponentTypeMetadata {
             name,
             type_id,
             name_definition_priority,
-            size_bytes,
+            memory_size,
             mutable: component_info.mutable(),
             storage_type: component_info.storage_type(),
             is_send_and_sync: component_info.is_send_and_sync(),
