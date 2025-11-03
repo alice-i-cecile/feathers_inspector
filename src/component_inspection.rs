@@ -1,5 +1,6 @@
 //! Types and traits for inspecting Bevy entities.
 
+use bevy::ecs::component::StorageType;
 use bevy::platform::collections::HashMap;
 use bevy::{ecs::component::ComponentId, prelude::*, reflect::TypeRegistration};
 use core::any::TypeId;
@@ -21,9 +22,11 @@ use crate::entity_name_resolution::NameResolutionRegistry;
 pub struct ComponentInspection {
     /// The entity that owns the component.
     pub entity: Entity,
-    /// The ComponentId of the component.
+    /// The [`ComponentId`] of the component.
     pub component_id: ComponentId,
     /// The type name of the component.
+    ///
+    /// This is duplicated from the metadata for convenience and [`Display`] printing.
     pub name: DebugName,
     /// The value of the component as a string.
     ///
@@ -45,12 +48,25 @@ impl Display for ComponentInspection {
     }
 }
 
-/// Metadata about a specific component type.
+/// Metadata about a specific component type, designed to be transmitted and inspected.
+///
+/// For information about the specific value of a component on an entity,
+/// see [`ComponentInspection`].
 ///
 /// Log this using the [`Display`] trait to see details about the component type.
+///
+/// These are relatively heavy to compute and store,
+/// consider caching them in a [`ComponentMetadataMap`] if inspecting many entities or components.
+///
+/// Notably, this type does not include [`ComponentInfo`](bevy::ecs::component::ComponentInfo)
+/// directly, as that type is not `Send + Sync` and cannot be stored in many contexts.
+/// Instead, this type extracts all relevant information that can be stored and used later.
 #[derive(Clone, Debug)]
 pub struct ComponentTypeMetadata {
-    /// The ComponentId of the component type.
+    /// The [`ComponentId`] of the component type.
+    ///
+    /// This is generally stored as a key in [`ComponentMetadataMap`],
+    /// but is duplicated here for convenience.
     pub component_id: ComponentId,
     /// The type name of the component.
     pub name: DebugName,
@@ -58,10 +74,24 @@ pub struct ComponentTypeMetadata {
     ///
     /// Note that dynamic types will not have a [`TypeId`].
     pub type_id: Option<TypeId>,
+    /// The minimum size in bytes of the component type.
+    ///
+    /// This is computed via [`core::alloc::Layout`], and does not include any heap allocations.
+    /// For dynamically-sized types, this is the size of the pointer or handle stored in the ECS.
+    pub size_bytes: usize,
     /// The name definition priority of the component type.
     /// Higher values indicate higher priority.
     /// `None` indicates that the component does not define names.
     pub name_definition_priority: Option<i8>,
+    /// Returns true if the component type is mutable while in the ECS.
+    pub mutable: bool,
+    /// The storage type of this component.
+    pub storage_type: StorageType,
+    /// Returns true if the underlying component type can freely be shared across threads.
+    pub is_send_and_sync: bool,
+    /// The list of components required by this component,
+    /// which will automatically be added when this component is added to an entity.
+    pub required_components: Vec<ComponentId>,
     /// The type information of the component.
     ///
     /// This contains metadata about the component's type,
@@ -91,6 +121,8 @@ impl ComponentTypeMetadata {
                 .cloned()
         });
 
+        let size_bytes = component_info.layout().size();
+
         let name_definition_priority = match type_id {
             Some(type_id) => world
                 .resource::<NameResolutionRegistry>()
@@ -103,6 +135,11 @@ impl ComponentTypeMetadata {
             name,
             type_id,
             name_definition_priority,
+            size_bytes,
+            mutable: component_info.mutable(),
+            storage_type: component_info.storage_type(),
+            is_send_and_sync: component_info.is_send_and_sync(),
+            required_components: component_info.required_components().iter_ids().collect(),
             type_registration,
         })
     }

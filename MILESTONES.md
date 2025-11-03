@@ -85,10 +85,12 @@
 ## Component metadata
 
 - [x] Don't recompute component metadata for every single entity
-- [] Add an API to get more information about resource / component types in general
-  - [] Full path
+- [x] Extract all interesting information from `ComponentInfo` (can't be stored: not Send and Sync)
+- [] Add an API to get more information about component types in general
+  - [x] Full path
   - [] Reflected docs
   - [] How many entities have this component
+- []
 - [] Optionally compute summary stats about component values
 - [] Add this information when inspecting resources
 
