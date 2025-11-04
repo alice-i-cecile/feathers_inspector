@@ -364,6 +364,10 @@ impl EntityInspectExtensionTrait for World {
             ComponentInspectionError::ComponentNotRegistered(type_name::<ComponentId>()),
         )?;
 
+        if !self.entity(entity).contains_id(component_id) {
+            return Err(ComponentInspectionError::ComponentNotFound(component_id));
+        }
+
         let name = component_info.name();
 
         let (value, memory_size) = if settings.detail_level == ComponentDetailLevel::Names {
