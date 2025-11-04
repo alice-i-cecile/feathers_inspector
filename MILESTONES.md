@@ -141,12 +141,12 @@
 
 ## Summary statistics
 
-- [] Add `World::summarize`
-- [] List total number of entities
-- [] List total number of archetypes
-  - [] Show number of entities by archetype
-  - [] Show sorted list
-- [] List total number of resources
+- [x] Add `World::summarize`
+- [x] List total number of entities
+- [x] List total number of archetypes
+  - [x] Show number of entities by archetype
+  - [x] Show sorted list
+- [x] List total number of resources
 
 ## Categories
 

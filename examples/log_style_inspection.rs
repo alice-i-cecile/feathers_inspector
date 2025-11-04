@@ -13,6 +13,7 @@ use feathers_inspector::{
     },
     entity_name_resolution::NameResolutionPlugin,
     resource_inspection::{ResourceInspectExtensionCommandsTrait, ResourceInspectionSettings},
+    summary::{CommandsSummaryExt, SummarySettings},
 };
 
 fn main() {
@@ -29,6 +30,7 @@ fn main() {
                 inspect_all_resources_when_a_pressed,
                 inspect_specific_component_when_c_pressed,
                 inspect_all_entities_when_space_pressed,
+                summarize_when_s_pressed,
             ),
         )
         .run();
@@ -48,7 +50,8 @@ Press 'E' to inspect all Sprite entities
 Press 'R' to inspect the AmbientLight resource
 Press 'A' to inspect all resources
 Press 'C' to inspect the Sprite component on all Sprite entities
-Press `Space` to inspect all entities"
+Press `Space` to inspect all entities
+Press 'S' to obtain summary statistics"
         .to_string();
 
     commands.spawn((
@@ -135,5 +138,11 @@ fn inspect_specific_component_when_c_pressed(
                 .entity(entity)
                 .inspect_component::<Sprite>(ComponentInspectionSettings::default());
         }
+    }
+}
+
+fn summarize_when_s_pressed(keyboard_input: Res<ButtonInput<KeyCode>>, mut commands: Commands) {
+    if keyboard_input.just_pressed(KeyCode::KeyS) {
+        commands.summarize(SummarySettings::default());
     }
 }
