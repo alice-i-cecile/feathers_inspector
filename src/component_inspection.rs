@@ -19,6 +19,8 @@ use crate::memory_size::MemorySize;
 /// [`ComponentTypeMetadata`] can be retrieved via [`World::get_component_type_metadata`],
 /// and is relatively heavy to compute and store. You should cache it if inspecting many
 /// components of the same type.
+///
+/// To inspect a component type itself, see [`ComponentTypeInspection`].
 #[derive(Clone, Debug)]
 pub struct ComponentInspection {
     /// The entity that owns the component.
@@ -69,6 +71,7 @@ impl Display for ComponentInspection {
 /// For information about the specific value of a component on an entity,
 /// see [`ComponentInspection`].
 ///
+/// This is the major component of [`ComponentTypeInspection`].
 /// Log this using the [`Display`] trait to see details about the component type.
 ///
 /// These are relatively heavy to compute and store,
@@ -77,6 +80,7 @@ impl Display for ComponentInspection {
 /// Notably, this type does not include [`ComponentInfo`](bevy::ecs::component::ComponentInfo)
 /// directly, as that type is not `Send + Sync` and cannot be stored in many contexts.
 /// Instead, this type extracts all relevant information that can be stored and used later.
+///
 #[derive(Clone, Debug)]
 pub struct ComponentTypeMetadata {
     /// The [`ComponentId`] of the component type.
@@ -159,6 +163,47 @@ impl ComponentTypeMetadata {
             required_components: component_info.required_components().iter_ids().collect(),
             type_registration,
         })
+    }
+}
+
+impl Display for ComponentTypeMetadata {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} (Size: {}, Storage: {:?})\n Type Registration: {:?}",
+            self.name.shortname(),
+            self.memory_size,
+            self.storage_type,
+            // TODO: `TypeRegistration` and `TypeInfo` don't implement `Display`,
+            // so we just use `Debug` for now.
+            self.type_registration,
+        )
+    }
+}
+
+/// The result of inspecting a component type.
+///
+/// This is distinct from [`ComponentInspection`], which inspects a specific component on an entity.
+///
+/// Call [`World::inspect_component_type`] to get this information.
+#[derive(Clone, Debug)]
+pub struct ComponentTypeInspection {
+    /// The number of entities that have a component of this type.
+    pub entity_count: usize,
+    /// Metadata about the component type.
+    ///
+    /// This information does not vary based on the state of the world,
+    /// and can safely be cached and reused.
+    pub metadata: ComponentTypeMetadata,
+}
+
+impl Display for ComponentTypeInspection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}\n Entities with this component: {}",
+            self.metadata, self.entity_count
+        )
     }
 }
 

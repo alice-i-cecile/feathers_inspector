@@ -26,6 +26,7 @@ fn main() {
             Update,
             (
                 inspect_sprite_entities_when_e_pressed,
+                inspect_sprite_component_type_when_m_pressed,
                 inspect_resource_when_r_pressed,
                 inspect_all_resources_when_a_pressed,
                 inspect_specific_component_when_c_pressed,
@@ -51,6 +52,7 @@ Press 'R' to inspect the AmbientLight resource
 Press 'A' to inspect all resources
 Press 'C' to inspect the Sprite component on all Sprite entities
 Press `Space` to inspect all entities
+Press 'M' to inspect the Sprite component type metadata
 Press 'S' to obtain summary statistics"
         .to_string();
 
@@ -144,5 +146,17 @@ fn inspect_specific_component_when_c_pressed(
 fn summarize_when_s_pressed(keyboard_input: Res<ButtonInput<KeyCode>>, mut commands: Commands) {
     if keyboard_input.just_pressed(KeyCode::KeyS) {
         commands.summarize(SummarySettings::default());
+    }
+}
+
+fn inspect_sprite_component_type_when_m_pressed(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+) {
+    if keyboard_input.just_pressed(KeyCode::KeyM) {
+        commands.queue(|world: &mut World| {
+            let type_inspection = world.inspect_component_type::<Sprite>().unwrap();
+            info!("{type_inspection}");
+        });
     }
 }

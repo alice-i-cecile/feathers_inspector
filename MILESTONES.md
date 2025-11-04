@@ -86,10 +86,10 @@
 
 - [x] Don't recompute component metadata for every single entity
 - [x] Extract all interesting information from `ComponentInfo` (can't be stored: not Send and Sync)
-- [] Add an API to get more information about component types in general
+- [x] Add an API to get more information about component types in general
   - [x] Full path
   - [] Reflected docs
-  - [] How many entities have this component
+  - [x] How many entities have this component
 - [x] Report the size in bytes of:
   - [x] Individual components
   - [x] Resources
