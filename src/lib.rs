@@ -6,6 +6,7 @@ pub mod component_inspection;
 pub mod entity_grouping;
 pub mod entity_inspection;
 pub mod entity_name_resolution;
+pub mod extension_methods;
 pub mod fuzzy_name_mapping;
 pub mod inspectable;
 pub mod memory_size;

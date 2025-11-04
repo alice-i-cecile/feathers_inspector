@@ -7,12 +7,12 @@
 use bevy::prelude::*;
 use feathers_inspector::{
     component_inspection::{ComponentInspectionSettings, ComponentMetadataMap},
-    entity_inspection::{
-        EntityInspectExtensionTrait, EntityInspectionSettings, InspectExtensionCommandsTrait,
-        MultipleEntityInspectionSettings,
-    },
+    entity_inspection::{EntityInspectionSettings, MultipleEntityInspectionSettings},
     entity_name_resolution::NameResolutionPlugin,
-    resource_inspection::{ResourceInspectExtensionCommandsTrait, ResourceInspectionSettings},
+    extension_methods::{
+        CommandsExtensionTrait, EntityCommandsInspectionTrait, WorldInspectionExtensionTrait,
+    },
+    resource_inspection::ResourceInspectionSettings,
     summary::{CommandsSummaryExt, SummarySettings},
 };
 
