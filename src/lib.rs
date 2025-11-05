@@ -8,6 +8,7 @@ pub mod entity_inspection;
 pub mod entity_name_resolution;
 pub mod extension_methods;
 pub mod fuzzy_name_mapping;
+pub mod archetype_similarity_grouping;
 pub mod inspectable;
 pub mod memory_size;
 pub mod reflection_tools;
