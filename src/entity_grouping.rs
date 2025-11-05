@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::archetype_similarity_grouping::group;
+use crate::archetype_similarity_grouping;
 
 /// A hierarchical grouping of entities based on their components.
 ///
@@ -29,8 +29,17 @@ impl EntityGrouping {
     }
 
     /// Generates an [`EntityGrouping`] based on the components of the provided entities.
-    pub fn generate(world: &World, entities: impl ExactSizeIterator<Item = Entity>) -> Self {
-        group(world, entities)
+    pub fn generate(
+        world: &World,
+        entities: impl ExactSizeIterator<Item = Entity>,
+        strategy: GroupingStrategy,
+    ) -> Self {
+        match strategy {
+            GroupingStrategy::Hierarchy => todo!(),
+            GroupingStrategy::ArchetypeSimilarity => {
+                archetype_similarity_grouping::group(world, entities)
+            }
+        }
     }
 
     /// Flattens the grouping into a single list of entities.
@@ -44,4 +53,14 @@ impl EntityGrouping {
         }
         all_entities
     }
+}
+
+/// Specifies what kind of grouping [`EntityGrouping::generate`] should make.
+#[derive(Debug, Clone, Copy, Default)]
+pub enum GroupingStrategy {
+    /// Group based on parent-child relationships.
+    #[default]
+    Hierarchy,
+    /// Group based how archetypes differ on which components represent them.
+    ArchetypeSimilarity,
 }
