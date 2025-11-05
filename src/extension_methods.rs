@@ -133,14 +133,14 @@ pub trait WorldInspectionExtensionTrait {
     /// For a dynamically-typed variant, use [`inspect_component_by_id`](Self::inspect_component_by_id).
     // These methods require `&mut World` because `QueryBuilder` currently requires it in all cases.
     fn inspect_component_type<C: Component>(
-        &mut self,
+        &self,
     ) -> Result<ComponentTypeInspection, ComponentInspectionError>;
 
     /// Inspects the provided component by its [`ComponentId`], providing information about the type itself.
     ///
     /// This is the dynamically-typed variant of [`inspect_component_type`](Self::inspect_component_type).
     fn inspect_component_type_by_id(
-        &mut self,
+        &self,
         component_id: ComponentId,
     ) -> Result<ComponentTypeInspection, ComponentInspectionError>;
 }
@@ -364,7 +364,7 @@ impl WorldInspectionExtensionTrait for World {
     }
 
     fn inspect_component_type<C: Component>(
-        &mut self,
+        &self,
     ) -> Result<ComponentTypeInspection, ComponentInspectionError> {
         let component_id = self.components().valid_component_id::<C>().ok_or(
             ComponentInspectionError::ComponentNotRegistered(type_name::<C>()),
@@ -374,15 +374,18 @@ impl WorldInspectionExtensionTrait for World {
     }
 
     fn inspect_component_type_by_id(
-        &mut self,
+        &self,
         component_id: ComponentId,
     ) -> Result<ComponentTypeInspection, ComponentInspectionError> {
         let metadata = ComponentTypeMetadata::new(self, component_id)?;
-        // Is this the best way to get the entity count?
-        // Is this type signature for `QueryState` correct?
-        let mut query_state: QueryState<(), ()> =
-            QueryBuilder::new(self).with_id(component_id).build();
-        let entity_count = query_state.iter(self).len();
+
+        // TODO: this should use the component index cache on `Archetypes` when that becomes public.
+        let mut entity_count = 0usize;
+        for archetype in self.archetypes().iter() {
+            if archetype.contains(component_id) {
+                entity_count += archetype.len() as usize;
+            }
+        }
 
         Ok(ComponentTypeInspection {
             entity_count,
