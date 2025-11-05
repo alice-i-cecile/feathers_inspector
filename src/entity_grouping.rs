@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::archetype_similarity_grouping;
+use crate::{archetype_similarity_grouping, hierarchy_grouping};
 
 /// A hierarchical grouping of entities based on their components.
 ///
@@ -35,7 +35,7 @@ impl EntityGrouping {
         strategy: GroupingStrategy,
     ) -> Self {
         match strategy {
-            GroupingStrategy::Hierarchy => todo!(),
+            GroupingStrategy::Hierarchy => hierarchy_grouping::group(world, entities),
             GroupingStrategy::ArchetypeSimilarity => {
                 archetype_similarity_grouping::group(world, entities)
             }
