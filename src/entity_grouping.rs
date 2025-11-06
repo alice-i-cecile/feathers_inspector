@@ -11,7 +11,7 @@ use crate::{archetype_similarity_grouping, hierarchy_grouping};
 ///
 /// As discussed in [`EntityGrouping::generate`], this grouping is based on the components
 /// that entities share in common.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct EntityGrouping {
     /// The entities that belong to this group.
     pub entities: Vec<Entity>,
