@@ -246,7 +246,7 @@ impl WorldInspectionExtensionTrait for World {
         settings: ComponentInspectionSettings,
     ) -> Result<ComponentInspection, ComponentInspectionError> {
         let component_info = self.components().get_info(component_id).ok_or(
-            ComponentInspectionError::ComponentNotRegistered(type_name::<ComponentId>()),
+            ComponentInspectionError::ComponentIdNotRegistered(component_id),
         )?;
 
         if !self.entity(entity).contains_id(component_id) {
