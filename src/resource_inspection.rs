@@ -28,7 +28,7 @@ pub struct ResourceInspection {
     pub type_id: Option<TypeId>,
     /// The size of the resource in memory.
     ///
-    /// This is computed using [`core::alloc::size_of_val`], and requires reflection of the resource value.
+    /// This is computed using [`core::mem::size_of_val`], and requires reflection of the resource value.
     pub memory_size: Option<MemorySize>,
     /// The type information of the resource.
     ///

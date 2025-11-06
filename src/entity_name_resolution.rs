@@ -18,11 +18,9 @@ use crate::entity_inspection::EntityInspection;
 impl EntityInspection {
     /// Determines the name to display for this entity.
     ///
-    /// If the [`Name`](bevy::prelude::Name) component is present, its value will be used.
+    /// If the [`Name`] component is present, its value will be used.
     ///
     /// If any component marked as "name-defining" is present, its name will be used.
-    /// This is done by implementing the [`NameDefining`] trait for the component type,
-    /// and then registering it for reflection by using the `#[reflect(NameDefining)]` attribute.
     /// If multiple name-defining components are present, they will be joined in alphabetical order,
     /// separated by a "|" character.
     ///

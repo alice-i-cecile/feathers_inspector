@@ -179,8 +179,6 @@ impl Default for MultipleEntityInspectionSettings {
 }
 
 /// Filters the provided entity list in-place according to the provided [`MultipleEntityInspectionSettings`].
-///
-/// Calls [`does_entity_match_filter_for_inspection`] for each entity.
 // PERF: this might be faster if you build a dynamic query instead of checking each entity individually.
 pub fn filter_entity_list_for_inspection(
     world: &World,

@@ -1,7 +1,7 @@
 //! [`Inspectable`] trait to customize the inspection behavior of types.
 //!
 //! This module is heavily inspired by bevy-inspector-egui's
-//! [`InspectorOptions`](https://github.dev/jakobhellermann/bevy-inspector-egui/blob/main/crates/bevy-inspector-egui/examples/basic/inspector_options.rs
+//! [`InspectorOptions`](https://github.dev/jakobhellermann/bevy-inspector-egui/blob/main/crates/bevy-inspector-egui/examples/basic/inspector_options.rs)
 
 /// A trait used to customize the inspection behavior of types.
 ///
