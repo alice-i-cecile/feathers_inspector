@@ -1,3 +1,5 @@
+//! Clustering entities by archetype similarity.
+
 use bevy::{
     ecs::{archetype::ArchetypeId, component::ComponentId},
     platform::collections::{HashMap, HashSet},

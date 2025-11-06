@@ -1,3 +1,5 @@
+//! Grouping entities by parent-child relationship.
+
 use bevy::{platform::collections::HashSet, prelude::*};
 
 use crate::entity_grouping::EntityGrouping;
