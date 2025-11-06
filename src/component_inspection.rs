@@ -118,6 +118,9 @@ pub struct ComponentTypeMetadata {
     /// such as its fields and methods,
     /// as well as any reflected traits it implements.
     ///
+    /// If Bevy's `reflect_documentation` feature is enabled,
+    /// this also contains documentation comments for the type and its members.
+    ///
     /// Note: this may be `None` if the type is not reflected and registered in the type registry.
     /// Currently, generic types need to be manually registered,
     /// and dynamically-typed components cannot be registered.
