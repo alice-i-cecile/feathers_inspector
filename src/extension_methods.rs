@@ -430,7 +430,7 @@ impl EntityCommandsInspectionTrait for EntityCommands<'_> {
             let world = entity_world_mut.world();
             match world.inspect_component::<C>(entity, settings) {
                 Ok(inspection) => info!("{}", inspection),
-                Err(err) => info!("Failed to inspect component: {}", err),
+                Err(err) => warn!("Failed to inspect component: {}", err),
             }
         });
     }
