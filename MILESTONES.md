@@ -94,9 +94,7 @@
   - [x] Individual components
   - [x] Resources
   - [x] Entities
-- [] Report interesting metadata for resources in `ResourceInspection`
-- [] Optionally compute summary stats about component values
-- [] Add this information when inspecting resources
+- [x] Report interesting metadata for resources in `ResourceInspection`
 
 ## BRP inspection
 
