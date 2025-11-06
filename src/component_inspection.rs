@@ -16,7 +16,7 @@ use crate::memory_size::MemorySize;
 /// [`Debug`] can also be used for more detailed but harder to-read output.
 ///
 /// This should be paired with [`ComponentTypeMetadata`] to get full type information.
-/// [`ComponentTypeMetadata`] can be retrieved via [`World::get_component_type_metadata`],
+/// [`ComponentTypeMetadata`] can be retrieved via [`ComponentTypeMetadata::new`],
 /// and is relatively heavy to compute and store. You should cache it if inspecting many
 /// components of the same type.
 ///
@@ -186,6 +186,8 @@ impl Display for ComponentTypeMetadata {
 /// This is distinct from [`ComponentInspection`], which inspects a specific component on an entity.
 ///
 /// Call [`World::inspect_component_type`] to get this information.
+///
+/// [`World::inspect_component_type`]: crate::extension_methods::WorldInspectionExtensionTrait::inspect_component_type
 #[derive(Clone, Debug)]
 pub struct ComponentTypeInspection {
     /// The number of entities that have a component of this type.
