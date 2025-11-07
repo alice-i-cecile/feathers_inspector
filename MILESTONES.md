@@ -80,7 +80,7 @@
 
 - [x] Add a nice way to fuzzily map component / resource names to a `ComponentId`
 - [x] Expose a convenient mutable reflection API: `get_reflected_component_mut` / `get_reflected_resource_mut`
-- [] Add an example for how to turn reflected strings into value changes
+- [x] Add an example for how to dynamically modify values using reflection
 
 ## Component metadata
 
