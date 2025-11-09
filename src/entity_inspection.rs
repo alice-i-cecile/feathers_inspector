@@ -93,6 +93,10 @@ pub enum EntityInspectionError {
     /// The entity does not exist in the world.
     #[error("Entity not found: {0}")]
     EntityNotFound(EntityDoesNotExistError),
+    /// A catch-all variant for inspection errors that should never happen
+    /// when just querying an entity and its metadata.
+    #[error("Unexpected QueryEntityError: {0}")]
+    UnexpectedQueryError(QueryEntityError),
 }
 
 impl From<QueryEntityError> for EntityInspectionError {
@@ -101,10 +105,10 @@ impl From<QueryEntityError> for EntityInspectionError {
             QueryEntityError::EntityDoesNotExist(error) => {
                 EntityInspectionError::EntityNotFound(error)
             }
-            _ => panic!(
-                "Unexpected QueryEntityError variant when inspecting an entity: {:?}",
-                err
-            ),
+            _ => {
+                error!("Unexpected QueryEntityError variant when inspecting an entity: {err:?}");
+                EntityInspectionError::UnexpectedQueryError(err)
+            }
         }
     }
 }
