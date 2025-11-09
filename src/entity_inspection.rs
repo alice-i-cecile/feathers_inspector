@@ -135,13 +135,13 @@ impl Default for EntityInspectionSettings {
 /// Settings for inspecting multiple entities at once.
 #[derive(Clone, Debug)]
 pub struct MultipleEntityInspectionSettings {
-    /// A string to search for within entity names.
+    /// A [`NameFilter`] to search for within entity names.
     ///
-    /// Only entities with names containing this substring will be inspected.
+    /// Only entities whose name matches this filter will be inspected.
     /// If `None`, all entities will be inspected.
     ///
     /// Defaults to `None`.
-    pub name_filter: Option<String>,
+    pub name_filter: Option<NameFilter>,
     /// Components that must be present on each entity to be inspected.
     /// If empty, no component presence filtering will be applied.
     ///
@@ -178,6 +178,71 @@ impl Default for MultipleEntityInspectionSettings {
     }
 }
 
+/// A filter for named entities.
+///
+/// For convenience, the [`From`] trait has been implemented
+/// for converting from [`String`], [`&String`] and [`&str`],
+/// so you can construct using `NameFilter::from("name")`.
+/// Keep in mind that in this case the matches will be case-insensitive.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NameFilter {
+    /// The substring that entities have to match to be included.
+    query: String,
+    /// Whether case matters.
+    case_sensitive: bool,
+}
+
+impl NameFilter {
+    /// Constructs a new [`NameFilter`].
+    ///
+    /// The given `query` is pre-lowercased if `case_sensitive` is `false`.
+    pub fn new(mut query: String, case_sensitive: bool) -> Self {
+        if !case_sensitive {
+            query = query.to_lowercase();
+        }
+        Self {
+            query,
+            case_sensitive,
+        }
+    }
+
+    /// Whether the given `name` matches this filter.
+    pub fn matches(&self, name: &str) -> bool {
+        if self.case_sensitive {
+            name.contains(&self.query)
+        } else {
+            name.to_lowercase().contains(&self.query)
+        }
+    }
+}
+
+impl From<String> for NameFilter {
+    fn from(value: String) -> Self {
+        Self {
+            query: value.to_lowercase(),
+            case_sensitive: false,
+        }
+    }
+}
+
+impl From<&String> for NameFilter {
+    fn from(value: &String) -> Self {
+        Self {
+            query: value.to_lowercase(),
+            case_sensitive: false,
+        }
+    }
+}
+
+impl From<&str> for NameFilter {
+    fn from(value: &str) -> Self {
+        Self {
+            query: value.to_lowercase(),
+            case_sensitive: false,
+        }
+    }
+}
+
 /// Filters the provided entity list in-place according to the provided [`MultipleEntityInspectionSettings`].
 // PERF: this might be faster if you build a dynamic query instead of checking each entity individually.
 pub fn filter_entity_list_for_inspection(
@@ -202,7 +267,7 @@ fn does_entity_match_inspection_filter(
     if let Some(name_filter) = &settings.name_filter {
         let name_matches = world
             .get::<Name>(entity)
-            .map(|name| name.contains(name_filter))
+            .map(|name| name_filter.matches(name.as_str()))
             .unwrap_or(false);
         if !name_matches {
             return false;
@@ -222,4 +287,42 @@ fn does_entity_match_inspection_filter(
     }
 
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::entity_inspection::NameFilter;
+
+    #[test]
+    fn case_insensitive() {
+        let filter = NameFilter::from("Foo");
+        let names = ["foobar", "FOOBAR", "barfoo", "bar"];
+        for (i, name) in names.iter().enumerate() {
+            let matches = filter.matches(name);
+            let expected = match i {
+                0 => true,
+                1 => true,
+                2 => true,
+                3 => false,
+                _ => unreachable!(),
+            };
+            assert_eq!(matches, expected)
+        }
+    }
+
+    #[test]
+    fn case_sensitive() {
+        let filter = NameFilter::new("Foo".into(), true);
+        let names = ["foobar", "FooBar", "bar"];
+        for (i, name) in names.iter().enumerate() {
+            let matches = filter.matches(name);
+            let expected = match i {
+                0 => false,
+                1 => true,
+                2 => false,
+                _ => unreachable!(),
+            };
+            assert_eq!(matches, expected)
+        }
+    }
 }
