@@ -183,9 +183,8 @@ pub fn pretty_print_reflected_struct(dyn_struct: &dyn Struct, full_type_names: b
 
     for i in 0..dyn_struct.field_len() {
         let field_name = dyn_struct.name_at(i).unwrap_or("<Unknown Field>");
-        let field_value = dyn_struct.field_at(i).unwrap();
-        let field_value_str = reflected_value_to_string(field_value, full_type_names);
-        result.push_str(&format!("  {field_name}: {field_value_str},\n"));
+        let field_value = get_value_string(dyn_struct.field_at(i), full_type_names);
+        result.push_str(&format!("  {field_name}: {field_value},\n"));
     }
     result.push('}');
     result
@@ -210,9 +209,8 @@ pub fn pretty_print_reflected_tuple_struct(
     }
 
     for i in 0..dyn_tuple_struct.field_len() {
-        let field_value = dyn_tuple_struct.field(i).unwrap();
-        let field_value_str = reflected_value_to_string(field_value, full_type_names);
-        result.push_str(&format!("  {field_value_str},\n"));
+        let field_value = get_value_string(dyn_tuple_struct.field(i), full_type_names);
+        result.push_str(&format!("  {field_value},\n"));
     }
     result.push(')');
     result
@@ -223,9 +221,8 @@ pub fn pretty_print_reflected_tuple(dyn_tuple: &dyn Tuple, full_type_names: bool
     result.push_str("(\n");
 
     for i in 0..dyn_tuple.field_len() {
-        let field_value = dyn_tuple.field(i).unwrap();
-        let field_value_str = reflected_value_to_string(field_value, full_type_names);
-        result.push_str(&format!("  {field_value_str},\n"));
+        let field_value = get_value_string(dyn_tuple.field(i), full_type_names);
+        result.push_str(&format!("  {field_value},\n"));
     }
     result.push(')');
     result
@@ -236,9 +233,8 @@ pub fn pretty_print_reflected_list(dyn_list: &dyn List, full_type_names: bool) -
     result.push_str("[\n");
 
     for i in 0..dyn_list.len() {
-        let element = dyn_list.get(i).unwrap();
-        let element_str = reflected_value_to_string(element, full_type_names);
-        result.push_str(&format!("  {element_str},\n"));
+        let element = get_value_string(dyn_list.get(i), full_type_names);
+        result.push_str(&format!("  {element},\n"));
     }
     result.push(']');
     result
@@ -249,9 +245,8 @@ pub fn pretty_print_reflected_array(dyn_array: &dyn Array, full_type_names: bool
     result.push_str("[\n");
 
     for i in 0..dyn_array.len() {
-        let element = dyn_array.get(i).unwrap();
-        let element_str = reflected_value_to_string(element, full_type_names);
-        result.push_str(&format!("  {element_str},\n"));
+        let element = get_value_string(dyn_array.get(i), full_type_names);
+        result.push_str(&format!("  {element},\n"));
     }
     result.push(']');
     result
@@ -261,9 +256,9 @@ pub fn pretty_print_reflected_map(dyn_map: &dyn Map, full_type_names: bool) -> S
     result.push_str("{\n");
 
     for (key, value) in dyn_map.iter() {
-        let key_str = reflected_value_to_string(key, full_type_names);
-        let value_str = reflected_value_to_string(value, full_type_names);
-        result.push_str(&format!("  {key_str}: {value_str},\n"));
+        let key = reflected_value_to_string(key, full_type_names);
+        let value = reflected_value_to_string(value, full_type_names);
+        result.push_str(&format!("  {key}: {value},\n"));
     }
 
     result.push('}');
@@ -306,18 +301,16 @@ pub fn pretty_print_reflected_enum(dyn_enum: &dyn Enum, full_type_names: bool) -
             result.push_str(" {\n");
             for i in 0..dyn_enum.field_len() {
                 let field_name = dyn_enum.name_at(i).unwrap_or("<Unknown Field>");
-                let field_value = dyn_enum.field_at(i).unwrap();
-                let field_value_str = reflected_value_to_string(field_value, full_type_names);
-                result.push_str(&format!("  {field_name}: {field_value_str},\n"));
+                let field_value = get_value_string(dyn_enum.field_at(i), full_type_names);
+                result.push_str(&format!("  {field_name}: {field_value},\n"));
             }
             result.push('}');
         }
         VariantType::Tuple => {
             result.push_str("(\n");
             for i in 0..dyn_enum.field_len() {
-                let field_value = dyn_enum.field_at(i).unwrap();
-                let field_value_str = reflected_value_to_string(field_value, full_type_names);
-                result.push_str(&format!("  {field_value_str},\n"));
+                let field_value = get_value_string(dyn_enum.field_at(i), full_type_names);
+                result.push_str(&format!("  {field_value},\n"));
             }
             result.push(')');
         }
@@ -329,4 +322,12 @@ pub fn pretty_print_reflected_enum(dyn_enum: &dyn Enum, full_type_names: bool) -
 pub fn pretty_print_reflected_opaque(opaque_partial_reflect: &dyn PartialReflect) -> String {
     // Fallback to the debug representation for opaque types
     format!("{:?}", opaque_partial_reflect)
+}
+
+fn get_value_string(partial_reflect: Option<&dyn PartialReflect>, full_type_names: bool) -> String {
+    if let Some(value) = partial_reflect {
+        reflected_value_to_string(value, full_type_names)
+    } else {
+        String::from("<Unknown Value>")
+    }
 }
