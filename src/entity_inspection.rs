@@ -181,7 +181,7 @@ impl Default for MultipleEntityInspectionSettings {
 /// A filter for named entities.
 ///
 /// For convenience, the [`From`] trait has been implemented
-/// for converting from [`String`], [`&String`] and [`&str`],
+/// for converting from [`String`], `&String` and [`&str`],
 /// so you can construct using `NameFilter::from("name")`.
 /// Keep in mind that in this case the matches will be case-insensitive.
 #[derive(Clone, Debug, PartialEq, Eq)]
