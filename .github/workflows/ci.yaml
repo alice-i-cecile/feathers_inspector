@@ -77,7 +77,7 @@ jobs:
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
 
-  # Run RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+  # Run RUSTDOCFLAGS="-D warnings" cargo doc --workspace --document-private-items --no-deps
   docs:
     name: Docs
     runs-on: ubuntu-latest
@@ -102,4 +102,4 @@ jobs:
       - name: Run cargo doc
         env:
           RUSTDOCFLAGS: "-D warnings"
-        run: cargo doc --workspace --no-deps
+        run: cargo doc --workspace --document-private-items --no-deps
