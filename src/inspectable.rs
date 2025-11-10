@@ -52,14 +52,90 @@
 //!   - otherwise we break the type into its fields, using any implementation of `Inspectable` found for those fields
 //!   - this recurses until we either hit a base type (like `f32` or `String`) which we provide a base implementation for, or we hit an unknown type that we cannot drill down further into
 
+use thiserror::Error;
+
 /// A trait used to customize the inspection behavior of types.
 ///
-/// Types implementing this trait can provide additional metadata
-/// or override default inspection logic when being inspected by various inspector front-ends.
+/// Types implementing this trait can override default inspection logic when being inspected by various inspector front-ends.
+///
+/// At its core, this is done via diff-based validation, in the form of [`Inspectable::validate_change`].
+/// A front-end inspector proposes a change, then the backend uses this trait determines if that change is valid,
+/// and the value is either accepted, corrected or rejected.
+///
+/// This process relies on information about the previous state of the object,
+/// allowing implementors of the trait to make a better-informed guess of how corrections should be made.
+/// For example, consider the following simple case:
+///
+/// ```rust
+/// pub struct Life {
+/// 	current: u32,
+/// 	max: u32
+/// }
+/// ```
+///
+/// We want to maintain a simple invariant: current life must be less than or equal to max life.
+/// If we were only given a single snapshot, we could tell whether the invariant was broken, but would have no idea whether
+/// we should adjust the current life down, or the max life up!
+///
+/// With both the previous and proposed values, the logic is clear:
+/// if the user attempted to decrease the max life, the current life should be reduced to match,
+/// while if they attempted to raise the current life, the max life should be increased to match.
+///
+/// ## How this trait is used
 ///
 /// This trait is optional: types that do not implement it will still be inspectable
 /// as long as they derive [`Reflect`](bevy::reflect::Reflect).
 ///
 /// See the [module docs](super) for more information about the fallback strategy used,
 /// and the machinery involved.
-pub trait Inspectable {}
+// TODO: can we remove this Sized bound?
+pub trait Inspectable: Sized {
+    /// Evaluates a proposed change (in the form of a new value) for correctness.
+    ///
+    /// If it is correct, the proposed change is returned.
+    ///
+    /// If it is not correct, a best-effort attempt to repair it is made,
+    /// and returned as [`ValidationFailure::Correctable`].
+    /// If no correction could be made, [`ValidationFailure::Uncorrectable`] is returned.
+    fn validate_change(&self, proposed_change: Self) -> Result<Self, ValidationFailure<Self>>;
+
+    /// Evaluates a proposed change for correctness, and then attempts to apply it.
+    ///
+    /// Any proposed correction will be accepted and used to modify `self`.
+    /// If no correction was provided, `self` will be unchanged and a [`ValidationFailure::Uncorrectable`]
+    /// error will be returned.
+    fn validate_and_apply_change(
+        &mut self,
+        proposed_change: Self,
+    ) -> Result<(), ValidationFailure<Self>> {
+        match self.validate_change(proposed_change) {
+            Ok(proposed_change) => {
+                *self = proposed_change;
+                Ok(())
+            }
+            Err(validation_failure) => match validation_failure {
+                ValidationFailure::Correctable(corrected_change) => {
+                    *self = corrected_change;
+                    Ok(())
+                }
+                ValidationFailure::Uncorrectable(error_string) => {
+                    Err(ValidationFailure::Uncorrectable(error_string))
+                }
+            },
+        }
+    }
+}
+
+/// An error that occurred during [`Inspectable`] validation.
+#[derive(Debug, Clone, Error)]
+pub enum ValidationFailure<T> {
+    /// The proposed change was incorrect, but a good correction could be found.
+    ///
+    /// For example, a value may have been clamped to the range it was bound to,
+    /// or a normalization process may have been applied to maintain internal constraints.
+    Correctable(T),
+    /// The proposed change was incorrect, and no good correction could be found.
+    ///
+    /// For example, NaN may have been provided to a numeric input field.
+    Uncorrectable(String),
+}
