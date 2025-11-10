@@ -64,7 +64,7 @@
 
 - [x] define a stub `Inspectable` trait for reflected type information
 - [] customize the precision, increment and range of numbers
-- [] hide fields from the inspector
+- [x] hide fields from the inspector
 - [] customize display output based on `Inspectable`
 - [] add a derive macro
 

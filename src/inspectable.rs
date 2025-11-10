@@ -81,6 +81,11 @@ use thiserror::Error;
 /// if the user attempted to decrease the max life, the current life should be reduced to match,
 /// while if they attempted to raise the current life, the max life should be increased to match.
 ///
+/// ## Ignoring/hiding fields
+///
+/// Because inspection relies on reflection, simply using `#[reflect(ignore)]` will hide
+/// pesky [`PhantomData`](core::marker::PhantomData) fields.
+///
 /// ## How this trait is used
 ///
 /// This trait is optional: types that do not implement it will still be inspectable
@@ -135,6 +140,9 @@ pub enum ValidationFailure<T> {
     /// or a normalization process may have been applied to maintain internal constraints.
     Correctable(T),
     /// The proposed change was incorrect, and no good correction could be found.
+    ///
+    /// An human-readable error string should be returned, indicating the fashion
+    /// in which the proposed change was invalid.
     ///
     /// For example, NaN may have been provided to a numeric input field.
     Uncorrectable(String),
