@@ -20,7 +20,7 @@ use crate::component_inspection::{ComponentInspection, ComponentTypeMetadata};
 #[derive(Clone, Debug, PartialEq, Eq, Deref, DerefMut)]
 pub struct EntityName {
     #[deref]
-    pub name: String,
+    pub name: Name,
     pub origin: NameOrigin,
 }
 
@@ -30,7 +30,7 @@ impl EntityName {
     /// [`Custom`]: NameOrigin::Custom
     pub(crate) fn custom(name: &str) -> Self {
         Self {
-            name: name.to_owned(),
+            name: Name::new(name.to_owned()),
             origin: NameOrigin::Custom,
         }
     }
@@ -40,7 +40,7 @@ impl EntityName {
     /// [`Resolved`]: NameOrigin::Resolved
     pub(crate) fn resolved(name: &str) -> Self {
         Self {
-            name: name.to_owned(),
+            name: Name::new(name.to_owned()),
             origin: NameOrigin::Resolved,
         }
     }
