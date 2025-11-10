@@ -35,13 +35,13 @@ impl EntityName {
         }
     }
 
-    /// Constructs a [`Resolved`] entity name.
+    /// Constructs a [`Generated`] entity name.
     ///
-    /// [`Resolved`]: NameOrigin::Resolved
-    pub(crate) fn resolved(name: &str) -> Self {
+    /// [`Generated`]: NameOrigin::Generated
+    pub(crate) fn generated(name: &str) -> Self {
         Self {
             name: Name::new(name.to_owned()),
-            origin: NameOrigin::Resolved,
+            origin: NameOrigin::Generated,
         }
     }
 }
@@ -53,7 +53,7 @@ pub enum NameOrigin {
     /// The entity name comes from the [`Name`] component.
     Custom,
     /// The name was generated using [`resolve_name`].
-    Resolved,
+    Generated,
 }
 
 /// Determines the name to display for the given `entity`.
@@ -108,7 +108,7 @@ pub fn resolve_name(
             .collect::<Vec<String>>()
             .join(" | ");
 
-        Some(EntityName::resolved(&resolved_name))
+        Some(EntityName::generated(&resolved_name))
     }
 }
 
