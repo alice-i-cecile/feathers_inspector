@@ -12,68 +12,110 @@ use bevy::prelude::*;
 use bevy::window::Monitor;
 use core::any::TypeId;
 
-use crate::component_inspection::ComponentTypeMetadata;
-use crate::entity_inspection::EntityInspection;
+use crate::component_inspection::{ComponentInspection, ComponentTypeMetadata};
 
-impl EntityInspection {
-    /// Determines the name to display for this entity.
+/// The name of an inspected entity.
+///
+/// This data is produced by [`resolve_name`].
+#[derive(Clone, Debug, PartialEq, Eq, Deref, DerefMut)]
+pub struct EntityName {
+    #[deref]
+    pub name: Name,
+    pub origin: NameOrigin,
+}
+
+impl EntityName {
+    /// Constructs a [`Custom`] entity name.
     ///
-    /// If the [`Name`] component is present, its value will be used.
-    ///
-    /// If any component marked as "name-defining" is present, its name will be used.
-    /// If multiple name-defining components are present, they will be joined in alphabetical order,
-    /// separated by a "|" character.
-    ///
-    /// Otherwise, [`None`] is returned.
-    /// The caller can then fall back to a default name such as "Entity".
-    pub fn resolve_name(
-        &self,
-        metadata_map: &HashMap<ComponentId, ComponentTypeMetadata>,
-    ) -> Option<String> {
-        if let Some(custom_name) = &self.name {
-            Some(custom_name.as_str().to_string())
-        } else {
-            let Some(component_data) = &self.components else {
-                return None;
-            };
-
-            let mut name_resolution_priorities = component_data
-                .iter()
-                .filter_map(|comp_inspection| {
-                    let name_definition_priority = metadata_map
-                        .get(&comp_inspection.component_id)?
-                        .name_definition_priority;
-                    name_definition_priority
-                        .map(|priority| (comp_inspection.name.shortname().to_string(), priority))
-                })
-                .collect::<Vec<(String, i8)>>();
-
-            if name_resolution_priorities.is_empty() {
-                return None;
-            }
-
-            // Sort by priority (higher priority first), then by name alphabetically
-            name_resolution_priorities.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
-
-            // Only include names with the highest priority
-            // PERF: we could do this more efficiently by combining the sort and filter steps
-            let highest_priority = name_resolution_priorities[0].1;
-            name_resolution_priorities.retain(|&(_, priority)| priority == highest_priority);
-
-            let resolved_name = name_resolution_priorities
-                .into_iter()
-                .map(|(name, _)| name)
-                .collect::<Vec<String>>()
-                .join(" | ");
-
-            Some(resolved_name)
+    /// [`Custom`]: NameOrigin::Custom
+    pub(crate) fn custom(name: &str) -> Self {
+        Self {
+            name: Name::new(name.to_owned()),
+            origin: NameOrigin::Custom,
         }
+    }
+
+    /// Constructs a [`Generated`] entity name.
+    ///
+    /// [`Generated`]: NameOrigin::Generated
+    pub(crate) fn generated(name: &str) -> Self {
+        Self {
+            name: Name::new(name.to_owned()),
+            origin: NameOrigin::Generated,
+        }
+    }
+}
+
+/// Identifies whether the inspected entity's name
+/// is manually assigned or automatically resolved.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NameOrigin {
+    /// The entity name comes from the [`Name`] component.
+    Custom,
+    /// The name was generated using [`resolve_name`].
+    Generated,
+}
+
+/// Determines the name to display for the given `entity`.
+///
+/// If the [`Name`] component is present, its value will be used.
+///
+/// If any component marked as "name-defining" is present, its name will be used.
+/// If multiple name-defining components with the same highest priority are present,
+/// they will be joined in alphabetical order,
+/// separated by a "|" character.
+///
+/// Otherwise, [`None`] is returned.
+/// The caller can then fall back to a default name such as "Entity".
+pub fn resolve_name(
+    world: &World,
+    entity: Entity,
+    components: &Option<Vec<ComponentInspection>>,
+    metadata_map: &HashMap<ComponentId, ComponentTypeMetadata>,
+) -> Option<EntityName> {
+    if let Some(custom_name) = world.get::<Name>(entity).cloned() {
+        Some(EntityName::custom(custom_name.as_str()))
+    } else {
+        let Some(component_data) = components else {
+            return None;
+        };
+
+        let mut name_resolution_priorities = component_data
+            .iter()
+            .filter_map(|comp_inspection| {
+                let name_definition_priority = metadata_map
+                    .get(&comp_inspection.component_id)?
+                    .name_definition_priority;
+                name_definition_priority
+                    .map(|priority| (comp_inspection.name.shortname().to_string(), priority))
+            })
+            .collect::<Vec<(String, i8)>>();
+
+        if name_resolution_priorities.is_empty() {
+            return None;
+        }
+
+        // Sort by priority (higher priority first), then by name alphabetically
+        name_resolution_priorities.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+
+        // Only include names with the highest priority
+        // PERF: we could do this more efficiently by combining the sort and filter steps
+        let highest_priority = name_resolution_priorities[0].1;
+        name_resolution_priorities.retain(|&(_, priority)| priority == highest_priority);
+
+        let resolved_name = name_resolution_priorities
+            .into_iter()
+            .map(|(name, _)| name)
+            .collect::<Vec<String>>()
+            .join(" | ");
+
+        Some(EntityName::generated(&resolved_name))
     }
 }
 
 /// Stores the registered name-defining component types and their priorities.
 ///
-/// When determining an entity's name via [`EntityInspection::resolve_name`], components with higher priority values
+/// When determining an entity's name via [`resolve_name`], components with higher priority values
 /// will take precedence over those with lower priority values.
 ///
 /// Explicitly named entities (via the [`Name`] component) will always take precedence over name-defining components.

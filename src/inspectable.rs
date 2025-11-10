@@ -68,8 +68,8 @@ use thiserror::Error;
 ///
 /// ```rust
 /// pub struct Life {
-/// 	current: u32,
-/// 	max: u32
+///     current: u32,
+///     max: u32
 /// }
 /// ```
 ///

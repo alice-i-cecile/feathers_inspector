@@ -21,6 +21,7 @@ use crate::{
     component_inspection::{
         ComponentDetailLevel, ComponentInspection, ComponentInspectionSettings,
     },
+    entity_name_resolution::EntityName,
     memory_size::MemorySize,
 };
 
@@ -30,7 +31,7 @@ pub struct EntityInspection {
     /// The entity being inspected.
     pub entity: Entity,
     /// The name of the entity, if any.
-    pub name: Option<Name>,
+    pub name: Option<EntityName>,
     /// The total size of the entity in memory.
     ///
     /// This is computed as the sum of the sizes of all its components,

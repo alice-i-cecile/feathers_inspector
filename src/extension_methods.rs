@@ -17,6 +17,7 @@ use crate::{
         EntityInspection, EntityInspectionError, EntityInspectionSettings,
         MultipleEntityInspectionSettings, filter_entity_list_for_inspection,
     },
+    entity_name_resolution::resolve_name,
     memory_size::MemorySize,
     reflection_tools::{
         get_reflected_component_ref, get_reflected_resource_ref, reflected_value_to_string,
@@ -164,8 +165,6 @@ impl WorldInspectionExtensionTrait for World {
         settings: &EntityInspectionSettings,
         metadata_map: &ComponentMetadataMap,
     ) -> Result<EntityInspection, EntityInspectionError> {
-        let name = self.get::<Name>(entity).cloned();
-
         // This unwrap is safe because `SpawnDetails` is always registered.
         let mut spawn_details_query = self.try_query::<SpawnDetails>().unwrap();
 
@@ -203,6 +202,7 @@ impl WorldInspectionExtensionTrait for World {
         } else {
             (None, None)
         };
+        let name = resolve_name(self, entity, &components, metadata_map);
 
         Ok(EntityInspection {
             entity,
