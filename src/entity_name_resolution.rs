@@ -56,7 +56,7 @@ pub enum NameOrigin {
     Resolved,
 }
 
-/// Determines the name to display for this entity.
+/// Determines the name to display for the given `entity`.
 ///
 /// If the [`Name`] component is present, its value will be used.
 ///
