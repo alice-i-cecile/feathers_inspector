@@ -61,7 +61,8 @@ pub enum NameOrigin {
 /// If the [`Name`] component is present, its value will be used.
 ///
 /// If any component marked as "name-defining" is present, its name will be used.
-/// If multiple name-defining components are present, they will be joined in alphabetical order,
+/// If multiple name-defining components with the same highest priority are present,
+/// they will be joined in alphabetical order,
 /// separated by a "|" character.
 ///
 /// Otherwise, [`None`] is returned.
