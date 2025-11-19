@@ -62,7 +62,7 @@ pub trait WorldInspectionExtensionTrait {
     /// you should clear or modify the `metadata_map` before calling this method.
     fn inspect_multiple(
         &self,
-        entities: impl ExactSizeIterator<Item = Entity>,
+        entities: impl IntoIterator<Item = Entity>,
         settings: MultipleEntityInspectionSettings,
         metadata_map: &mut ComponentMetadataMap,
     ) -> Vec<Result<EntityInspection, EntityInspectionError>>;
@@ -215,7 +215,7 @@ impl WorldInspectionExtensionTrait for World {
 
     fn inspect_multiple(
         &self,
-        entities: impl ExactSizeIterator<Item = Entity>,
+        entities: impl IntoIterator<Item = Entity>,
         settings: MultipleEntityInspectionSettings,
         metadata_map: &mut ComponentMetadataMap,
     ) -> Vec<Result<EntityInspection, EntityInspectionError>> {

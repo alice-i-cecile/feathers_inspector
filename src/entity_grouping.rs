@@ -31,7 +31,7 @@ impl EntityGrouping {
     /// Generates an [`EntityGrouping`] based on the components of the provided entities.
     pub fn generate(
         world: &World,
-        entities: impl ExactSizeIterator<Item = Entity>,
+        entities: impl IntoIterator<Item = Entity>,
         strategy: GroupingStrategy,
     ) -> Self {
         match strategy {
