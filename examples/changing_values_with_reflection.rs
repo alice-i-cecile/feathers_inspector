@@ -92,7 +92,7 @@ fn modify_selected_component(world: &mut World) {
     let mut sprite_query = world.query_filtered::<Entity, With<Sprite>>();
 
     // This entity should generally be gathered via UI selection in a real application
-    let entity = sprite_query.iter(&world).next().unwrap();
+    let entity = sprite_query.iter(world).next().unwrap();
 
     // The type id of the component to modify should be gathered via UI selection in a real application
     let type_id = match selected {
