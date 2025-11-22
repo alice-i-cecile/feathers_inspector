@@ -12,7 +12,7 @@ use crate::{
         ComponentInspectionSettings, ComponentMetadataMap, ComponentTypeInspection,
         ComponentTypeMetadata,
     },
-    entity_grouping::{EntityGrouping, GroupingStrategy},
+    entity_grouping::EntityGrouping,
     entity_inspection::{
         EntityInspection, EntityInspectionError, EntityInspectionSettings,
         MultipleEntityInspectionSettings, filter_entity_list_for_inspection,
@@ -223,7 +223,7 @@ impl WorldInspectionExtensionTrait for World {
             metadata_map.update(self);
 
             let entity_grouping =
-                EntityGrouping::generate(self, entities, GroupingStrategy::ArchetypeSimilarity);
+                EntityGrouping::generate(self, entities, settings.grouping_strategy);
             let mut entity_list = entity_grouping.flatten();
 
             filter_entity_list_for_inspection(self, &mut entity_list, &settings);
