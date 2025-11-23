@@ -8,10 +8,7 @@ use bevy::{
 
 use crate::entity_grouping::EntityGrouping;
 
-pub(crate) fn group(
-    world: &World,
-    entities: impl ExactSizeIterator<Item = Entity>,
-) -> EntityGrouping {
+pub(crate) fn group(world: &World, entities: impl IntoIterator<Item = Entity>) -> EntityGrouping {
     let entities_by_archetype = get_entities_by_archetype(world, entities);
     if entities_by_archetype.is_empty() {
         return EntityGrouping::new();
@@ -33,7 +30,7 @@ pub(crate) fn group(
 /// Associates archetypes to the entities belonging to them.
 fn get_entities_by_archetype(
     world: &World,
-    entities: impl ExactSizeIterator<Item = Entity>,
+    entities: impl IntoIterator<Item = Entity>,
 ) -> HashMap<ArchetypeId, Vec<Entity>> {
     let mut entities_by_archetype: HashMap<ArchetypeId, Vec<Entity>> = HashMap::default();
     for entity in entities {
