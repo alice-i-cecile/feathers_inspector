@@ -21,6 +21,7 @@ use crate::{
     component_inspection::{
         ComponentDetailLevel, ComponentInspection, ComponentInspectionSettings,
     },
+    entity_grouping::GroupingStrategy,
     entity_name_resolution::EntityName,
     memory_size::MemorySize,
 };
@@ -164,6 +165,8 @@ pub struct MultipleEntityInspectionSettings {
     /// By default, only component names are included to improve performance
     /// and improve readability when inspecting many entities at once.
     pub entity_settings: EntityInspectionSettings,
+    /// Specifies how entities should be grouped.
+    pub grouping_strategy: GroupingStrategy,
 }
 
 impl Default for MultipleEntityInspectionSettings {
@@ -179,6 +182,7 @@ impl Default for MultipleEntityInspectionSettings {
                 },
                 ..Default::default()
             },
+            grouping_strategy: GroupingStrategy::Hierarchy,
         }
     }
 }
