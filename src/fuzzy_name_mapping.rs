@@ -6,7 +6,10 @@
 
 use bevy::ecs::component::ComponentId;
 use bevy::ecs::world::World;
-use strsim::levenshtein;
+use strsim::normalized_levenshtein;
+
+/// Minimum required similarity for inclusion in a fuzzy mapping.
+const THRESHOLD: f64 = 0.3;
 
 /// Attempts to find a [`ComponentId`] for the given fuzzy component name.
 ///
@@ -15,7 +18,7 @@ use strsim::levenshtein;
 ///
 /// See [`fuzzy_resource_name_to_id`] for a similar function for resources.
 ///
-/// Matching uses Levenshtein distance to find the closest match,
+/// Matching uses normalized Levenshtein similarity to find the closest match,
 /// and is case-insensitive and ignores leading/trailing whitespace.
 /// Only the "shortname" of the component (i.e., without module paths) is considered.
 pub fn fuzzy_component_name_to_id(world: &World, fuzzy_name: &str) -> Option<ComponentId> {
@@ -34,11 +37,16 @@ pub fn fuzzy_component_name_to_id(world: &World, fuzzy_name: &str) -> Option<Com
 
     // PERF: it is almost certainly more efficient to build an accelerated structure
     // across all possible names once, rather than re-computing distances each time.
-    let mut best_match: Option<(ComponentId, usize)> = None;
+    let mut best_match: Option<(ComponentId, f64)> = None;
     for (id, name) in component_names {
-        let distance = levenshtein(&processed_fuzzy_name, &name);
-        if best_match.is_none() || distance < best_match.as_ref().unwrap().1 {
-            best_match = Some((id, distance));
+        if processed_fuzzy_name == name {
+            return Some(id);
+        }
+        let similarity = normalized_levenshtein(&processed_fuzzy_name, &name);
+        if similarity >= THRESHOLD
+            && (best_match.is_none() || similarity > best_match.as_ref().unwrap().1)
+        {
+            best_match = Some((id, similarity));
         }
     }
 
@@ -52,7 +60,7 @@ pub fn fuzzy_component_name_to_id(world: &World, fuzzy_name: &str) -> Option<Com
 ///
 /// See [`fuzzy_component_name_to_id`] for a similar function for components.
 ///
-/// Matching uses Levenshtein distance to find the closest match,
+/// Matching uses normalized Levenshtein similarity to find the closest match,
 /// and is case-insensitive and ignores leading/trailing whitespace.
 /// Only the "shortname" of the component (i.e., without module paths) is considered.
 pub fn fuzzy_resource_name_to_id(world: &World, fuzzy_name: &str) -> Option<ComponentId> {
@@ -71,11 +79,16 @@ pub fn fuzzy_resource_name_to_id(world: &World, fuzzy_name: &str) -> Option<Comp
 
     // PERF: it is almost certainly more efficient to build an accelerated structure
     // across all possible names once, rather than re-computing distances each time.
-    let mut best_match: Option<(ComponentId, usize)> = None;
+    let mut best_match: Option<(ComponentId, f64)> = None;
     for (id, name) in resource_names {
-        let distance = levenshtein(&processed_fuzzy_name, &name);
-        if best_match.is_none() || distance < best_match.as_ref().unwrap().1 {
-            best_match = Some((id, distance));
+        if processed_fuzzy_name == name {
+            return Some(id);
+        }
+        let similarity = normalized_levenshtein(&processed_fuzzy_name, &name);
+        if similarity >= THRESHOLD
+            && (best_match.is_none() || similarity > best_match.as_ref().unwrap().1)
+        {
+            best_match = Some((id, similarity));
         }
     }
 
