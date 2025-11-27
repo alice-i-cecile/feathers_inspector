@@ -14,18 +14,16 @@ use bevy::{
     },
     prelude::*,
 };
-use core::any::type_name;
 use core::fmt::Display;
 use thiserror::Error;
 
 use crate::{
     component_inspection::{
-        ComponentDetailLevel, ComponentInspection, ComponentInspectionError,
-        ComponentInspectionSettings, ComponentMetadataMap, ComponentTypeMetadata,
+        ComponentDetailLevel, ComponentInspection, ComponentInspectionSettings,
     },
-    entity_grouping::EntityGrouping,
+    entity_grouping::GroupingStrategy,
+    entity_name_resolution::EntityName,
     memory_size::MemorySize,
-    reflection_tools::{get_reflected_component_ref, reflected_value_to_string},
 };
 
 /// The result of inspecting an entity.
@@ -34,7 +32,7 @@ pub struct EntityInspection {
     /// The entity being inspected.
     pub entity: Entity,
     /// The name of the entity, if any.
-    pub name: Option<Name>,
+    pub name: Option<EntityName>,
     /// The total size of the entity in memory.
     ///
     /// This is computed as the sum of the sizes of all its components,
@@ -97,6 +95,10 @@ pub enum EntityInspectionError {
     /// The entity does not exist in the world.
     #[error("Entity not found: {0}")]
     EntityNotFound(EntityDoesNotExistError),
+    /// A catch-all variant for inspection errors that should never happen
+    /// when just querying an entity and its metadata.
+    #[error("Unexpected QueryEntityError: {0}")]
+    UnexpectedQueryError(QueryEntityError),
 }
 
 impl From<QueryEntityError> for EntityInspectionError {
@@ -105,10 +107,10 @@ impl From<QueryEntityError> for EntityInspectionError {
             QueryEntityError::EntityDoesNotExist(error) => {
                 EntityInspectionError::EntityNotFound(error)
             }
-            _ => panic!(
-                "Unexpected QueryEntityError variant when inspecting an entity: {:?}",
-                err
-            ),
+            _ => {
+                error!("Unexpected QueryEntityError variant when inspecting an entity: {err:?}");
+                EntityInspectionError::UnexpectedQueryError(err)
+            }
         }
     }
 }
@@ -139,13 +141,13 @@ impl Default for EntityInspectionSettings {
 /// Settings for inspecting multiple entities at once.
 #[derive(Clone, Debug)]
 pub struct MultipleEntityInspectionSettings {
-    /// A string to search for within entity names.
+    /// A [`NameFilter`] to search for within entity names.
     ///
-    /// Only entities with names containing this substring will be inspected.
+    /// Only entities whose name matches this filter will be inspected.
     /// If `None`, all entities will be inspected.
     ///
     /// Defaults to `None`.
-    pub name_filter: Option<String>,
+    pub name_filter: Option<NameFilter>,
     /// Components that must be present on each entity to be inspected.
     /// If empty, no component presence filtering will be applied.
     ///
@@ -163,6 +165,8 @@ pub struct MultipleEntityInspectionSettings {
     /// By default, only component names are included to improve performance
     /// and improve readability when inspecting many entities at once.
     pub entity_settings: EntityInspectionSettings,
+    /// Specifies how entities should be grouped.
+    pub grouping_strategy: GroupingStrategy,
 }
 
 impl Default for MultipleEntityInspectionSettings {
@@ -178,282 +182,77 @@ impl Default for MultipleEntityInspectionSettings {
                 },
                 ..Default::default()
             },
+            grouping_strategy: GroupingStrategy::Hierarchy,
         }
     }
 }
 
-/// An extension trait for inspecting entities.
+/// A filter for named entities.
 ///
-/// This is required because this crate is not part of Bevy itself.
-///
-/// Ideally these methods would be on `EntityRef` and friends,
-/// but accessing metadata about components requires access to the `World`,
-/// which is not available, especially externally.
-pub trait EntityInspectExtensionTrait {
-    /// Inspects the provided entity.
-    ///
-    /// The provided [`EntityInspection`] contains details about the entity,
-    /// and can be logged using the [`Display`] trait.
-    fn inspect(
-        &self,
-        entity: Entity,
-        settings: EntityInspectionSettings,
-    ) -> Result<EntityInspection, EntityInspectionError>;
-
-    /// Inspects the provided entity, using cached [`ComponentTypeMetadata`] for component type information.
-    ///
-    /// This method should be preferred when inspecting many entities,
-    /// as it avoids re-computing component type metadata for each entity.
-    fn inspect_cached(
-        &self,
-        entity: Entity,
-        settings: &EntityInspectionSettings,
-        metadata_map: &ComponentMetadataMap,
-    ) -> Result<EntityInspection, EntityInspectionError>;
-
-    /// Inspects multiple entities.
-    ///
-    /// The metadata_map parameter is mutable to allow caching of component metadata
-    /// as needed during the inspection process. Any previously cached metadata will be reused,
-    /// while new metadata will be added to the map for future use.
-    ///
-    /// If you need to update the metadata of component types between inspections,
-    /// you should clear or modify the `metadata_map` before calling this method.
-    fn inspect_multiple(
-        &self,
-        entities: impl ExactSizeIterator<Item = Entity>,
-        settings: MultipleEntityInspectionSettings,
-        metadata_map: &mut ComponentMetadataMap,
-    ) -> Vec<Result<EntityInspection, EntityInspectionError>>;
-
-    /// Inspects the component corresponding to the provided [`ComponentId`].
-    ///
-    /// The provided [`ComponentInspection`] contains details about the component,
-    /// and can be logged using the [`Display`] trait.
-    ///
-    /// This is a low-level method; you will need to provide
-    /// the appropriate [`ComponentTypeMetadata`] for the component being inspected.
-    /// This can be obtained using [`ComponentTypeMetadata::new`], and should be cached
-    /// if inspecting many components of the same type.
-    ///
-    /// If you only want to inspect a specific component type, consider using
-    /// [`inspect_component::<C>`](Self::inspect_component) instead.
-    fn inspect_component_by_id(
-        &self,
-        component_id: ComponentId,
-        entity: Entity,
-        metadata: &ComponentTypeMetadata,
-        settings: ComponentInspectionSettings,
-    ) -> Result<ComponentInspection, ComponentInspectionError>;
-
-    /// Inspects the component of type `C`.
-    ///
-    /// The provided [`ComponentInspection`] contains details about the component,
-    /// and can be logged using the [`Display`] trait.
-    ///
-    /// If you intend to call this method multiple times for the same component type,
-    /// consider using [`inspect_component_by_id`](Self::inspect_component_by_id)
-    /// with cached [`ComponentTypeMetadata`] instead for better performance.
-    fn inspect_component<C: Component>(
-        &self,
-        entity: Entity,
-        settings: ComponentInspectionSettings,
-    ) -> Result<ComponentInspection, ComponentInspectionError>;
+/// For convenience, the [`From`] trait has been implemented
+/// for converting from [`String`], `&String` and [`&str`],
+/// so you can construct using `NameFilter::from("name")`.
+/// Keep in mind that in this case the matches will be case-insensitive.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NameFilter {
+    /// The substring that entities have to match to be included.
+    query: String,
+    /// Whether case matters.
+    case_sensitive: bool,
 }
 
-impl EntityInspectExtensionTrait for World {
-    // When upstreamed, this should be a method on `EntityRef`.
-    // It can't easily be one for now as we need access to the `World`
-    // to get information from the `AppTypeRegistry` and `NameResolutionRegistry`.
-    fn inspect(
-        &self,
-        entity: Entity,
-        settings: EntityInspectionSettings,
-    ) -> Result<EntityInspection, EntityInspectionError> {
-        let metadata_map = ComponentMetadataMap::for_entity(self, entity);
-        self.inspect_cached(entity, &settings, &metadata_map)
-    }
-
-    fn inspect_cached(
-        &self,
-        entity: Entity,
-        settings: &EntityInspectionSettings,
-        metadata_map: &ComponentMetadataMap,
-    ) -> Result<EntityInspection, EntityInspectionError> {
-        let name = self.get::<Name>(entity).cloned();
-
-        // This unwrap is safe because `SpawnDetails` is always registered.
-        let mut spawn_details_query = self.try_query::<SpawnDetails>().unwrap();
-
-        let spawn_details = spawn_details_query.get(self, entity)?;
-
-        // Temporary binding to avoid dropping borrow
-        let entity_ref = self.entity(entity);
-
-        let (components, total_memory_size) = if settings.include_components {
-            let components: Vec<ComponentInspection> = entity_ref
-                .archetype()
-                .components()
-                .iter()
-                .map(|component_id| match metadata_map.get(component_id) {
-                    Some(metadata) => self.inspect_component_by_id(
-                        *component_id,
-                        entity,
-                        metadata,
-                        settings.component_settings,
-                    ),
-                    None => Err(ComponentInspectionError::ComponentIdNotRegistered(
-                        *component_id,
-                    )),
-                })
-                .filter_map(Result::ok)
-                .collect();
-
-            let total_bytes = components
-                .iter()
-                .filter_map(|comp| comp.memory_size.as_ref())
-                .fold(0usize, |acc, size| acc + size.as_bytes());
-            let total_memory_size = MemorySize::new(total_bytes);
-
-            (Some(components), Some(total_memory_size))
-        } else {
-            (None, None)
-        };
-
-        Ok(EntityInspection {
-            entity,
-            name,
-            total_memory_size,
-            components,
-            spawn_details,
-        })
-    }
-
-    fn inspect_multiple(
-        &self,
-        entities: impl ExactSizeIterator<Item = Entity>,
-        settings: MultipleEntityInspectionSettings,
-        metadata_map: &mut ComponentMetadataMap,
-    ) -> Vec<Result<EntityInspection, EntityInspectionError>> {
-        {
-            metadata_map.update(self);
-
-            let entity_grouping = EntityGrouping::generate(self, entities);
-            let mut entity_list = entity_grouping.flatten();
-
-            filter_entity_list_for_inspection(self, &mut entity_list, &settings);
-
-            let mut inspections = Vec::with_capacity(entity_list.len());
-            for entity in entity_list {
-                let inspection =
-                    self.inspect_cached(entity, &settings.entity_settings, &metadata_map);
-                inspections.push(inspection);
-            }
-            inspections
+impl NameFilter {
+    /// Constructs a new [`NameFilter`].
+    ///
+    /// The given `query` is pre-lowercased if `case_sensitive` is `false`.
+    pub fn new(mut query: String, case_sensitive: bool) -> Self {
+        if !case_sensitive {
+            query = query.to_lowercase();
+        }
+        Self {
+            query,
+            case_sensitive,
         }
     }
 
-    fn inspect_component_by_id(
-        &self,
-        component_id: ComponentId,
-        entity: Entity,
-        metadata: &ComponentTypeMetadata,
-        settings: ComponentInspectionSettings,
-    ) -> Result<ComponentInspection, ComponentInspectionError> {
-        let component_info = self.components().get_info(component_id).ok_or(
-            ComponentInspectionError::ComponentNotRegistered(type_name::<ComponentId>()),
-        )?;
-
-        let name = component_info.name();
-
-        let (value, memory_size) = if settings.detail_level == ComponentDetailLevel::Names {
-            (None, None)
+    /// Whether the given `name` matches this filter.
+    pub fn matches(&self, name: &str) -> bool {
+        if self.case_sensitive {
+            name.contains(&self.query)
         } else {
-            match metadata.type_id {
-                Some(type_id) => match get_reflected_component_ref(self, entity, type_id) {
-                    Ok(reflected) => (
-                        Some(reflected_value_to_string(
-                            reflected,
-                            settings.full_type_names,
-                        )),
-                        Some(MemorySize::new(size_of_val(reflected))),
-                    ),
-                    Err(err) => (Some(format!("<Unreflectable: {}>", err)), None),
-                },
-                None => (Some("Dynamic Type".to_string()), None),
-            }
-        };
-
-        Ok(ComponentInspection {
-            entity,
-            component_id,
-            name,
-            memory_size,
-            value,
-        })
-    }
-
-    fn inspect_component<C: Component>(
-        &self,
-        entity: Entity,
-        settings: ComponentInspectionSettings,
-    ) -> Result<ComponentInspection, ComponentInspectionError> {
-        let component_id = self.components().valid_component_id::<C>().ok_or(
-            ComponentInspectionError::ComponentNotRegistered(type_name::<C>()),
-        )?;
-
-        // We're generating this on the fly; this is fine for a convenience method
-        // intended for occasional logging.
-        let metadata = ComponentTypeMetadata::new(self, component_id)?;
-
-        self.inspect_component_by_id(component_id, entity, &metadata, settings)
+            name.to_lowercase().contains(&self.query)
+        }
     }
 }
 
-/// An extension trait for inspecting entities via Commands.
-pub trait InspectExtensionCommandsTrait {
-    /// Inspects the provided entity, logging details to the console using [`info!`].
-    ///
-    /// To inspect only a specific component on the entity, use
-    /// [`inspect_component::<C>`](Self::inspect_component) instead.
-    fn inspect(&mut self, settings: EntityInspectionSettings);
-
-    /// Inspects the component of type `C` on the entity, logging details to the console using [`info!`].
-    ///
-    /// To inspect all components on the entity, use [`inspect`](Self::inspect) instead.
-    fn inspect_component<C: Component>(&mut self, settings: ComponentInspectionSettings);
+impl From<String> for NameFilter {
+    fn from(value: String) -> Self {
+        Self {
+            query: value.to_lowercase(),
+            case_sensitive: false,
+        }
+    }
 }
 
-impl InspectExtensionCommandsTrait for EntityCommands<'_> {
-    fn inspect(&mut self, settings: EntityInspectionSettings) {
-        let entity = self.id();
-
-        self.queue(move |entity_world_mut: EntityWorldMut| {
-            let world = entity_world_mut.world();
-            let inspection = world.inspect(entity, settings);
-            match inspection {
-                Ok(inspection) => info!("{}", inspection),
-                Err(err) => warn!("Failed to inspect entity: {}", err),
-            }
-        });
+impl From<&String> for NameFilter {
+    fn from(value: &String) -> Self {
+        Self {
+            query: value.to_lowercase(),
+            case_sensitive: false,
+        }
     }
+}
 
-    fn inspect_component<C: Component>(&mut self, settings: ComponentInspectionSettings) {
-        let entity = self.id();
-
-        self.queue(move |entity_world_mut: EntityWorldMut| {
-            let world = entity_world_mut.world();
-            match world.inspect_component::<C>(entity, settings) {
-                Ok(inspection) => info!("{}", inspection),
-                Err(err) => info!("Failed to inspect component: {}", err),
-            }
-        });
+impl From<&str> for NameFilter {
+    fn from(value: &str) -> Self {
+        Self {
+            query: value.to_lowercase(),
+            case_sensitive: false,
+        }
     }
 }
 
 /// Filters the provided entity list in-place according to the provided [`MultipleEntityInspectionSettings`].
-///
-/// Calls [`does_entity_match_filter_for_inspection`] for each entity.
 // PERF: this might be faster if you build a dynamic query instead of checking each entity individually.
 pub fn filter_entity_list_for_inspection(
     world: &World,
@@ -477,7 +276,7 @@ fn does_entity_match_inspection_filter(
     if let Some(name_filter) = &settings.name_filter {
         let name_matches = world
             .get::<Name>(entity)
-            .map(|name| name.contains(name_filter))
+            .map(|name| name_filter.matches(name.as_str()))
             .unwrap_or(false);
         if !name_matches {
             return false;
@@ -497,4 +296,42 @@ fn does_entity_match_inspection_filter(
     }
 
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::entity_inspection::NameFilter;
+
+    #[test]
+    fn case_insensitive() {
+        let filter = NameFilter::from("Foo");
+        let names = ["foobar", "FOOBAR", "barfoo", "bar"];
+        for (i, name) in names.iter().enumerate() {
+            let matches = filter.matches(name);
+            let expected = match i {
+                0 => true,
+                1 => true,
+                2 => true,
+                3 => false,
+                _ => unreachable!(),
+            };
+            assert_eq!(matches, expected)
+        }
+    }
+
+    #[test]
+    fn case_sensitive() {
+        let filter = NameFilter::new("Foo".into(), true);
+        let names = ["foobar", "FooBar", "bar"];
+        for (i, name) in names.iter().enumerate() {
+            let matches = filter.matches(name);
+            let expected = match i {
+                0 => false,
+                1 => true,
+                2 => false,
+                _ => unreachable!(),
+            };
+            assert_eq!(matches, expected)
+        }
+    }
 }

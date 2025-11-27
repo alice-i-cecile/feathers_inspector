@@ -14,6 +14,8 @@
 
 - [] Allow users to register dynamically typed resources and components
 - [] Add time of spawning information to `SpawnDetails` in dev mode
+- [] Allow the fallible construction of `QueryBuilder` using `&World`
+- [] Make `Archetypes::component_index` `pub`
 
 ## Log-style inspection
 

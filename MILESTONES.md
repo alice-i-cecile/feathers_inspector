@@ -25,12 +25,11 @@
 ## Reflection-wiring
 
 - [x] Extract `TypeRegistration` for inspected components and resources
-- [] Display values of components and resource using reflection
+- [x] Display values of components and resource using reflection
   - [x] Get [reflected component info](https://github.com/jakobhellermann/bevy-inspector-egui/blob/93fe429ba0570405094370f31d0530c1a8f0e28d/crates/bevy-inspector-egui/src/restricted_world_view.rs#L375)
   - [x] [Match on the `ReflectedRef`](https://github.com/jakobhellermann/bevy-inspector-egui/blob/93fe429ba0570405094370f31d0530c1a8f0e28d/crates/bevy-inspector-egui/src/reflect_inspector/mod.rs#L318-L319)
   - [x] Extract the [represented type info](https://github.com/jakobhellermann/bevy-inspector-egui/blob/93fe429ba0570405094370f31d0530c1a8f0e28d/crates/bevy-inspector-egui/src/reflect_inspector/mod.rs#L544)
   - [x] Read the values of `Struct` etc to format the output
-- [ ] Improve formatting for the reflected information
 
 ## User-friendly names
 
@@ -65,7 +64,7 @@
 
 - [x] define a stub `Inspectable` trait for reflected type information
 - [] customize the precision, increment and range of numbers
-- [] hide fields from the inspector
+- [x] hide fields from the inspector
 - [] customize display output based on `Inspectable`
 - [] add a derive macro
 
@@ -80,23 +79,21 @@
 
 - [x] Add a nice way to fuzzily map component / resource names to a `ComponentId`
 - [x] Expose a convenient mutable reflection API: `get_reflected_component_mut` / `get_reflected_resource_mut`
-- [] Add an example for how to turn reflected strings into value changes
+- [x] Add an example for how to dynamically modify values using reflection
 
 ## Component metadata
 
 - [x] Don't recompute component metadata for every single entity
 - [x] Extract all interesting information from `ComponentInfo` (can't be stored: not Send and Sync)
-- [] Add an API to get more information about component types in general
+- [x] Add an API to get more information about component types in general
   - [x] Full path
-  - [] Reflected docs
-  - [] How many entities have this component
+  - [x] Reflected docs
+  - [x] How many entities have this component
 - [x] Report the size in bytes of:
   - [x] Individual components
   - [x] Resources
   - [x] Entities
-- [] Report interesting metadata for resources in `ResourceInspection`
-- [] Optionally compute summary stats about component values
-- [] Add this information when inspecting resources
+- [x] Report interesting metadata for resources in `ResourceInspection`
 
 ## BRP inspection
 
@@ -141,12 +138,12 @@
 
 ## Summary statistics
 
-- [] Add `World::summarize`
-- [] List total number of entities
-- [] List total number of archetypes
-  - [] Show number of entities by archetype
-  - [] Show sorted list
-- [] List total number of resources
+- [x] Add `World::summarize`
+- [x] List total number of entities
+- [x] List total number of archetypes
+  - [x] Show number of entities by archetype
+  - [x] Show sorted list
+- [x] List total number of resources
 
 ## Categories
 
