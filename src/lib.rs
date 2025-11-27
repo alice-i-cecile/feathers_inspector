@@ -8,6 +8,10 @@ pub mod entity_inspection;
 pub mod entity_name_resolution;
 pub mod fuzzy_name_mapping;
 pub mod inspectable;
+pub mod inspector;
 pub mod memory_size;
 pub mod reflection_tools;
 pub mod resource_inspection;
+
+// Re-export the main plugin for convenience
+pub use inspector::{InspectorConfig, InspectorWindowPlugin};
