@@ -3,10 +3,10 @@
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::observer::On;
 use bevy::ecs::relationship::Relationship;
-use bevy::feathers::controls::{button, ButtonProps};
+use bevy::feathers::controls::{ButtonProps, button};
 use bevy::prelude::*;
 use bevy::ui::Val::*;
-use bevy::ui_widgets::{observe, Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar};
+use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar, observe};
 
 use crate::component_inspection::ComponentMetadataMap;
 use crate::entity_inspection::{EntityInspectExtensionTrait, MultipleEntityInspectionSettings};
@@ -63,9 +63,7 @@ pub fn refresh_entity_cache(world: &mut World) {
     let entities: Vec<Entity> = query
         .iter(world)
         .filter(|e| {
-            !e.contains::<Node>()
-                && !e.contains::<Window>()
-                && !e.contains::<InspectorInternal>()
+            !e.contains::<Node>() && !e.contains::<Window>() && !e.contains::<InspectorInternal>()
         })
         .map(|e| e.id())
         .collect();
@@ -98,8 +96,7 @@ pub fn refresh_entity_cache(world: &mut World) {
                 .unwrap_or_else(|| format!("Entity {:?}", entity));
 
             // Apply text filter
-            if !filter_text.is_empty()
-                && !name.to_lowercase().contains(&filter_text.to_lowercase())
+            if !filter_text.is_empty() && !name.to_lowercase().contains(&filter_text.to_lowercase())
             {
                 return None;
             }
@@ -222,10 +219,7 @@ fn on_entity_row_click(
 /// System that updates selection highlight without respawning rows.
 /// Note: Selection highlighting is handled during row spawning in sync_entity_list.
 /// This system is a placeholder for future improvements.
-pub fn sync_selection_highlight(
-    _state: Res<InspectorState>,
-    _rows: Query<&EntityRow>,
-) {
+pub fn sync_selection_highlight(_state: Res<InspectorState>, _rows: Query<&EntityRow>) {
     // Selection highlighting is handled during row spawning in sync_entity_list.
     // This system is a no-op placeholder for future improvements.
 }

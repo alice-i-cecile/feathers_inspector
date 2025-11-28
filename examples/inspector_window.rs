@@ -4,7 +4,7 @@
 //! and resources in a separate window with a graphical interface.
 
 use bevy::prelude::*;
-use feathers_inspector::{entity_name_resolution::NameResolutionPlugin, InspectorWindowPlugin};
+use feathers_inspector::{InspectorWindowPlugin, entity_name_resolution::NameResolutionPlugin};
 
 fn main() {
     App::new()

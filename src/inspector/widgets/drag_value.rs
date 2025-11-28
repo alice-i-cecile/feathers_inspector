@@ -7,8 +7,8 @@
 use bevy::ecs::entity::Entity;
 use bevy::ecs::event::Event;
 use bevy::ecs::observer::On;
-use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::input::ButtonState;
+use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::input_focus::{FocusedInput, InputFocus};
 use bevy::picking::events::{Click, Drag, DragEnd, DragStart, Pointer};
 use bevy::prelude::*;
@@ -168,7 +168,8 @@ fn drag_value_on_click(
                 .unwrap_or(0.0);
 
             drag_state.original_value = current_value;
-            drag_state.edit_buffer = format!("{:.prec$}", current_value, prec = drag_value.precision);
+            drag_state.edit_buffer =
+                format!("{:.prec$}", current_value, prec = drag_value.precision);
 
             // Set input focus to this widget
             input_focus.set(click.entity);

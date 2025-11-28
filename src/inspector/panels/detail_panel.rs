@@ -4,13 +4,13 @@
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::observer::On;
 use bevy::ecs::relationship::Relationship;
-use bevy::feathers::controls::{button, ButtonProps};
+use bevy::feathers::controls::{ButtonProps, button};
 use bevy::feathers::theme::ThemeBackgroundColor;
 use bevy::feathers::tokens;
 use bevy::prelude::*;
 use bevy::reflect::{ReflectRef, VariantType};
 use bevy::ui::Val::*;
-use bevy::ui_widgets::{observe, Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar};
+use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar, observe};
 
 use core::any::TypeId;
 
@@ -117,13 +117,23 @@ pub fn sync_detail_panel(world: &mut World) {
 
     // Show empty state if no entity selected
     let Some(entity) = selected_entity else {
-        spawn_empty_state_exclusive(world, content_entity, &config, "Select an entity to view details");
+        spawn_empty_state_exclusive(
+            world,
+            content_entity,
+            &config,
+            "Select an entity to view details",
+        );
         return;
     };
 
     // Check if entity still exists
     if !world.entities().contains(entity) {
-        spawn_error_state_exclusive(world, content_entity, &config, "Selected entity no longer exists");
+        spawn_error_state_exclusive(
+            world,
+            content_entity,
+            &config,
+            "Selected entity no longer exists",
+        );
         return;
     }
 
