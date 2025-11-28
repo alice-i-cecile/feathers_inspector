@@ -303,26 +303,27 @@ fn set_field_value_recursive(
 
     match reflected.reflect_mut() {
         ReflectMut::Struct(s) => {
-            if let FieldPathSegment::Named(name) = segment {
-                if let Some(field) = s.field_mut(name) {
-                    return set_field_value_recursive(field, remaining, new_value);
-                }
+            if let FieldPathSegment::Named(name) = segment
+                && let Some(field) = s.field_mut(name)
+            {
+                return set_field_value_recursive(field, remaining, new_value);
             }
         }
         ReflectMut::TupleStruct(ts) => {
-            if let FieldPathSegment::Index(idx) = segment {
-                if let Some(field) = ts.field_mut(*idx) {
-                    return set_field_value_recursive(field, remaining, new_value);
-                }
+            if let FieldPathSegment::Index(idx) = segment
+                && let Some(field) = ts.field_mut(*idx)
+            {
+                return set_field_value_recursive(field, remaining, new_value);
             }
         }
         ReflectMut::Tuple(t) => {
-            if let FieldPathSegment::Index(idx) = segment {
-                if let Some(field) = t.field_mut(*idx) {
-                    return set_field_value_recursive(field, remaining, new_value);
-                }
+            if let FieldPathSegment::Index(idx) = segment
+                && let Some(field) = t.field_mut(*idx)
+            {
+                return set_field_value_recursive(field, remaining, new_value);
             }
         }
+
         _ => {}
     }
 
@@ -443,7 +444,7 @@ fn drag_value_on_keyboard_input(
             Key::Backspace => {
                 // Remove last character
                 drag_state.edit_buffer.pop();
-                update_edit_display(&drag_state.edit_buffer, &children, &mut q_text);
+                update_edit_display(&drag_state.edit_buffer, children, &mut q_text);
             }
             Key::Character(c) => {
                 // Only allow numeric characters, decimal point, and minus sign
@@ -457,7 +458,7 @@ fn drag_value_on_keyboard_input(
                 });
                 if valid {
                     drag_state.edit_buffer.push_str(c);
-                    update_edit_display(&drag_state.edit_buffer, &children, &mut q_text);
+                    update_edit_display(&drag_state.edit_buffer, children, &mut q_text);
                 }
             }
             _ => {}

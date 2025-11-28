@@ -550,10 +550,10 @@ fn spawn_components_tab_exclusive(
 
                 // Try to get reflected component data
                 let mut fields = Vec::new();
-                if let Some(type_id) = component_type_id {
-                    if let Ok(reflected) = get_reflected_component_ref(world, entity, type_id) {
-                        extract_fields_from_reflect(reflected, &mut fields, 0, semantic_names, &[]);
-                    }
+                if let Some(type_id) = component_type_id
+                    && let Ok(reflected) = get_reflected_component_ref(world, entity, type_id)
+                {
+                    extract_fields_from_reflect(reflected, &mut fields, 0, semantic_names, &[]);
                 }
 
                 component_cards.push(ComponentCardData {
