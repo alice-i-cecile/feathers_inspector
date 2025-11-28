@@ -9,7 +9,9 @@ use bevy::ui::Val::*;
 use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar, observe};
 
 use crate::component_inspection::ComponentMetadataMap;
-use crate::entity_inspection::{EntityInspectExtensionTrait, MultipleEntityInspectionSettings};
+use crate::entity_inspection::{MultipleEntityInspectionSettings, NameFilter};
+use crate::entity_name_resolution::EntityName;
+use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::inspector::config::InspectorConfig;
 use crate::inspector::state::{EntityListEntry, InspectorCache, InspectorInternal, InspectorState};
 use crate::memory_size::MemorySize;
@@ -71,7 +73,7 @@ pub fn refresh_entity_cache(world: &mut World) {
     // Build inspection settings with filter
     let mut settings = MultipleEntityInspectionSettings::default();
     if !filter_text.is_empty() {
-        settings.name_filter = Some(filter_text.clone());
+        settings.name_filter = Some(NameFilter::from(&filter_text));
     }
     if !required_components.is_empty() {
         settings.with_component_filter = required_components;
@@ -90,10 +92,9 @@ pub fn refresh_entity_cache(world: &mut World) {
         .filter_map(|result| {
             let inspection = result.ok()?;
             let entity = inspection.entity;
-            let name = metadata_map
-                .as_ref()
-                .and_then(|mm| inspection.resolve_name(&mm.map))
-                .unwrap_or_else(|| format!("Entity {:?}", entity));
+            let name = inspection.name.unwrap_or(EntityName::generated(
+                format!("Entity {:?}", entity).as_str(),
+            ));
 
             // Apply text filter
             if !filter_text.is_empty() && !name.to_lowercase().contains(&filter_text.to_lowercase())
@@ -103,7 +104,7 @@ pub fn refresh_entity_cache(world: &mut World) {
 
             Some(EntityListEntry {
                 entity,
-                display_name: name,
+                display_name: name.to_string(),
                 component_count: inspection.components.as_ref().map(|c| c.len()).unwrap_or(0),
                 memory_size: inspection.total_memory_size.unwrap_or(MemorySize::new(0)),
             })

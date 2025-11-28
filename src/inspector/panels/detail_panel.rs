@@ -17,7 +17,9 @@ use core::any::TypeId;
 use crate::component_inspection::{
     ComponentDetailLevel, ComponentInspectionSettings, ComponentMetadataMap,
 };
-use crate::entity_inspection::{EntityInspectExtensionTrait, EntityInspectionSettings};
+use crate::entity_inspection::EntityInspectionSettings;
+use crate::entity_name_resolution::EntityName;
+use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::inspector::config::InspectorConfig;
 use crate::inspector::semantic_names::SemanticFieldNames;
 use crate::inspector::state::{DetailTab, InspectorCache, InspectorState};
@@ -505,10 +507,9 @@ fn spawn_components_tab_exclusive(
 
     match inspection_result {
         Ok(inspection) => {
-            // Resolve name using metadata map
-            let resolved_name = inspection
-                .resolve_name(&metadata_map.map)
-                .unwrap_or_else(|| format!("Entity {:?}", entity));
+            let resolved_name = inspection.name.unwrap_or(EntityName::generated(
+                format!("Entity {:?}", entity).as_str(),
+            ));
 
             let component_count = inspection.components.as_ref().map(|c| c.len()).unwrap_or(0);
             let memory_display = inspection
@@ -569,7 +570,7 @@ fn spawn_components_tab_exclusive(
                 p.spawn((
                     Text::new(format!(
                         "{} | {} components | {}",
-                        resolved_name, component_count, memory_display
+                        *resolved_name, component_count, memory_display
                     )),
                     TextFont {
                         font_size: title_font_size,
