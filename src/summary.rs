@@ -8,7 +8,8 @@ use bevy::{
 };
 
 /// Settings for [`WorldSummary`].
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SummarySettings {
     /// Whether to use component names
     /// for formatting archetype signatures.
@@ -32,16 +33,29 @@ impl Default for SummarySettings {
 
 /// Per-archetype data in an inspection summary.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ArchetypeSummary {
     /// The id of this archetype.
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "crate::serde_conversions::archetype_id")
+    )]
     pub archetype_id: ArchetypeId,
     /// How many entities are in this archetype.
     pub entity_count: usize,
     /// What components define this archetype.
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "crate::serde_conversions::slice_component_id")
+    )]
     pub component_ids: Vec<ComponentId>,
     /// The names of the components defining this archetype.
     ///
     /// Optional value determined by [`SummarySettings::include_component_names`].
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "crate::serde_conversions::option_vec_debug_name")
+    )]
     pub component_names: Option<Vec<DebugName>>,
 }
 
@@ -76,6 +90,7 @@ impl std::fmt::Display for ArchetypeSummary {
 
 /// [`World`] data summary result.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WorldSummary {
     /// The number of entities.
     pub total_entities: u32,
