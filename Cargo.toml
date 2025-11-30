@@ -17,8 +17,18 @@ opt-level = 3
 
 [dependencies]
 bevy = { version = "0.17", features = ["track_location"] }
+serde = { version = "1.0", optional = true,  features = ["derive"] }
+serde_json = { version = "1.0", optional = true }
 strsim = "0.11.1"
 thiserror = "2.0.17"
+
+[target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
+ureq = { version = "3.1.4", features = ["json"] }
+
+[features]
+default = []
+serde = ["dep:serde"]
+remote = ["serde", "dep:serde_json", "bevy/bevy_remote"]
 
 # These lints may be important signals about code quality, but normal Bevy code
 # commonly triggers them and the CI workflow treats them as errors, so we've
