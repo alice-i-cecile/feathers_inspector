@@ -20,15 +20,10 @@ pub const BRP_WORLD_INSPECT_METHOD: &str = "world.inspect";
 pub const BRP_WORLD_INSPECT_CACHED_METHOD: &str = "world.inspect_cached";
 pub const BRP_WORLD_INSPECT_MULTIPLE_METHOD: &str = "world.inspect_multiple";
 pub const BRP_WORLD_INSPECT_COMPONENT_BY_ID_METHOD: &str = "world.inspect_component_by_id";
-pub const BRP_WORLD_INSPECT_COMPONENT_METHOD: &str = "world.inspect_component";
-pub const BRP_WORLD_INSPECT_RESOURCE_METHOD: &str = "world.inspect_resource";
 pub const BRP_WORLD_INSPECT_RESOURCE_BY_ID_METHOD: &str = "world.inspect_resource_by_id";
 pub const BRP_WORLD_INSPECT_ALL_RESOURCES_METHOD: &str = "world.inspect_all_resources";
-pub const BRP_WORLD_INSPECT_COMPONENT_TYPE_METHOD: &str = "world.inspect_component_type";
 pub const BRP_WORLD_INSPECT_COMPONENT_TYPE_BY_ID_METHOD: &str =
     "world.inspect_component_type_by_id";
-pub const BRP_COMMANDS_INSPECT_RESOURCE_METHOD: &str = "commands.inspect_resource";
-pub const BRP_COMMANDS_INSPECT_ALL_RESOURCES_METHOD: &str = "commands.inspect_all_resources";
 
 /// Provides inspection methods defined in this crate
 /// to be called via BRP.
@@ -50,22 +45,12 @@ impl Plugin for InspectorBrpPlugin {
             world.register_system(process_remote_world_inspect_multiple_request);
         let world_inspect_component_by_id_id =
             world.register_system(process_remote_world_inspect_component_by_id_request);
-        let world_inspect_component_id =
-            world.register_system(process_remote_world_inspect_component_request);
-        let world_inspect_resource_id =
-            world.register_system(process_remote_world_inspect_resource_request);
         let world_inspect_resource_by_id_id =
             world.register_system(process_remote_world_inspect_resource_by_id_request);
         let world_inspect_all_resources_id =
             world.register_system(process_remote_world_inspect_all_resources_request);
-        let world_inspect_component_type_id =
-            world.register_system(process_remote_world_inspect_component_type_request);
         let world_inspect_component_type_by_id_id =
             world.register_system(process_remote_world_inspect_component_type_by_id_request);
-        let commands_inspect_resource_id =
-            world.register_system(process_remote_commands_inspect_resource_request);
-        let commands_inspect_all_resources_id =
-            world.register_system(process_remote_commands_inspect_all_resources_request);
 
         // Avoids adding `RemotePlugin` by design,
         // since users might also want to add it themselves for other purposes.
@@ -90,14 +75,6 @@ impl Plugin for InspectorBrpPlugin {
             RemoteMethodSystemId::Instant(world_inspect_component_by_id_id),
         );
         remote_methods.insert(
-            BRP_WORLD_INSPECT_COMPONENT_METHOD,
-            RemoteMethodSystemId::Instant(world_inspect_component_id),
-        );
-        remote_methods.insert(
-            BRP_WORLD_INSPECT_RESOURCE_METHOD,
-            RemoteMethodSystemId::Instant(world_inspect_resource_id),
-        );
-        remote_methods.insert(
             BRP_WORLD_INSPECT_RESOURCE_BY_ID_METHOD,
             RemoteMethodSystemId::Instant(world_inspect_resource_by_id_id),
         );
@@ -106,20 +83,8 @@ impl Plugin for InspectorBrpPlugin {
             RemoteMethodSystemId::Instant(world_inspect_all_resources_id),
         );
         remote_methods.insert(
-            BRP_WORLD_INSPECT_COMPONENT_TYPE_METHOD,
-            RemoteMethodSystemId::Instant(world_inspect_component_type_id),
-        );
-        remote_methods.insert(
             BRP_WORLD_INSPECT_COMPONENT_TYPE_BY_ID_METHOD,
             RemoteMethodSystemId::Instant(world_inspect_component_type_by_id_id),
-        );
-        remote_methods.insert(
-            BRP_COMMANDS_INSPECT_RESOURCE_METHOD,
-            RemoteMethodSystemId::Instant(commands_inspect_resource_id),
-        );
-        remote_methods.insert(
-            BRP_COMMANDS_INSPECT_ALL_RESOURCES_METHOD,
-            RemoteMethodSystemId::Instant(commands_inspect_all_resources_id),
         );
     }
 }
@@ -149,18 +114,6 @@ pub struct BrpWorldInspectComponentByIdParams;
 pub struct BrpWorldInspectComponentByIdResponse;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct BrpWorldInspectComponentParams;
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct BrpWorldInspectComponentResponse;
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct BrpWorldInspectResourceParams;
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct BrpWorldInspectResourceResponse;
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct BrpWorldInspectResourceByIdParams;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -173,28 +126,10 @@ pub struct BrpWorldInspectAllResourcesParams;
 pub struct BrpWorldInspectAllResourcesResponse;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct BrpWorldInspectComponentTypeParams;
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct BrpWorldInspectComponentTypeResponse;
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct BrpWorldInspectComponentTypeByIdParams;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct BrpWorldInspectComponentTypeByIdResponse;
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct BrpCommandsInspectResourceParams;
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct BrpCommandsInspectResourceResponse;
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct BrpCommandsInspectAllResourcesParams;
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct BrpCommandsInspectAllResourcesResponse;
 
 /// Handles a `world.inspect` request coming from a client.
 pub fn process_remote_world_inspect_request(
@@ -232,24 +167,6 @@ pub fn process_remote_world_inspect_component_by_id_request(
     serde_json::to_value(response).map_err(BrpError::internal)
 }
 
-/// Handles a `world.inspect_component` request coming from a client.
-pub fn process_remote_world_inspect_component_request(
-    In(_params): In<Option<Value>>,
-    _world: &World,
-) -> BrpResult {
-    let response = "called `world.inspect_component` handler successfully.";
-    serde_json::to_value(response).map_err(BrpError::internal)
-}
-
-/// Handles a `world.inspect_resource` request coming from a client.
-pub fn process_remote_world_inspect_resource_request(
-    In(_params): In<Option<Value>>,
-    _world: &World,
-) -> BrpResult {
-    let response = "called `world.inspect_resource` handler successfully.";
-    serde_json::to_value(response).map_err(BrpError::internal)
-}
-
 /// Handles a `world.inspect_resource_by_id` request coming from a client.
 pub fn process_remote_world_inspect_resource_by_id_request(
     In(_params): In<Option<Value>>,
@@ -268,38 +185,11 @@ pub fn process_remote_world_inspect_all_resources_request(
     serde_json::to_value(response).map_err(BrpError::internal)
 }
 
-/// Handles a `world.inspect_component_type` request coming from a client.
-pub fn process_remote_world_inspect_component_type_request(
-    In(_params): In<Option<Value>>,
-    _world: &World,
-) -> BrpResult {
-    let response = "called `world.inspect_component_type` handler successfully.";
-    serde_json::to_value(response).map_err(BrpError::internal)
-}
-
 /// Handles a `world.inspect_component_type_by_id` request coming from a client.
 pub fn process_remote_world_inspect_component_type_by_id_request(
     In(_params): In<Option<Value>>,
     _world: &World,
 ) -> BrpResult {
     let response = "called `world.inspect_component_type_by_id` handler successfully.";
-    serde_json::to_value(response).map_err(BrpError::internal)
-}
-
-/// Handles a `commands.inspect_resource` request coming from a client.
-pub fn process_remote_commands_inspect_resource_request(
-    In(_params): In<Option<Value>>,
-    mut _commands: Commands,
-) -> BrpResult {
-    let response = "called `commands.inspect_resource` handler successfully.";
-    serde_json::to_value(response).map_err(BrpError::internal)
-}
-
-/// Handles a `commands.inspect_all_resources` request coming from a client.
-pub fn process_remote_commands_inspect_all_resources_request(
-    In(_params): In<Option<Value>>,
-    mut _commands: Commands,
-) -> BrpResult {
-    let response = "called `commands.inspect_all_resources` handler successfully.";
     serde_json::to_value(response).map_err(BrpError::internal)
 }
