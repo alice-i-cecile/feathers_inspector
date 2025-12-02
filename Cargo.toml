@@ -38,3 +38,11 @@ remote = ["serde", "dep:serde_json", "bevy/bevy_remote"]
 [lints.clippy]
 too_many_arguments = "allow"
 type_complexity = "allow"
+
+[[example]]
+name = "brp_client"
+required-features = ["remote"]
+
+[[example]]
+name = "brp_server"
+required-features = ["remote"]
