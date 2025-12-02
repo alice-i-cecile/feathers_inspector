@@ -32,6 +32,8 @@ pub const BRP_WORLD_INSPECT_COMPONENT_TYPE_BY_ID_METHOD: &str =
 ///
 /// This plugin assumes [`RemotePlugin`] is already added,
 /// and will panic otherwise.
+///
+/// [`RemotePlugin`]: bevy::remote::RemotePlugin
 pub struct InspectorBrpPlugin;
 
 impl Plugin for InspectorBrpPlugin {
