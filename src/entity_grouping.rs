@@ -57,6 +57,7 @@ impl EntityGrouping {
 
 /// Specifies what kind of grouping [`EntityGrouping::generate`] should make.
 #[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum GroupingStrategy {
     /// Group based on parent-child relationships.
     #[default]

@@ -12,10 +12,19 @@ use thiserror::Error;
 /// Log this using the [`Display`] trait to see details about the resource.
 /// [`Debug`] can also be used for more detailed but harder to-read output.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ResourceInspection {
     /// The [`ComponentId`] of the resource.
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "crate::serde_conversions::component_id")
+    )]
     pub component_id: ComponentId,
     /// The type name of the resource.
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "crate::serde_conversions::debug_name")
+    )]
     pub name: DebugName,
     /// The value of the resource as a string.
     ///
@@ -25,6 +34,7 @@ pub struct ResourceInspection {
     /// The [`TypeId`] of the resource.
     ///
     /// Note that dynamic types will not have a [`TypeId`].
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub type_id: Option<TypeId>,
     /// The size of the resource in memory.
     ///
@@ -42,6 +52,7 @@ pub struct ResourceInspection {
     /// Note: this may be `None` if the type is not reflected and registered in the type registry.
     /// Currently, generic types need to be manually registered,
     /// and dynamically-typed resources cannot be registered.
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub type_registration: Option<TypeRegistration>,
 }
 
@@ -59,18 +70,24 @@ impl Display for ResourceInspection {
 
 /// An error that can occur when attempting to inspect a resource.
 #[derive(Debug, Error)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum ResourceInspectionError {
     /// The resource type was not registered in the world.
     #[error("Resource type {0} not registered in world")]
     ResourceNotRegistered(&'static str),
     /// The resource was not found in the world.
     #[error("Resource with ComponentId {0:?} not found in world")]
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "crate::serde_conversions::component_id")
+    )]
     ResourceNotFound(ComponentId),
 }
 
 /// Settings that can be used to customize resource inspection,
 /// changing how [`ResourceInspection`] is generated and displayed.
 #[derive(Clone, Copy, Debug, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ResourceInspectionSettings {
     /// Whether or not full type names should be displayed.
     ///

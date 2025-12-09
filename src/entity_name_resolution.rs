@@ -18,6 +18,7 @@ use crate::component_inspection::{ComponentInspection, ComponentTypeMetadata};
 ///
 /// This data is produced by [`resolve_name`].
 #[derive(Clone, Debug, PartialEq, Eq, Deref, DerefMut)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EntityName {
     #[deref]
     pub name: Name,
@@ -49,6 +50,7 @@ impl EntityName {
 /// Identifies whether the inspected entity's name
 /// is manually assigned or automatically resolved.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum NameOrigin {
     /// The entity name comes from the [`Name`] component.
     Custom,
