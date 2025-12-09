@@ -11,7 +11,11 @@ pub mod extension_methods;
 pub mod fuzzy_name_mapping;
 pub mod hierarchy_grouping;
 pub mod inspectable;
+pub mod inspector;
 pub mod memory_size;
 pub mod reflection_tools;
 pub mod resource_inspection;
+
+// Re-export the main plugin for convenience
+pub use inspector::{InspectorConfig, InspectorWindowPlugin};
 pub mod summary;
