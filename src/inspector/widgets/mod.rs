@@ -8,7 +8,6 @@
 pub mod drag_value;
 
 pub use drag_value::{
-    apply_pending_value_changes, DragValue, DragValueChanged, DragValueDragState,
-    DragValueEditModeChanged, DragValuePlugin, DragValueProps, FieldPath, FieldPathSegment,
-    PendingValueChanges,
+    DragValue, DragValueChanged, DragValueDragState, DragValueEditModeChanged, DragValuePlugin,
+    DragValueProps, FieldPath, FieldPathSegment, PendingValueChanges, apply_pending_value_changes,
 };

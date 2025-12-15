@@ -3,10 +3,10 @@
 use bevy::camera::RenderTarget;
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::relationship::Relationship;
+use bevy::feathers::FeathersPlugins;
 use bevy::feathers::dark_theme::create_dark_theme;
 use bevy::feathers::theme::{ThemeBackgroundColor, UiTheme};
 use bevy::feathers::tokens;
-use bevy::feathers::FeathersPlugins;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::picking::hover::HoverMap;
 use bevy::prelude::*;
@@ -130,7 +130,9 @@ fn setup_inspector_ui(
     }
 
     // Mark window as initialized
-    commands.entity(window_entity).insert(InspectorUiInitialized);
+    commands
+        .entity(window_entity)
+        .insert(InspectorUiInitialized);
 
     // Create camera for the inspector window (marked as internal to exclude from entity list)
     let camera_entity = commands
@@ -162,24 +164,22 @@ fn setup_inspector_ui(
             spawn_title_bar(root, &config);
 
             // Main content area
-            root.spawn((
-                Node {
-                    width: Percent(100.0),
-                    flex_grow: 1.0,
-                    display: Display::Flex,
-                    flex_direction: FlexDirection::Row,
-                    padding: config.panel_padding,
-                    column_gap: config.column_gap,
-                    ..default()
-                },
-            ))
-            .with_children(|content| {
-                // Left panel: Entity list
-                spawn_entity_list_panel(content, &config);
+            root.spawn((Node {
+                width: Percent(100.0),
+                flex_grow: 1.0,
+                display: Display::Flex,
+                flex_direction: FlexDirection::Row,
+                padding: config.panel_padding,
+                column_gap: config.column_gap,
+                ..default()
+            },))
+                .with_children(|content| {
+                    // Left panel: Entity list
+                    spawn_entity_list_panel(content, &config);
 
-                // Right panel: Detail view
-                spawn_detail_panel(content, &config);
-            });
+                    // Right panel: Detail view
+                    spawn_detail_panel(content, &config);
+                });
         });
 
     // Trigger initial cache refresh
@@ -251,14 +251,12 @@ fn handle_mouse_wheel_scroll(
                     if let Ok((mut scroll_pos, node, computed)) = scrollables.get_mut(current) {
                         // Found a scrollable container
                         if node.overflow.y == OverflowAxis::Scroll && delta.y != 0.0 {
-                            let max_y = (computed.content_size().y - computed.size().y)
-                                .max(0.0)
+                            let max_y = (computed.content_size().y - computed.size().y).max(0.0)
                                 * computed.inverse_scale_factor();
                             scroll_pos.y = (scroll_pos.y + delta.y).clamp(0.0, max_y);
                         }
                         if node.overflow.x == OverflowAxis::Scroll && delta.x != 0.0 {
-                            let max_x = (computed.content_size().x - computed.size().x)
-                                .max(0.0)
+                            let max_x = (computed.content_size().x - computed.size().x).max(0.0)
                                 * computed.inverse_scale_factor();
                             scroll_pos.x = (scroll_pos.x + delta.x).clamp(0.0, max_x);
                         }

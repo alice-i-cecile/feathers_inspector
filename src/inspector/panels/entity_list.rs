@@ -3,13 +3,15 @@
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::observer::On;
 use bevy::ecs::relationship::Relationship;
-use bevy::feathers::controls::{button, ButtonProps};
+use bevy::feathers::controls::{ButtonProps, button};
 use bevy::prelude::*;
 use bevy::ui::Val::*;
-use bevy::ui_widgets::{observe, Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar};
+use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar, observe};
 
 use crate::component_inspection::ComponentMetadataMap;
-use crate::entity_inspection::{EntityInspectExtensionTrait, MultipleEntityInspectionSettings};
+use crate::entity_inspection::{MultipleEntityInspectionSettings, NameFilter};
+use crate::entity_name_resolution::EntityName;
+use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::inspector::config::InspectorConfig;
 use crate::inspector::state::{EntityListEntry, InspectorCache, InspectorInternal, InspectorState};
 use crate::memory_size::MemorySize;
@@ -63,9 +65,7 @@ pub fn refresh_entity_cache(world: &mut World) {
     let entities: Vec<Entity> = query
         .iter(world)
         .filter(|e| {
-            !e.contains::<Node>()
-                && !e.contains::<Window>()
-                && !e.contains::<InspectorInternal>()
+            !e.contains::<Node>() && !e.contains::<Window>() && !e.contains::<InspectorInternal>()
         })
         .map(|e| e.id())
         .collect();
@@ -73,7 +73,7 @@ pub fn refresh_entity_cache(world: &mut World) {
     // Build inspection settings with filter
     let mut settings = MultipleEntityInspectionSettings::default();
     if !filter_text.is_empty() {
-        settings.name_filter = Some(filter_text.clone());
+        settings.name_filter = Some(NameFilter::from(&filter_text));
     }
     if !required_components.is_empty() {
         settings.with_component_filter = required_components;
@@ -92,21 +92,19 @@ pub fn refresh_entity_cache(world: &mut World) {
         .filter_map(|result| {
             let inspection = result.ok()?;
             let entity = inspection.entity;
-            let name = metadata_map
-                .as_ref()
-                .and_then(|mm| inspection.resolve_name(&mm.map))
-                .unwrap_or_else(|| format!("Entity {:?}", entity));
+            let name = inspection.name.unwrap_or(EntityName::generated(
+                format!("Entity {:?}", entity).as_str(),
+            ));
 
             // Apply text filter
-            if !filter_text.is_empty()
-                && !name.to_lowercase().contains(&filter_text.to_lowercase())
+            if !filter_text.is_empty() && !name.to_lowercase().contains(&filter_text.to_lowercase())
             {
                 return None;
             }
 
             Some(EntityListEntry {
                 entity,
-                display_name: name,
+                display_name: name.to_string(),
                 component_count: inspection.components.as_ref().map(|c| c.len()).unwrap_or(0),
                 memory_size: inspection.total_memory_size.unwrap_or(MemorySize::new(0)),
             })
@@ -222,10 +220,7 @@ fn on_entity_row_click(
 /// System that updates selection highlight without respawning rows.
 /// Note: Selection highlighting is handled during row spawning in sync_entity_list.
 /// This system is a placeholder for future improvements.
-pub fn sync_selection_highlight(
-    _state: Res<InspectorState>,
-    _rows: Query<&EntityRow>,
-) {
+pub fn sync_selection_highlight(_state: Res<InspectorState>, _rows: Query<&EntityRow>) {
     // Selection highlighting is handled during row spawning in sync_entity_list.
     // This system is a no-op placeholder for future improvements.
 }

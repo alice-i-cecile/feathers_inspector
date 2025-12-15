@@ -7,8 +7,8 @@
 use bevy::ecs::entity::Entity;
 use bevy::ecs::event::Event;
 use bevy::ecs::observer::On;
-use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::input::ButtonState;
+use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::input_focus::{FocusedInput, InputFocus};
 use bevy::picking::events::{Click, Drag, DragEnd, DragStart, Pointer};
 use bevy::prelude::*;
@@ -168,7 +168,8 @@ fn drag_value_on_click(
                 .unwrap_or(0.0);
 
             drag_state.original_value = current_value;
-            drag_state.edit_buffer = format!("{:.prec$}", current_value, prec = drag_value.precision);
+            drag_state.edit_buffer =
+                format!("{:.prec$}", current_value, prec = drag_value.precision);
 
             // Set input focus to this widget
             input_focus.set(click.entity);
@@ -302,26 +303,27 @@ fn set_field_value_recursive(
 
     match reflected.reflect_mut() {
         ReflectMut::Struct(s) => {
-            if let FieldPathSegment::Named(name) = segment {
-                if let Some(field) = s.field_mut(name) {
-                    return set_field_value_recursive(field, remaining, new_value);
-                }
+            if let FieldPathSegment::Named(name) = segment
+                && let Some(field) = s.field_mut(name)
+            {
+                return set_field_value_recursive(field, remaining, new_value);
             }
         }
         ReflectMut::TupleStruct(ts) => {
-            if let FieldPathSegment::Index(idx) = segment {
-                if let Some(field) = ts.field_mut(*idx) {
-                    return set_field_value_recursive(field, remaining, new_value);
-                }
+            if let FieldPathSegment::Index(idx) = segment
+                && let Some(field) = ts.field_mut(*idx)
+            {
+                return set_field_value_recursive(field, remaining, new_value);
             }
         }
         ReflectMut::Tuple(t) => {
-            if let FieldPathSegment::Index(idx) = segment {
-                if let Some(field) = t.field_mut(*idx) {
-                    return set_field_value_recursive(field, remaining, new_value);
-                }
+            if let FieldPathSegment::Index(idx) = segment
+                && let Some(field) = t.field_mut(*idx)
+            {
+                return set_field_value_recursive(field, remaining, new_value);
             }
         }
+
         _ => {}
     }
 
@@ -442,7 +444,7 @@ fn drag_value_on_keyboard_input(
             Key::Backspace => {
                 // Remove last character
                 drag_state.edit_buffer.pop();
-                update_edit_display(&drag_state.edit_buffer, &children, &mut q_text);
+                update_edit_display(&drag_state.edit_buffer, children, &mut q_text);
             }
             Key::Character(c) => {
                 // Only allow numeric characters, decimal point, and minus sign
@@ -456,7 +458,7 @@ fn drag_value_on_keyboard_input(
                 });
                 if valid {
                     drag_state.edit_buffer.push_str(c);
-                    update_edit_display(&drag_state.edit_buffer, &children, &mut q_text);
+                    update_edit_display(&drag_state.edit_buffer, children, &mut q_text);
                 }
             }
             _ => {}

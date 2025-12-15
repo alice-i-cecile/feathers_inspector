@@ -4,20 +4,22 @@
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::observer::On;
 use bevy::ecs::relationship::Relationship;
-use bevy::feathers::controls::{button, ButtonProps};
+use bevy::feathers::controls::{ButtonProps, button};
 use bevy::feathers::theme::ThemeBackgroundColor;
 use bevy::feathers::tokens;
 use bevy::prelude::*;
 use bevy::reflect::{ReflectRef, VariantType};
 use bevy::ui::Val::*;
-use bevy::ui_widgets::{observe, Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar};
+use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar, observe};
 
 use core::any::TypeId;
 
 use crate::component_inspection::{
     ComponentDetailLevel, ComponentInspectionSettings, ComponentMetadataMap,
 };
-use crate::entity_inspection::{EntityInspectExtensionTrait, EntityInspectionSettings};
+use crate::entity_inspection::EntityInspectionSettings;
+use crate::entity_name_resolution::EntityName;
+use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::inspector::config::InspectorConfig;
 use crate::inspector::semantic_names::SemanticFieldNames;
 use crate::inspector::state::{DetailTab, InspectorCache, InspectorState};
@@ -117,13 +119,23 @@ pub fn sync_detail_panel(world: &mut World) {
 
     // Show empty state if no entity selected
     let Some(entity) = selected_entity else {
-        spawn_empty_state_exclusive(world, content_entity, &config, "Select an entity to view details");
+        spawn_empty_state_exclusive(
+            world,
+            content_entity,
+            &config,
+            "Select an entity to view details",
+        );
         return;
     };
 
     // Check if entity still exists
     if !world.entities().contains(entity) {
-        spawn_error_state_exclusive(world, content_entity, &config, "Selected entity no longer exists");
+        spawn_error_state_exclusive(
+            world,
+            content_entity,
+            &config,
+            "Selected entity no longer exists",
+        );
         return;
     }
 
@@ -495,10 +507,9 @@ fn spawn_components_tab_exclusive(
 
     match inspection_result {
         Ok(inspection) => {
-            // Resolve name using metadata map
-            let resolved_name = inspection
-                .resolve_name(&metadata_map.map)
-                .unwrap_or_else(|| format!("Entity {:?}", entity));
+            let resolved_name = inspection.name.unwrap_or(EntityName::generated(
+                format!("Entity {:?}", entity).as_str(),
+            ));
 
             let component_count = inspection.components.as_ref().map(|c| c.len()).unwrap_or(0);
             let memory_display = inspection
@@ -539,10 +550,10 @@ fn spawn_components_tab_exclusive(
 
                 // Try to get reflected component data
                 let mut fields = Vec::new();
-                if let Some(type_id) = component_type_id {
-                    if let Ok(reflected) = get_reflected_component_ref(world, entity, type_id) {
-                        extract_fields_from_reflect(reflected, &mut fields, 0, semantic_names, &[]);
-                    }
+                if let Some(type_id) = component_type_id
+                    && let Ok(reflected) = get_reflected_component_ref(world, entity, type_id)
+                {
+                    extract_fields_from_reflect(reflected, &mut fields, 0, semantic_names, &[]);
                 }
 
                 component_cards.push(ComponentCardData {
@@ -559,7 +570,7 @@ fn spawn_components_tab_exclusive(
                 p.spawn((
                     Text::new(format!(
                         "{} | {} components | {}",
-                        resolved_name, component_count, memory_display
+                        *resolved_name, component_count, memory_display
                     )),
                     TextFont {
                         font_size: title_font_size,
