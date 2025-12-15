@@ -22,14 +22,23 @@ use crate::memory_size::MemorySize;
 ///
 /// To inspect a component type itself, see [`ComponentTypeInspection`].
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ComponentInspection {
     /// The entity that owns the component.
     pub entity: Entity,
     /// The [`ComponentId`] of the component.
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "crate::serde_conversions::component_id")
+    )]
     pub component_id: ComponentId,
     /// The type name of the component.
     ///
     /// This is duplicated from the metadata for convenience and [`Display`] printing.
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "crate::serde_conversions::debug_name")
+    )]
     pub name: DebugName,
     /// The size, in bytes, of the component value.
     ///
@@ -82,17 +91,27 @@ impl Display for ComponentInspection {
 /// Instead, this type extracts all relevant information that can be stored and used later.
 ///
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ComponentTypeMetadata {
     /// The [`ComponentId`] of the component type.
     ///
     /// This is generally stored as a key in [`ComponentMetadataMap`],
     /// but is duplicated here for convenience.
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "crate::serde_conversions::component_id")
+    )]
     pub component_id: ComponentId,
     /// The type name of the component.
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "crate::serde_conversions::debug_name")
+    )]
     pub name: DebugName,
     /// The [`TypeId`] of the component type.
     ///
     /// Note that dynamic types will not have a [`TypeId`].
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub type_id: Option<TypeId>,
     /// The minimum size in bytes of the component type.
     ///
@@ -106,11 +125,19 @@ pub struct ComponentTypeMetadata {
     /// Returns true if the component type is mutable while in the ECS.
     pub mutable: bool,
     /// The storage type of this component.
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "crate::serde_conversions::storage_type")
+    )]
     pub storage_type: StorageType,
     /// Returns true if the underlying component type can freely be shared across threads.
     pub is_send_and_sync: bool,
     /// The list of components required by this component,
     /// which will automatically be added when this component is added to an entity.
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "crate::serde_conversions::slice_component_id")
+    )]
     pub required_components: Vec<ComponentId>,
     /// The type information of the component.
     ///
@@ -124,6 +151,7 @@ pub struct ComponentTypeMetadata {
     /// Note: this may be `None` if the type is not reflected and registered in the type registry.
     /// Currently, generic types need to be manually registered,
     /// and dynamically-typed components cannot be registered.
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub type_registration: Option<TypeRegistration>,
 }
 
@@ -192,6 +220,7 @@ impl Display for ComponentTypeMetadata {
 ///
 /// [`World::inspect_component_type`]: crate::extension_methods::WorldInspectionExtensionTrait::inspect_component_type
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ComponentTypeInspection {
     /// The number of entities that have a component of this type.
     pub entity_count: usize,
@@ -217,7 +246,12 @@ impl Display for ComponentTypeInspection {
 /// This is useful for caching component metadata
 /// when inspecting multiple entities or components.
 #[derive(Clone, Debug, Deref, DerefMut)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ComponentMetadataMap {
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "crate::serde_conversions::hash_map_component_id_component_type_metadata")
+    )]
     pub map: HashMap<ComponentId, ComponentTypeMetadata>,
 }
 
@@ -288,20 +322,30 @@ impl FromWorld for ComponentMetadataMap {
 
 /// An error that can occur when attempting to inspect a component.
 #[derive(Debug, Error)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum ComponentInspectionError {
     /// The component was not found on the entity.
     #[error("Component with ComponentId {0:?} not found on entity")]
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "crate::serde_conversions::component_id")
+    )]
     ComponentNotFound(ComponentId),
     /// The component type was not registered in the world.
     #[error("Component type {0} not registered in world")]
     ComponentNotRegistered(&'static str),
     /// The component ID provided was not registered in the world.
     #[error("ComponentId {0:?} not registered in world")]
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "crate::serde_conversions::component_id")
+    )]
     ComponentIdNotRegistered(ComponentId),
 }
 
 /// Settings for inspecting a component.
 #[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ComponentInspectionSettings {
     /// How much detail to include when inspecting component values.
     ///
@@ -322,6 +366,7 @@ pub struct ComponentInspectionSettings {
 /// so this setting allows users to limit the amount of information gathered
 /// when inspecting many entities or components at once.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum ComponentDetailLevel {
     /// Only component type names are provided.
     Names,

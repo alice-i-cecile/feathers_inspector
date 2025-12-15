@@ -4,6 +4,7 @@ use core::fmt::Display;
 
 /// The size of an object in memory, in bytes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MemorySize(pub usize);
 
 impl MemorySize {

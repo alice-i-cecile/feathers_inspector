@@ -168,7 +168,7 @@ impl WorldInspectionExtensionTrait for World {
         // This unwrap is safe because `SpawnDetails` is always registered.
         let mut spawn_details_query = self.try_query::<SpawnDetails>().unwrap();
 
-        let spawn_details = spawn_details_query.get(self, entity)?;
+        let spawn_details = Some(spawn_details_query.get(self, entity)?);
 
         // Temporary binding to avoid dropping borrow
         let entity_ref = self.entity(entity);
