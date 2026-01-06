@@ -97,17 +97,18 @@
 
 ## BRP inspection
 
-- [] Investigate and record how BRP works
-- [] Investigate and record how to integrate a reflection-backed workflow
+- [x] Investigate and record how BRP works
+- [x] Investigate and record how to integrate a reflection-backed workflow
+- [x] Implement BRP methods for feathers-inpsector operations
 
 ## Basic GUI
 
-- [] Exclude entities that belong to the inspector GUI itself
-- [] Display a list of entities
+- [x] Exclude entities that belong to the inspector GUI itself
+- [x] Display a list of entities
 - [] Add pagination
-- [] List components under each entity
+- [x] List components under each entity
 - [] Add entity folding
-- [] Crudely display component values
+- [x] Crudely display component values
 
 ## Tabs
 
@@ -162,4 +163,3 @@
   - Persist entity clusters and incrementally recompute
 - GUI-based search
   - Requires text input to work well
-
