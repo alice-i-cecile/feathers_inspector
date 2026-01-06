@@ -63,10 +63,10 @@
 ## Tweak inspector output for your type
 
 - [x] define a stub `Inspectable` trait for reflected type information
-- [] customize the precision, increment and range of numbers
+- [ ] customize the precision, increment and range of numbers
 - [x] hide fields from the inspector
-- [] customize display output based on `Inspectable`
-- [] add a derive macro
+- [ ] customize display output based on `Inspectable`
+- [ ] add a derive macro
 
 ## Filtering and search
 
@@ -97,44 +97,45 @@
 
 ## BRP inspection
 
-- [] Investigate and record how BRP works
-- [] Investigate and record how to integrate a reflection-backed workflow
+- [x] Investigate and record how BRP works
+- [x] Investigate and record how to integrate a reflection-backed workflow
+- [x] Implement BRP methods for feathers-inpsector operations
 
 ## Basic GUI
 
-- [] Exclude entities that belong to the inspector GUI itself
-- [] Display a list of entities
-- [] Add pagination
-- [] List components under each entity
-- [] Add entity folding
-- [] Crudely display component values
+- [x] Exclude entities that belong to the inspector GUI itself
+- [x] Display a list of entities
+- [ ] Add pagination
+- [x] List components under each entity
+- [ ] Add entity folding
+- [x] Crudely display component values
 
 ## Tabs
 
-- [] Create a simple feathers-based tab abstraction
-- [] Split entities into tabs based on categories
-- [] Close and open tabs
+- [ ] Create a simple feathers-based tab abstraction
+- [ ] Split entities into tabs based on categories
+- [ ] Close and open tabs
 
 ## Pop-out
 
-- [] Render a pop-up UI window
-- [] Give the UI window a title
-- [] Make it draggable
-- [] Make it resizable
+- [ ] Render a pop-up UI window
+- [ ] Give the UI window a title
+- [ ] Make it draggable
+- [ ] Make it resizable
 
 ## Hierarchy
 
-- [] Show entities in parent-child hierarchy structure
+- [ ] Show entities in parent-child hierarchy structure
 
 ## Asset inspection
 
-- [] Add inspection capabilities for assets
-- [] Display values for components that contain Handle
+- [ ] Add inspection capabilities for assets
+- [ ] Display values for components that contain Handle
 
 ## Important entities
 
-- [] Pin entities to the top of the list
-- [] Hide entities manually
+- [ ] Pin entities to the top of the list
+- [ ] Hide entities manually
 
 ## Summary statistics
 
@@ -147,8 +148,8 @@
 
 ## Categories
 
-- [] Define user-extensible categories for entities to be filtered by
-- [] Return and log category as part of `EntityInspection`
+- [ ] Define user-extensible categories for entities to be filtered by
+- [ ] Return and log category as part of `EntityInspection`
 
 ## Out-of scope
 
@@ -162,4 +163,3 @@
   - Persist entity clusters and incrementally recompute
 - GUI-based search
   - Requires text input to work well
-
