@@ -54,7 +54,7 @@ pub(super) fn determine_error(entity: Entity, inspection_error: EntityInspection
             QueryDoesNotMatch(_, _) => {
                 BrpError::internal("Reached invalid state: `QueryDoesNotMatch` on `SpawnDetails`")
             }
-            EntityDoesNotExist(_) => BrpError::entity_not_found(entity),
+            NotSpawned(_) => BrpError::entity_not_found(entity),
             AliasedMutability(_) => {
                 BrpError::internal("Reached invalid state: `AliasedMutability`")
             }

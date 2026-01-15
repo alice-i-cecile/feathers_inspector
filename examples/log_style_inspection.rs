@@ -4,7 +4,7 @@
 //! Analogous to `println!`-debugging, this pattern is useful for
 //! quick debugging and inspection without setting up a full inspector UI.
 
-use bevy::prelude::*;
+use bevy::{input::mouse::AccumulatedMouseMotion, prelude::*};
 use feathers_inspector::{
     component_inspection::{ComponentInspectionSettings, ComponentMetadataMap},
     entity_inspection::{EntityInspectionSettings, MultipleEntityInspectionSettings},
@@ -114,7 +114,7 @@ fn inspect_resource_when_r_pressed(
     mut commands: Commands,
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyR) {
-        commands.inspect_resource::<AmbientLight>(ResourceInspectionSettings {
+        commands.inspect_resource::<AccumulatedMouseMotion>(ResourceInspectionSettings {
             full_type_names: true,
         });
     }

@@ -1,7 +1,7 @@
 //! Serde helper modules for value conversions.
 
 use bevy::ecs::{
-    entity::EntityDoesNotExistError,
+    entity::EntityNotSpawnedError,
     query::{QueryEntityError, SpawnDetails},
 };
 use serde::Serialize;
@@ -253,9 +253,9 @@ where
     format!("{spawn_details:?}").serialize(serializer)
 }
 
-/// Serializes [`EntityDoesNotExistError`].
-pub fn serialize_entity_does_not_exist_error<S>(
-    error: &EntityDoesNotExistError,
+/// Serializes [`EntityNotSpawnedError`].
+pub fn serialize_entity_not_spawned_error<S>(
+    error: &EntityNotSpawnedError,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where

@@ -16,8 +16,11 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
-bevy = { version = "0.17", features = ["track_location", "experimental_bevy_feathers"] }
-serde = { version = "1.0", optional = true,  features = ["derive"] }
+bevy = { version = "0.18", features = [
+	"track_location",
+	"experimental_bevy_feathers",
+] }
+serde = { version = "1.0", optional = true, features = ["derive"] }
 serde_json = { version = "1.0", optional = true }
 strsim = "0.11.1"
 thiserror = "2.0.17"

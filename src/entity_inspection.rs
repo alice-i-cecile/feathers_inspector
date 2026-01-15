@@ -9,7 +9,7 @@
 use bevy::{
     ecs::{
         component::ComponentId,
-        entity::EntityDoesNotExistError,
+        entity::EntityNotSpawnedError,
         query::{QueryEntityError, SpawnDetails},
     },
     prelude::*,
@@ -100,7 +100,7 @@ pub enum EntityInspectionError {
     /// The entity does not exist in the world.
     #[error("Entity not found: {0}")]
     #[cfg_attr(feature = "serde", serde(skip))]
-    EntityNotFound(EntityDoesNotExistError),
+    EntityNotFound(EntityNotSpawnedError),
     /// A catch-all variant for inspection errors that should never happen
     /// when just querying an entity and its metadata.
     #[error("Unexpected QueryEntityError: {0}")]
@@ -111,9 +111,7 @@ pub enum EntityInspectionError {
 impl From<QueryEntityError> for EntityInspectionError {
     fn from(err: QueryEntityError) -> Self {
         match err {
-            QueryEntityError::EntityDoesNotExist(error) => {
-                EntityInspectionError::EntityNotFound(error)
-            }
+            QueryEntityError::NotSpawned(error) => EntityInspectionError::EntityNotFound(error),
             _ => {
                 error!("Unexpected QueryEntityError variant when inspecting an entity: {err:?}");
                 EntityInspectionError::UnexpectedQueryError(err)

@@ -1,6 +1,6 @@
 //! Grouping entities by parent-child relationship.
 
-use bevy::{platform::collections::HashSet, prelude::*};
+use bevy::{ecs::entity::EntityIndex, platform::collections::HashSet, prelude::*};
 
 use crate::entity_grouping::EntityGrouping;
 
@@ -127,7 +127,7 @@ fn sort_entities(world: &World, entities: &mut [Entity]) {
 /// 1. Entities with [`Name`] component are ordered before unnamed entities.
 /// 2. Named entities are ordered alphabetically (case-insensitive).
 /// 3. If [`Name`]s are equal, entities are ordered by [`Entity::index`].
-fn sorting_key(world: &World, entity: Entity) -> (bool, String, u32) {
+fn sorting_key(world: &World, entity: Entity) -> (bool, String, EntityIndex) {
     match world.get::<Name>(entity) {
         Some(name) => (false, name.as_str().to_lowercase(), entity.index()),
         None => (true, String::new(), entity.index()),

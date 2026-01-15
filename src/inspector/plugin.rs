@@ -138,10 +138,8 @@ fn setup_inspector_ui(
     let camera_entity = commands
         .spawn((
             Camera2d,
-            Camera {
-                target: RenderTarget::Window(WindowRef::Entity(window_entity)),
-                ..default()
-            },
+            Camera::default(),
+            RenderTarget::Window(WindowRef::Entity(window_entity)),
             InspectorInternal,
         ))
         .id();
