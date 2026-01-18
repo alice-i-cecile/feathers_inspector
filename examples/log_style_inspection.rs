@@ -4,7 +4,7 @@
 //! Analogous to `println!`-debugging, this pattern is useful for
 //! quick debugging and inspection without setting up a full inspector UI.
 
-use bevy::{input::mouse::AccumulatedMouseMotion, prelude::*};
+use bevy::prelude::*;
 use feathers_inspector::{
     component_inspection::{ComponentInspectionSettings, ComponentMetadataMap},
     entity_inspection::{EntityInspectionSettings, MultipleEntityInspectionSettings},
@@ -48,7 +48,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 Output will be logged to the console: check your terminal window!
 
 Press 'E' to inspect all Sprite entities
-Press 'R' to inspect the AccumulatedMouseMotion resource
+Press 'R' to inspect the Time resource
 Press 'A' to inspect all resources
 Press 'C' to inspect the Sprite component on all Sprite entities
 Press `Space` to inspect all entities
@@ -114,7 +114,7 @@ fn inspect_resource_when_r_pressed(
     mut commands: Commands,
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyR) {
-        commands.inspect_resource::<AccumulatedMouseMotion>(ResourceInspectionSettings {
+        commands.inspect_resource::<Time>(ResourceInspectionSettings {
             full_type_names: true,
         });
     }
