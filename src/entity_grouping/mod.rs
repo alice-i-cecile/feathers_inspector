@@ -2,7 +2,8 @@
 
 use bevy::prelude::*;
 
-use crate::{archetype_similarity_grouping, hierarchy_grouping};
+mod archetype_similarity_grouping;
+mod hierarchy_grouping;
 
 /// A hierarchical grouping of entities based on their components.
 ///
