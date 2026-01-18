@@ -30,7 +30,9 @@ pub struct ObjectListContent;
 
 /// Marker for object rows. Stores the object this row represents.
 #[derive(Component)]
-pub struct ObjectRow(pub Entity);
+pub struct ObjectRow {
+    pub selected_object: Entity,
+}
 
 /// Marker for the search input.
 #[derive(Component)]
@@ -156,7 +158,7 @@ pub fn sync_object_list(
     // Spawn new rows
     commands.entity(content_entity).with_children(|list| {
         for entry in &cache.filtered_entities {
-            let is_selected = state.selected_entity == Some(entry.entity);
+            let is_selected = state.selected_object == Some(entry.entity);
             spawn_object_row(list, entry, is_selected, &config);
         }
     });
@@ -183,7 +185,9 @@ fn spawn_object_row(
 
     parent.spawn((button(
         ButtonProps::default(),
-        ObjectRow(entry.entity),
+        ObjectRow {
+            selected_object: entry.entity,
+        },
         bevy::prelude::Spawn((
             Text::new(label),
             TextFont {
@@ -220,7 +224,7 @@ pub fn on_object_row_click(
 
     loop {
         if let Ok(row) = rows.get(current) {
-            state.selected_entity = Some(row.0);
+            state.selected_object = Some(row.selected_object);
             return;
         }
         if let Ok(child_of) = parents.get(current) {

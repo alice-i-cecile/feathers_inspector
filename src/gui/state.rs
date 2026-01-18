@@ -20,8 +20,8 @@ pub struct InspectorInternal;
 /// All UI-related state flows through this resource.
 #[derive(Resource, Default)]
 pub struct InspectorState {
-    /// Currently selected entity for detail view.
-    pub selected_entity: Option<Entity>,
+    /// Currently selected object for detail view.
+    pub selected_object: Option<Entity>,
     /// Active tab in the object list panel.
     pub active_list_tab: ObjectListTab,
     /// Active tab in the detail panel.

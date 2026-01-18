@@ -66,7 +66,7 @@ fn on_hierarchy_node_click(
     nodes: Query<&HierarchyNode>,
 ) {
     if let Ok(node) = nodes.get(activate.entity) {
-        state.selected_entity = Some(node.0);
+        state.selected_object = Some(node.0);
     }
 }
 
@@ -76,7 +76,7 @@ fn on_hierarchy_node_click(
 pub fn sync_detail_panel(world: &mut World) {
     // Extract state info first and check for changes
     let state = world.resource::<InspectorState>();
-    let selected_entity = state.selected_entity;
+    let selected_entity = state.selected_object;
     let active_tab = state.active_detail_tab;
     let previous_selection = state.previous_selection;
     let previous_tab = state.previous_tab;
