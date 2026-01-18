@@ -20,10 +20,10 @@ use crate::component_inspection::{
 use crate::entity_inspection::EntityInspectionSettings;
 use crate::entity_name_resolution::EntityName;
 use crate::extension_methods::WorldInspectionExtensionTrait;
-use crate::inspector::config::InspectorConfig;
-use crate::inspector::semantic_names::SemanticFieldNames;
-use crate::inspector::state::{DetailTab, InspectorCache, InspectorState};
-use crate::inspector::widgets::{DragValue, DragValueDragState, FieldPath, FieldPathSegment};
+use crate::gui::config::InspectorConfig;
+use crate::gui::semantic_names::SemanticFieldNames;
+use crate::gui::state::{DetailTab, InspectorCache, InspectorState};
+use crate::gui::widgets::{DragValue, DragValueDragState, FieldPath, FieldPathSegment};
 use crate::reflection_tools::get_reflected_component_ref;
 
 /// Marker component for the detail panel container.

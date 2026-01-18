@@ -19,15 +19,15 @@ pub mod entity_inspection;
 pub mod entity_name_resolution;
 pub mod extension_methods;
 pub mod fuzzy_name_mapping;
+pub mod gui;
 pub mod hierarchy_grouping;
 pub mod inspectable;
-pub mod inspector;
 pub mod memory_size;
 pub mod reflection_tools;
 pub mod resource_inspection;
 
 // Re-export the main plugin for convenience
-pub use inspector::{InspectorConfig, InspectorWindowPlugin};
+pub use gui::{InspectorConfig, InspectorWindowPlugin};
 #[cfg(feature = "serde")]
 pub mod serde_conversions;
 pub mod summary;
