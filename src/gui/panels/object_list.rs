@@ -1,5 +1,8 @@
 //! A panel that lists the objects that can be inspected in the current view,
 //! typically shown on the left side of the inspector.
+//!
+//! See [`ObjectListTab`](crate::gui::state::ObjectListTab) for the different tabs available in this panel,
+//! which is used to switch between different object types (e.g., entities, resources).
 
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::observer::On;

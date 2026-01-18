@@ -1,5 +1,7 @@
 //! Detail panel for the right side of the inspector.
-//! Contains tabs for Components and Relationships.
+//!
+//! See [`DetailsTab`](crate::gui::state::DetailTab) for the different tabs available in this panel,
+//! which is used to switch between different detail views (e.g., components, relationships).
 
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::observer::On;
@@ -53,7 +55,7 @@ fn on_tab_button_click(
     tabs: Query<&TabButton>,
 ) {
     if let Ok(tab) = tabs.get(activate.entity) {
-        state.active_tab = tab.0;
+        state.active_detail_tab = tab.0;
     }
 }
 
@@ -75,7 +77,7 @@ pub fn sync_detail_panel(world: &mut World) {
     // Extract state info first and check for changes
     let state = world.resource::<InspectorState>();
     let selected_entity = state.selected_entity;
-    let active_tab = state.active_tab;
+    let active_tab = state.active_detail_tab;
     let previous_selection = state.previous_selection;
     let previous_tab = state.previous_tab;
 

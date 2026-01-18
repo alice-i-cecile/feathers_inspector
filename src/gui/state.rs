@@ -1,4 +1,9 @@
 //! Central UI state for the inspector.
+//!
+//! This state is the "model" for the inspector UI,
+//! tracking the currently selected entity, active tabs, filters, and cached data.
+//!
+//! This information is then used to drive the UI rendering in the various panels.
 
 use bevy::ecs::component::ComponentId;
 use bevy::prelude::*;
@@ -17,8 +22,10 @@ pub struct InspectorInternal;
 pub struct InspectorState {
     /// Currently selected entity for detail view.
     pub selected_entity: Option<Entity>,
+    /// Active tab in the object list panel.
+    pub active_list_tab: ObjectListTab,
     /// Active tab in the detail panel.
-    pub active_tab: DetailTab,
+    pub active_detail_tab: DetailTab,
     /// Current search/filter text for entity list.
     pub filter_text: String,
     /// Component filter: only show entities with these components.
@@ -27,6 +34,14 @@ pub struct InspectorState {
     pub previous_selection: Option<Entity>,
     /// Previous active tab (for change detection).
     pub previous_tab: DetailTab,
+}
+
+/// Active tab in the object list panel.
+#[derive(Default, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ObjectListTab {
+    #[default]
+    Entities,
+    Resources,
 }
 
 /// Active tab in the detail panel.
