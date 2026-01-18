@@ -226,14 +226,6 @@ fn on_object_row_click(
     warn!("Could not find ObjectRow in hierarchy!");
 }
 
-/// System that updates selection highlight without respawning rows.
-/// Note: Selection highlighting is handled during row spawning in sync_object_list.
-/// This system is a placeholder for future improvements.
-pub fn sync_selection_highlight(_state: Res<InspectorState>, _rows: Query<&ObjectRow>) {
-    // Selection highlighting is handled during row spawning in sync_object_list.
-    // This system is a no-op placeholder for future improvements.
-}
-
 /// Spawns the object list panel structure.
 pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &InspectorConfig) {
     parent

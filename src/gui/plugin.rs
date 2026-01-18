@@ -16,7 +16,7 @@ use bevy::window::{WindowRef, WindowResolution};
 use super::config::InspectorConfig;
 use super::panels::{
     refresh_object_cache, spawn_detail_panel, spawn_object_list_panel, sync_detail_panel,
-    sync_object_list, sync_selection_highlight,
+    sync_object_list,
 };
 use super::semantic_names::SemanticFieldNames;
 use super::state::{InspectorCache, InspectorInternal, InspectorState, InspectorWindowState};
@@ -76,12 +76,7 @@ impl Plugin for InspectorWindowPlugin {
                     // Cache refresh
                     refresh_object_cache.in_set(InspectorSet::RefreshCache),
                     // UI sync - chain these to avoid resource conflicts
-                    (
-                        setup_inspector_ui,
-                        sync_object_list,
-                        sync_detail_panel,
-                        sync_selection_highlight,
-                    )
+                    (setup_inspector_ui, sync_object_list, sync_detail_panel)
                         .chain()
                         .in_set(InspectorSet::SyncUI),
                     // Cleanup
