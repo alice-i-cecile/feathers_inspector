@@ -48,7 +48,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 Output will be logged to the console: check your terminal window!
 
 Press 'E' to inspect all Sprite entities
-Press 'R' to inspect the AmbientLight resource
+Press 'R' to inspect the AccumulatedMouseMotion resource
 Press 'A' to inspect all resources
 Press 'C' to inspect the Sprite component on all Sprite entities
 Press `Space` to inspect all entities
