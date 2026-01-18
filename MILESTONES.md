@@ -99,7 +99,7 @@
 
 - [x] Investigate and record how BRP works
 - [x] Investigate and record how to integrate a reflection-backed workflow
-- [x] Implement BRP methods for feathers-inpsector operations
+- [x] Implement BRP methods for feathers-inspector operations
 
 ## Basic GUI
 
