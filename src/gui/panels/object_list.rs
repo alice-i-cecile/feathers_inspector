@@ -10,7 +10,7 @@ use bevy::ecs::relationship::Relationship;
 use bevy::feathers::controls::{ButtonProps, button};
 use bevy::prelude::*;
 use bevy::ui::Val::*;
-use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar, observe};
+use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar};
 
 use crate::component_inspection::ComponentMetadataMap;
 use crate::entity_inspection::{MultipleEntityInspectionSettings, NameFilter};
@@ -181,30 +181,29 @@ fn spawn_object_row(
         display_name, entry.component_count, entry.memory_size
     );
 
-    parent.spawn((
-        button(
-            ButtonProps::default(),
-            ObjectRow(entry.entity),
-            bevy::prelude::Spawn((
-                Text::new(label),
-                TextFont {
-                    font_size: config.small_font_size,
-                    ..default()
-                },
-                TextColor(if is_selected {
-                    Color::WHITE
-                } else {
-                    Color::srgba(0.9, 0.9, 0.9, 1.0)
-                }),
-            )),
-        ),
-        observe(on_object_row_click),
-    ));
+    parent.spawn((button(
+        ButtonProps::default(),
+        ObjectRow(entry.entity),
+        bevy::prelude::Spawn((
+            Text::new(label),
+            TextFont {
+                font_size: config.small_font_size,
+                ..default()
+            },
+            TextColor(if is_selected {
+                Color::WHITE
+            } else {
+                Color::srgba(0.9, 0.9, 0.9, 1.0)
+            }),
+        )),
+    ),));
 }
 
-/// Observer for object row clicks.
+/// Global observer for object row clicks.
+/// Added in [`InspectorWindowPlugin`](crate::gui::InspectorWindowPlugin).
+///
 /// Traverses up the parent hierarchy to find the [`ObjectRow`] component.
-fn on_object_row_click(
+pub fn on_object_row_click(
     activate: On<Activate>,
     mut state: ResMut<InspectorState>,
     rows: Query<&ObjectRow>,
@@ -212,6 +211,13 @@ fn on_object_row_click(
 ) {
     // Traverse up the hierarchy to find ObjectRow
     let mut current = activate.entity;
+    // Make sure the event is actually targeting an object row
+    if !rows.contains(current) {
+        return;
+    }
+
+    info!("Object row entity clicked: {:?}", current);
+
     loop {
         if let Ok(row) = rows.get(current) {
             state.selected_entity = Some(row.0);

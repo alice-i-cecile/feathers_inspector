@@ -13,6 +13,8 @@ use bevy::prelude::*;
 use bevy::ui::Val::*;
 use bevy::window::{WindowRef, WindowResolution};
 
+use crate::gui::panels::on_object_row_click;
+
 use super::config::InspectorConfig;
 use super::panels::{
     refresh_object_cache, spawn_detail_panel, spawn_object_list_panel, sync_detail_panel,
@@ -82,7 +84,8 @@ impl Plugin for InspectorWindowPlugin {
                     // Cleanup
                     handle_window_close,
                 ),
-            );
+            )
+            .add_observer(on_object_row_click);
     }
 }
 
