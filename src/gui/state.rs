@@ -41,16 +41,16 @@ pub enum DetailTab {
 #[derive(Resource, Default)]
 pub struct InspectorCache {
     /// Cached entity list after filtering.
-    pub filtered_entities: Vec<EntityListEntry>,
+    pub filtered_entities: Vec<ObjectListEntry>,
     /// Cached metadata map (reused across inspections).
     pub metadata_map: Option<ComponentMetadataMap>,
     /// Whether the cache needs to be refreshed.
     pub stale: bool,
 }
 
-/// Entry for the entity list display.
+/// Data for a single object in the object list.
 #[derive(Clone, Debug)]
-pub struct EntityListEntry {
+pub struct ObjectListEntry {
     /// The entity.
     pub entity: Entity,
     /// Display name for the entity.

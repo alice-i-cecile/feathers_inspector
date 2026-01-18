@@ -1,4 +1,5 @@
-//! Entity list panel for the left side of the inspector.
+//! A panel that lists the objects that can be inspected in the current view,
+//! typically shown on the left side of the inspector.
 
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::observer::On;
@@ -13,28 +14,28 @@ use crate::entity_inspection::{MultipleEntityInspectionSettings, NameFilter};
 use crate::entity_name_resolution::EntityName;
 use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::gui::config::InspectorConfig;
-use crate::gui::state::{EntityListEntry, InspectorCache, InspectorInternal, InspectorState};
+use crate::gui::state::{InspectorCache, InspectorInternal, InspectorState, ObjectListEntry};
 use crate::memory_size::MemorySize;
 
-/// Marker component for the entity list panel container.
+/// Marker component for the object list panel container.
 #[derive(Component)]
-pub struct EntityListPanel;
+pub struct ObjectListPanel;
 
-/// Marker component for the scrollable entity list content.
+/// Marker component for the scrollable object list content.
 #[derive(Component)]
-pub struct EntityListContent;
+pub struct ObjectListContent;
 
-/// Marker for entity rows. Stores the entity this row represents.
+/// Marker for object rows. Stores the object this row represents.
 #[derive(Component)]
-pub struct EntityRow(pub Entity);
+pub struct ObjectRow(pub Entity);
 
 /// Marker for the search input.
 #[derive(Component)]
 pub struct SearchInput;
 
-/// Exclusive system that refreshes the entity cache when state changes.
+/// Exclusive system that refreshes the object cache when state changes.
 /// Uses exclusive world access to avoid resource conflicts.
-pub fn refresh_entity_cache(world: &mut World) {
+pub fn refresh_object_cache(world: &mut World) {
     // Check if we need to refresh - extract state info first
     let state = world.resource::<InspectorState>();
     let cache = world.resource::<InspectorCache>();
@@ -86,8 +87,8 @@ pub fn refresh_entity_cache(world: &mut World) {
         vec![]
     };
 
-    // Build filtered list - use entity from each inspection since inspect_multiple reorders
-    let filtered_entities: Vec<EntityListEntry> = inspections
+    // Build filtered list - use object from each inspection since inspect_multiple reorders
+    let filtered_entities: Vec<ObjectListEntry> = inspections
         .into_iter()
         .filter_map(|result| {
             let inspection = result.ok()?;
@@ -102,7 +103,7 @@ pub fn refresh_entity_cache(world: &mut World) {
                 return None;
             }
 
-            Some(EntityListEntry {
+            Some(ObjectListEntry {
                 entity,
                 display_name: name.to_string(),
                 component_count: inspection.components.as_ref().map(|c| c.len()).unwrap_or(0),
@@ -121,14 +122,14 @@ pub fn refresh_entity_cache(world: &mut World) {
     cache.stale = false;
 }
 
-/// System that syncs the entity list display with the cache.
-pub fn sync_entity_list(
+/// System that syncs the object list display with the cache.
+pub fn sync_object_list(
     mut commands: Commands,
     cache: ResMut<InspectorCache>,
     state: Res<InspectorState>,
     config: Res<InspectorConfig>,
-    list_content: Query<Entity, With<EntityListContent>>,
-    existing_rows: Query<Entity, With<EntityRow>>,
+    list_content: Query<Entity, With<ObjectListContent>>,
+    existing_rows: Query<Entity, With<ObjectRow>>,
 ) {
     // Only update when cache or selection changes
     if !cache.is_changed() && !state.is_changed() {
@@ -148,15 +149,15 @@ pub fn sync_entity_list(
     commands.entity(content_entity).with_children(|list| {
         for entry in &cache.filtered_entities {
             let is_selected = state.selected_entity == Some(entry.entity);
-            spawn_entity_row(list, entry, is_selected, &config);
+            spawn_object_row(list, entry, is_selected, &config);
         }
     });
 }
 
-/// Spawns a single entity row button.
-fn spawn_entity_row(
+/// Spawns a single object row button.
+fn spawn_object_row(
     parent: &mut ChildSpawnerCommands<'_>,
-    entry: &EntityListEntry,
+    entry: &ObjectListEntry,
     is_selected: bool,
     config: &InspectorConfig,
 ) {
@@ -175,7 +176,7 @@ fn spawn_entity_row(
     parent.spawn((
         button(
             ButtonProps::default(),
-            EntityRow(entry.entity),
+            ObjectRow(entry.entity),
             bevy::prelude::Spawn((
                 Text::new(label),
                 TextFont {
@@ -189,19 +190,19 @@ fn spawn_entity_row(
                 }),
             )),
         ),
-        observe(on_entity_row_click),
+        observe(on_object_row_click),
     ));
 }
 
-/// Observer for entity row clicks.
-/// Traverses up the parent hierarchy to find the EntityRow component.
-fn on_entity_row_click(
+/// Observer for object row clicks.
+/// Traverses up the parent hierarchy to find the [`ObjectRow`] component.
+fn on_object_row_click(
     activate: On<Activate>,
     mut state: ResMut<InspectorState>,
-    rows: Query<&EntityRow>,
+    rows: Query<&ObjectRow>,
     parents: Query<&ChildOf>,
 ) {
-    // Traverse up the hierarchy to find EntityRow
+    // Traverse up the hierarchy to find ObjectRow
     let mut current = activate.entity;
     loop {
         if let Ok(row) = rows.get(current) {
@@ -214,19 +215,19 @@ fn on_entity_row_click(
             break;
         }
     }
-    warn!("Could not find EntityRow in hierarchy!");
+    warn!("Could not find ObjectRow in hierarchy!");
 }
 
 /// System that updates selection highlight without respawning rows.
-/// Note: Selection highlighting is handled during row spawning in sync_entity_list.
+/// Note: Selection highlighting is handled during row spawning in sync_object_list.
 /// This system is a placeholder for future improvements.
-pub fn sync_selection_highlight(_state: Res<InspectorState>, _rows: Query<&EntityRow>) {
-    // Selection highlighting is handled during row spawning in sync_entity_list.
+pub fn sync_selection_highlight(_state: Res<InspectorState>, _rows: Query<&ObjectRow>) {
+    // Selection highlighting is handled during row spawning in sync_object_list.
     // This system is a no-op placeholder for future improvements.
 }
 
-/// Spawns the entity list panel structure.
-pub fn spawn_entity_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &InspectorConfig) {
+/// Spawns the object list panel structure.
+pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &InspectorConfig) {
     parent
         .spawn((
             Node {
@@ -238,7 +239,7 @@ pub fn spawn_entity_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                 ..default()
             },
             BorderColor::all(config.border_color),
-            EntityListPanel,
+            ObjectListPanel,
         ))
         .with_children(|panel| {
             // Search bar placeholder
@@ -287,7 +288,7 @@ pub fn spawn_entity_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                                 ..default()
                             },
                             ScrollPosition::default(),
-                            EntityListContent,
+                            ObjectListContent,
                         ))
                         .id();
 

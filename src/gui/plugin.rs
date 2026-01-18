@@ -15,8 +15,8 @@ use bevy::window::{WindowRef, WindowResolution};
 
 use super::config::InspectorConfig;
 use super::panels::{
-    refresh_entity_cache, spawn_detail_panel, spawn_entity_list_panel, sync_detail_panel,
-    sync_entity_list, sync_selection_highlight,
+    refresh_object_cache, spawn_detail_panel, spawn_object_list_panel, sync_detail_panel,
+    sync_object_list, sync_selection_highlight,
 };
 use super::semantic_names::SemanticFieldNames;
 use super::state::{InspectorCache, InspectorInternal, InspectorState, InspectorWindowState};
@@ -74,11 +74,11 @@ impl Plugin for InspectorWindowPlugin {
                     // Input handling
                     handle_mouse_wheel_scroll.in_set(InspectorSet::Input),
                     // Cache refresh
-                    refresh_entity_cache.in_set(InspectorSet::RefreshCache),
+                    refresh_object_cache.in_set(InspectorSet::RefreshCache),
                     // UI sync - chain these to avoid resource conflicts
                     (
                         setup_inspector_ui,
-                        sync_entity_list,
+                        sync_object_list,
                         sync_detail_panel,
                         sync_selection_highlight,
                     )
@@ -172,9 +172,8 @@ fn setup_inspector_ui(
                 ..default()
             },))
                 .with_children(|content| {
-                    // Left panel: Entity list
-                    spawn_entity_list_panel(content, &config);
-
+                    // Left panel: Object list
+                    spawn_object_list_panel(content, &config);
                     // Right panel: Detail view
                     spawn_detail_panel(content, &config);
                 });

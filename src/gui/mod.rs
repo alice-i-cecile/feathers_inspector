@@ -13,5 +13,5 @@ pub mod widgets;
 pub use config::InspectorConfig;
 pub use plugin::{InspectorSet, InspectorWindow, InspectorWindowPlugin};
 pub use semantic_names::SemanticFieldNames;
-pub use state::{DetailTab, EntityListEntry, InspectorCache, InspectorState, InspectorWindowState};
+pub use state::{DetailTab, InspectorCache, InspectorState, InspectorWindowState, ObjectListEntry};
 pub use widgets::{DragValue, DragValueChanged, DragValuePlugin, FieldPath, FieldPathSegment};
