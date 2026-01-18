@@ -70,7 +70,13 @@ pub fn refresh_object_cache(world: &mut World) {
     let entities: Vec<Entity> = query
         .iter(world)
         .filter(|e| {
-            !e.contains::<Node>() && !e.contains::<Window>() && !e.contains::<InspectorInternal>()
+            !e.contains::<Node>()
+                && !e.contains::<Window>()
+                && !e.contains::<InspectorInternal>()
+                // TODO: these should be shown in a separate object list tab
+                // TODO: this inspector generates its own observers, which should be excluded
+                // using InspectorInternal
+                && !e.contains::<Observer>()
         })
         .map(|e| e.id())
         .collect();
