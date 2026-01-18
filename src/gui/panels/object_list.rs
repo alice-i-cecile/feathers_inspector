@@ -220,8 +220,6 @@ pub fn on_object_row_click(
         return;
     }
 
-    info!("Object row entity clicked: {:?}", current);
-
     loop {
         if let Ok(row) = rows.get(current) {
             state.selected_object = Some(row.selected_object);
