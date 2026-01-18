@@ -105,27 +105,29 @@
 
 - [x] Exclude entities that belong to the inspector GUI itself
 - [x] Display a list of entities
-- [ ] Add pagination
 - [x] List components under each entity
-- [ ] Add entity folding
 - [x] Crudely display component values
+- [ ] Create a new window that inspects resources
 
 ## Tabs
 
 - [ ] Create a simple feathers-based tab abstraction
 - [ ] Split entities into tabs based on categories
+- [ ] Move resources inspection into a tab
 - [ ] Close and open tabs
+- [ ] Reorder tabs
 
 ## Pop-out
 
-- [ ] Render a pop-up UI window
-- [ ] Give the UI window a title
-- [ ] Make it draggable
-- [ ] Make it resizable
+- [x] Render a pop-up UI window
+- [x] Give the UI window a title
+- [x] Make it draggable
+- [x] Make it resizable
 
 ## Hierarchy
 
 - [ ] Show entities in parent-child hierarchy structure
+- [ ] Add entity folding
 
 ## Asset inspection
 
@@ -136,6 +138,10 @@
 
 - [ ] Pin entities to the top of the list
 - [ ] Hide entities manually
+
+## Fancy GUI
+
+- [ ] Add pagination
 
 ## Summary statistics
 
