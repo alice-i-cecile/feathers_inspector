@@ -29,7 +29,7 @@ pub struct InspectorState {
     /// Current search/filter text for entity list.
     pub filter_text: String,
     /// Component filter: only show entities with these components.
-    pub required_components: Vec<ComponentId>,
+    pub mandatory_components: Vec<ComponentId>,
     /// Previously selected entity (for change detection).
     pub previous_selection: Option<Entity>,
     /// Previous active tab (for change detection).

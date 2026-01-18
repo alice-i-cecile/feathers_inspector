@@ -36,35 +36,36 @@ pub struct ObjectRow(pub Entity);
 #[derive(Component)]
 pub struct SearchInput;
 
-/// Exclusive system that refreshes the object cache when state changes.
+/// Exclusive system that refreshes the [`InspectorCache`] when [`InspectorState`]
+/// or the underlying world changes.
+///
 /// Uses exclusive world access to avoid resource conflicts.
 pub fn refresh_object_cache(world: &mut World) {
     // Check if we need to refresh - extract state info first
+    // TODO: we don't seem to actually check if the state changed?
     let state = world.resource::<InspectorState>();
     let cache = world.resource::<InspectorCache>();
 
-    let needs_refresh = cache.stale;
-    let filter_text = state.filter_text.clone();
-    let required_components = state.required_components.clone();
-
-    if !needs_refresh {
+    if !cache.stale {
         return;
     }
 
-    // Take metadata map out to avoid borrow conflicts
-    let mut metadata_map = world.resource_mut::<InspectorCache>().metadata_map.take();
+    // Extract data we need now to avoid borrow check problems
+    let filter_text = state.filter_text.clone();
+    let mandatory_components = state.mandatory_components.clone();
+    let metadata_map = world.resource_mut::<InspectorCache>().metadata_map.take();
 
-    // Generate if needed
-    if metadata_map.is_none() {
-        metadata_map = Some(ComponentMetadataMap::generate(world));
-    }
-
-    // Update existing metadata map
-    if let Some(ref mut mm) = metadata_map {
-        mm.update(world);
-    }
+    // Generate if needed, otherwise reuse and update
+    let mut metadata_map = match metadata_map {
+        Some(mut mm) => {
+            mm.update(world);
+            mm
+        }
+        None => ComponentMetadataMap::generate(world),
+    };
 
     // Query all entities (excluding UI nodes, windows, and inspector-internal entities)
+    // TODO: This should include UI nodes and windows, as long as they're not spawned by the inspector
     let mut query = world.query::<EntityRef>();
     let entities: Vec<Entity> = query
         .iter(world)
@@ -79,18 +80,15 @@ pub fn refresh_object_cache(world: &mut World) {
     if !filter_text.is_empty() {
         settings.name_filter = Some(NameFilter::from(&filter_text));
     }
-    if !required_components.is_empty() {
-        settings.with_component_filter = required_components;
+    if !mandatory_components.is_empty() {
+        settings.with_component_filter = mandatory_components;
     }
 
     // Inspect entities
-    let inspections = if let Some(ref mut mm) = metadata_map {
-        world.inspect_multiple(entities.iter().copied(), settings, mm)
-    } else {
-        vec![]
-    };
+    let inspections = world.inspect_multiple(entities.iter().copied(), settings, &mut metadata_map);
 
     // Build filtered list - use object from each inspection since inspect_multiple reorders
+    // TODO: inspect_multiple's ordering should be stable and sufficient for this purpose
     let filtered_entities: Vec<ObjectListEntry> = inspections
         .into_iter()
         .filter_map(|result| {
@@ -100,7 +98,7 @@ pub fn refresh_object_cache(world: &mut World) {
                 format!("Entity {:?}", entity).as_str(),
             ));
 
-            // Apply text filter
+            // Apply text filter if set, excluding non-matching names
             if !filter_text.is_empty() && !name.to_lowercase().contains(&filter_text.to_lowercase())
             {
                 return None;
@@ -117,10 +115,11 @@ pub fn refresh_object_cache(world: &mut World) {
 
     // Put metadata_map back and update cache
     let mut cache = world.resource_mut::<InspectorCache>();
-    cache.metadata_map = metadata_map;
+    cache.metadata_map = Some(metadata_map);
     cache.filtered_entities = filtered_entities;
 
     // Sort by entity for consistent display
+    // TODO: this should use the ordering returned by inspect_multiple
     cache.filtered_entities.sort_by_key(|e| e.entity.index());
     cache.stale = false;
 }
