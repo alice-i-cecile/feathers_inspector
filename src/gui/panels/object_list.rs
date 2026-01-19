@@ -136,8 +136,8 @@ pub fn sync_object_list(
     list_content: Query<Entity, With<ObjectListContent>>,
     existing_rows: Query<Entity, With<ObjectRow>>,
 ) {
-    // Only update when cache or selection changes
-    if !cache.is_changed() && !state.is_changed() {
+    // Only update when selection or other state changes
+    if !state.is_changed() {
         return;
     }
 
@@ -146,6 +146,7 @@ pub fn sync_object_list(
     };
 
     // Clear existing rows
+    // TODO: can we reuse existing rows instead of despawning all?
     for row_entity in existing_rows.iter() {
         commands.entity(row_entity).despawn();
     }
