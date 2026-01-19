@@ -38,19 +38,15 @@ pub struct ObjectRow {
 #[derive(Component)]
 pub struct SearchInput;
 
-/// Exclusive system that refreshes the [`InspectorCache`] when [`InspectorState`]
-/// or the underlying world changes.
+/// Exclusive system that refreshes the [`InspectorCache`].
+/// We can't sensibly cache results from one call to the next,
+/// as the world may have changed substantially in between.
 ///
 /// Uses exclusive world access to avoid resource conflicts.
 pub fn refresh_object_cache(world: &mut World) {
     // Check if we need to refresh - extract state info first
     // TODO: we don't seem to actually check if the state changed?
     let state = world.resource::<InspectorState>();
-    let cache = world.resource::<InspectorCache>();
-
-    if !cache.stale {
-        return;
-    }
 
     // Extract data we need now to avoid borrow check problems
     let filter_text = state.filter_text.clone();
@@ -129,7 +125,6 @@ pub fn refresh_object_cache(world: &mut World) {
     // Sort by entity for consistent display
     // TODO: this should use the ordering returned by inspect_multiple
     cache.filtered_entities.sort_by_key(|e| e.entity.index());
-    cache.stale = false;
 }
 
 /// System that syncs the object list display with the cache.
@@ -141,8 +136,8 @@ pub fn sync_object_list(
     list_content: Query<Entity, With<ObjectListContent>>,
     existing_rows: Query<Entity, With<ObjectRow>>,
 ) {
-    // Only update when cache or selection changes
-    if !cache.is_changed() && !state.is_changed() {
+    // Only update when selection or other state changes
+    if !state.is_changed() {
         return;
     }
 
@@ -151,6 +146,7 @@ pub fn sync_object_list(
     };
 
     // Clear existing rows
+    // TODO: can we reuse existing rows instead of despawning all?
     for row_entity in existing_rows.iter() {
         commands.entity(row_entity).despawn();
     }

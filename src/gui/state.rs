@@ -52,15 +52,15 @@ pub enum DetailTab {
     Relationships,
 }
 
-/// Cached data for the inspector to avoid recomputation.
+/// Cached data for the inspector.
+///
+/// This is regularly invalidated, but this resource helps avoid repeated allocations.
 #[derive(Resource, Default)]
 pub struct InspectorCache {
     /// Cached entity list after filtering.
     pub filtered_entities: Vec<ObjectListEntry>,
     /// Cached metadata map (reused across inspections).
     pub metadata_map: Option<ComponentMetadataMap>,
-    /// Whether the cache needs to be refreshed.
-    pub stale: bool,
 }
 
 /// Data for a single object in the object list.

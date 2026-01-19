@@ -116,7 +116,6 @@ fn setup_inspector_ui(
     mut commands: Commands,
     window_state: Res<InspectorWindowState>,
     config: Res<InspectorConfig>,
-    mut cache: ResMut<InspectorCache>,
     inspector_windows: Query<Entity, (With<InspectorWindow>, Without<InspectorUiInitialized>)>,
 ) {
     let Some(window_entity) = window_state.window_entity else {
@@ -176,9 +175,6 @@ fn setup_inspector_ui(
                     spawn_detail_panel(content, &config);
                 });
         });
-
-    // Trigger initial cache refresh
-    cache.stale = true;
 
     info!("Inspector UI initialized");
 }
