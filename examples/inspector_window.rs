@@ -4,17 +4,29 @@
 //! and resources in a separate window with a graphical interface.
 
 use bevy::prelude::*;
-use feathers_inspector::{InspectorWindowPlugin, entity_name_resolution::NameResolutionPlugin};
+use feathers_inspector::{
+    InspectorWindowPlugin,
+    entity_name_resolution::{NameResolutionPlugin, NameResolutionRegistry},
+};
 
 fn main() {
-    App::new()
-        .add_plugins(DefaultPlugins)
+    let mut app = App::new();
+
+    app.add_plugins(DefaultPlugins)
         // NOTE: will not be required once this crate is upstreamed
         .add_plugins(NameResolutionPlugin)
         // Add the inspector window plugin
         .add_plugins(InspectorWindowPlugin)
         .add_systems(Startup, setup)
-        .run();
+        .add_systems(Update, fluctuating_entity_counts);
+
+    // We can register our own component types to be used for name resolution
+    // A priority of zero means this takes precedence over most engine-provided types,
+    // and is generally a good fit for user-defined naming components.
+    let mut name_registry = app.world_mut().resource_mut::<NameResolutionRegistry>();
+    name_registry.register_name_defining_type::<Chaff>(0);
+
+    app.run();
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -63,16 +75,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         Name::new("Standalone Green"),
     ));
 
-    // Spawn an entity without a name
-    commands.spawn((
-        Sprite {
-            color: Color::srgb(1.0, 1.0, 0.0),
-            custom_size: Some(Vec2::new(40.0, 40.0)),
-            ..Default::default()
-        },
-        Transform::from_xyz(150.0, 0.0, 0.0),
-    ));
-
     // Add instructions on the main window
     let instructions = "\
 Check the Inspector Window!
@@ -99,6 +101,27 @@ The inspector window shows:
     ));
 }
 
-fn px(value: f32) -> Val {
-    Val::Px(value)
+/// Marker component for entities that should be
+/// spawned and despawned dynamically in [`fluctuating_entity_counts`].
+#[derive(Component)]
+struct Chaff;
+
+/// Spawns and despawns entities to demonstrate dynamic updates in the inspector
+fn fluctuating_entity_counts(
+    mut commands: Commands,
+    chaff_query: Query<Entity, With<Chaff>>,
+    time: Res<Time>,
+) {
+    const MAX_CHAFF_COUNT: usize = 25;
+    let chaff_count = chaff_query.iter().count();
+    let sinusoid = (time.elapsed_secs().sin() + 1.0) / 2.0; // Normalize to [0, 1]
+    let chaff_desired = (sinusoid * MAX_CHAFF_COUNT as f32) as usize;
+
+    if chaff_count < chaff_desired {
+        commands.spawn(Chaff);
+    } else if chaff_count > chaff_desired {
+        if let Some(marked_for_death) = chaff_query.iter().next() {
+            commands.entity(marked_for_death).despawn();
+        }
+    }
 }
