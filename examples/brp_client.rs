@@ -25,7 +25,7 @@ use feathers_inspector::summary::{SummarySettings, WorldSummary};
 use crate::helper::{construct_request, post_request, query};
 
 const SPRITE_COMPONENT_NAME: &str = "bevy_sprite::sprite::Sprite";
-const AMBIENT_LIGHT_COMPONENT_NAME: &str = "bevy_light::ambient_light::AmbientLight";
+const TIME_RESOURCE_NAME: &str = "bevy_time::time::Time";
 
 #[derive(Resource, Debug)]
 struct BrpUrl(String);
@@ -66,7 +66,7 @@ Output will be shown in the console.
 
 Press `Space` to inspect all entities
 Press 'C' to inspect the Sprite component on all Sprite entities
-Press 'R' to inspect the AmbientLight resource
+Press 'R' to inspect the Time resource
 Press 'A' to inspect all resources
 Press 'M' to inspect the Sprite component type metadata
 Press 'S' to obtain summary statistics"
@@ -169,7 +169,7 @@ fn inspect_resource_when_r_pressed(
             full_type_names: true,
         };
         let params = brp::inspect_resource::Params {
-            component_type: AMBIENT_LIGHT_COMPONENT_NAME.to_string(),
+            component_type: TIME_RESOURCE_NAME.to_string(),
             settings,
             metadata_map: None,
         };
