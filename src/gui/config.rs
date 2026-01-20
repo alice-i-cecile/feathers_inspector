@@ -2,10 +2,17 @@
 
 use bevy::prelude::*;
 use bevy::ui::Val;
+use core::time::Duration;
 
 /// Configuration for inspector UI layout and styling.
 #[derive(Resource, Clone)]
 pub struct InspectorConfig {
+    // Functional
+    /// Refresh interval for updating the entity/resource lists.
+    ///
+    /// If `None`, the lists will not auto-refresh.
+    pub refresh_interval: Option<Duration>,
+
     // Layout
     /// Width of the left panel (entity list).
     pub left_panel_width: Val,
@@ -42,6 +49,9 @@ pub struct InspectorConfig {
 impl Default for InspectorConfig {
     fn default() -> Self {
         Self {
+            // Functional
+            refresh_interval: Some(Duration::from_millis(500)),
+
             // Layout
             left_panel_width: Val::Percent(30.0),
             title_bar_height: Val::Px(40.0),

@@ -324,3 +324,41 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                 });
         });
 }
+
+/// A message that drives a refresh of the object list panel.
+///
+/// This will cause [`refresh_object_cache`] and [`sync_object_list`] to run when seen,
+/// via the use of run conditions added as part of [`InspectorWindowPlugin`](crate::gui::plugin::InspectorWindowPlugin).
+///
+/// This is a public message to allow users to trigger (or cancel!) refreshes manually if desired.
+#[derive(Message)]
+pub struct RefreshObjectList;
+
+/// A system which periodically sends a [`RefreshObjectList`] message.
+///
+/// The frequency is controlled by the `refresh_interval` field in [`InspectorConfig`].
+pub fn periodic_object_list_refresh(
+    mut message_writer: MessageWriter<RefreshObjectList>,
+    time: Res<Time>,
+    mut timer: Local<Timer>,
+    config: Res<InspectorConfig>,
+) {
+    // Skip if no refresh interval is set;
+    // This disables auto-refreshing.
+    if config.refresh_interval.is_none() {
+        return;
+    }
+
+    // Initialize timer if needed
+    if timer.duration().is_zero() {
+        *timer = Timer::new(config.refresh_interval.unwrap(), TimerMode::Repeating);
+    }
+
+    // Tick timer
+    timer.tick(time.delta());
+
+    // Send message if timer finished
+    if timer.just_finished() {
+        message_writer.write(RefreshObjectList);
+    }
+}

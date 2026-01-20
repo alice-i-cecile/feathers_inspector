@@ -107,6 +107,9 @@
 - [x] Display a list of entities
 - [x] List components under each entity
 - [x] Crudely display component values
+- [ ] Ensure that spawned and despawned entities / components are updated correctly
+  - [ ] Manual refresh button
+  - [x] Timer-based update
 - [ ] Create a new window that inspects resources
 
 ## Tabs

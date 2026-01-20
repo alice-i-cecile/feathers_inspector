@@ -13,7 +13,7 @@ use bevy::prelude::*;
 use bevy::ui::Val::*;
 use bevy::window::{WindowRef, WindowResolution};
 
-use crate::gui::panels::on_object_row_click;
+use crate::gui::panels::{RefreshObjectList, on_object_row_click, periodic_object_list_refresh};
 
 use super::config::InspectorConfig;
 use super::panels::{
@@ -51,12 +51,14 @@ impl Plugin for InspectorWindowPlugin {
         app.add_plugins(FeathersPlugins)
             .add_plugins(DragValuePlugin)
             .insert_resource(UiTheme(create_dark_theme()))
-            // State resources
+            // Resources
             .init_resource::<InspectorState>()
             .init_resource::<InspectorCache>()
             .init_resource::<InspectorConfig>()
             .init_resource::<InspectorWindowState>()
             .init_resource::<SemanticFieldNames>()
+            // Messages
+            .add_message::<RefreshObjectList>()
             // System ordering
             .configure_sets(
                 Update,
@@ -67,8 +69,16 @@ impl Plugin for InspectorWindowPlugin {
                 )
                     .chain(),
             )
+            // Limit refreshes
+            .configure_sets(
+                Update,
+                (InspectorSet::RefreshCache, InspectorSet::SyncUI)
+                    .run_if(on_message::<RefreshObjectList>),
+            )
             // Startup
             .add_systems(Startup, setup_inspector_window)
+            // PreUpdate systems
+            .add_systems(PreUpdate, periodic_object_list_refresh)
             // Update systems
             .add_systems(
                 Update,
