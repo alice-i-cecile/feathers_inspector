@@ -1,7 +1,7 @@
 //! Handles a `world.inspect_all_resources` request coming from a client.
 use bevy::{
     prelude::*,
-    remote::{BrpError, BrpResult},
+    remote::{BrpError, BrpResult, builtin_methods::parse_some},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -28,7 +28,7 @@ pub struct Params {
 }
 
 pub fn process_remote_request(In(params): In<Option<Value>>, world: &World) -> BrpResult {
-    let Params { settings } = super::parse_some(params)?;
+    let Params { settings } = parse_some(params)?;
     let inspection = world.inspect_all_resources(settings);
     serde_json::to_value(inspection).map_err(BrpError::internal)
 }

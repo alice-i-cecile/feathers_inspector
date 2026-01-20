@@ -119,9 +119,9 @@ fn fluctuating_entity_counts(
 
     if chaff_count < chaff_desired {
         commands.spawn(Chaff);
-    } else if chaff_count > chaff_desired {
-        if let Some(marked_for_death) = chaff_query.iter().next() {
-            commands.entity(marked_for_death).despawn();
-        }
+    } else if chaff_count > chaff_desired
+        && let Some(marked_for_death) = chaff_query.iter().next()
+    {
+        commands.entity(marked_for_death).despawn();
     }
 }

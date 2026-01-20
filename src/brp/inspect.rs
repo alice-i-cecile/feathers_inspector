@@ -1,7 +1,7 @@
 //! Handles a `world.inspect` request coming from a client.
 use bevy::{
     prelude::*,
-    remote::{BrpError, BrpResult},
+    remote::{BrpError, BrpResult, builtin_methods::parse_some},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -29,7 +29,7 @@ pub struct Params {
 }
 
 pub fn process_remote_request(In(params): In<Option<Value>>, world: &World) -> BrpResult {
-    let Params { entity, settings } = super::parse_some(params)?;
+    let Params { entity, settings } = parse_some(params)?;
     let entity_inspection = world.inspect(entity, settings);
     match entity_inspection {
         Ok(entity_inspection) => {

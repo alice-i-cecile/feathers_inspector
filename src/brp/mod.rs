@@ -15,7 +15,6 @@ use bevy::{
     prelude::*,
     remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods},
 };
-use serde::Deserialize;
 use serde_json::Value;
 
 use crate::component_inspection::{ComponentMetadataMap, ComponentTypeMetadata};
@@ -79,31 +78,6 @@ pub(crate) fn register_remote_method(
         .get_resource_mut::<RemoteMethods>()
         .expect("`RemotePlugin` must be present");
     remote_methods.insert(method, RemoteMethodSystemId::Instant(system_id));
-}
-
-/// A helper function used to parse a `serde_json::Value`.
-// NOTE: This function was copied from the homonymous function in `bevy_remote::builtin_methods`.
-//       Remove once https://github.com/bevyengine/bevy/pull/22005 is merged and released.
-fn parse<T: for<'de> Deserialize<'de>>(value: Value) -> Result<T, BrpError> {
-    serde_json::from_value(value).map_err(|err| BrpError {
-        code: bevy::remote::error_codes::INVALID_PARAMS,
-        message: err.to_string(),
-        data: None,
-    })
-}
-
-/// A helper function used to parse a `serde_json::Value` wrapped in an `Option`.
-// NOTE: This function was copied from the homonymous function in `bevy_remote::builtin_methods`.
-//       Remove once https://github.com/bevyengine/bevy/pull/22005 is merged and released.
-fn parse_some<T: for<'de> Deserialize<'de>>(value: Option<Value>) -> Result<T, BrpError> {
-    match value {
-        Some(value) => parse(value),
-        None => Err(BrpError {
-            code: bevy::remote::error_codes::INVALID_PARAMS,
-            message: String::from("Params not provided"),
-            data: None,
-        }),
-    }
 }
 
 /// Returns a [`ComponentMetadataMap`] entry

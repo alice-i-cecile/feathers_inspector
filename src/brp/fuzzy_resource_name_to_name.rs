@@ -1,7 +1,7 @@
 //! Handles a `world.fuzzy_resource_name_to_name` request coming from a client.
 use bevy::{
     prelude::*,
-    remote::{BrpError, BrpResult},
+    remote::{BrpError, BrpResult, builtin_methods::parse_some},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -31,7 +31,7 @@ pub fn process_remote_request(In(params): In<Option<Value>>, world: &World) -> B
     let Params {
         fuzzy_name,
         metadata_map,
-    } = super::parse_some(params)?;
+    } = parse_some(params)?;
     match fuzzy_resource_name_to_id(world, &fuzzy_name) {
         Some(component_id) => {
             let metadata_map = metadata_map.unwrap_or(ComponentMetadataMap::generate(world));

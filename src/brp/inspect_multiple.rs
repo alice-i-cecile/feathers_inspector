@@ -1,7 +1,7 @@
 //! Handles a `world.inspect_multiple` request coming from a client.
 use bevy::{
     prelude::*,
-    remote::{BrpError, BrpResult},
+    remote::{BrpError, BrpResult, builtin_methods::parse_some},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -35,7 +35,7 @@ pub fn process_remote_request(In(params): In<Option<Value>>, world: &World) -> B
         entities,
         settings,
         mut metadata_map,
-    } = super::parse_some(params)?;
+    } = parse_some(params)?;
     let inspection = world.inspect_multiple(entities, settings, &mut metadata_map);
     serde_json::to_value(inspection).map_err(BrpError::internal)
 }
