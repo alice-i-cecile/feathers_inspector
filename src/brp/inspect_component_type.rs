@@ -1,7 +1,7 @@
 //! Handles a `world.inspect_component_type` request coming from a client.
 use bevy::{
     prelude::*,
-    remote::{BrpError, BrpResult},
+    remote::{BrpError, BrpResult, builtin_methods::parse_some},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -32,7 +32,7 @@ pub fn process_remote_request(In(params): In<Option<Value>>, world: &World) -> B
     let Params {
         component_type,
         metadata_map,
-    } = super::parse_some(params)?;
+    } = parse_some(params)?;
     let metadata_map = metadata_map.unwrap_or(ComponentMetadataMap::generate(world));
     let Some((component_id, _)) = super::component_type_to_metadata(&component_type, &metadata_map)
     else {

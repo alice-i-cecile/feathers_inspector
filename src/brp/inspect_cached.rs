@@ -1,7 +1,7 @@
 //! Handles a `world.inspect_cached` request coming from a client.
 use bevy::{
     prelude::*,
-    remote::{BrpError, BrpResult},
+    remote::{BrpError, BrpResult, builtin_methods::parse_some},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -35,7 +35,7 @@ pub fn process_remote_request(In(params): In<Option<Value>>, world: &World) -> B
         entity,
         settings,
         metadata_map,
-    } = super::parse_some(params)?;
+    } = parse_some(params)?;
     let entity_inspection = world.inspect_cached(entity, &settings, &metadata_map);
     match entity_inspection {
         Ok(entity_inspection) => {
