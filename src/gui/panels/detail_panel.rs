@@ -24,7 +24,7 @@ use crate::entity_name_resolution::EntityName;
 use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::gui::config::InspectorConfig;
 use crate::gui::semantic_names::SemanticFieldNames;
-use crate::gui::state::{DetailTab, InspectorCache, InspectorState};
+use crate::gui::state::{DetailTab, InspectableObject, InspectorCache, InspectorState};
 use crate::gui::widgets::{DragValue, DragValueDragState, FieldPath, FieldPathSegment};
 use crate::reflection_tools::get_reflected_component_ref;
 
@@ -66,7 +66,7 @@ fn on_hierarchy_node_click(
     nodes: Query<&HierarchyNode>,
 ) {
     if let Ok(node) = nodes.get(activate.entity) {
-        state.selected_object = Some(node.0);
+        state.selected_object = Some(InspectableObject::Entity(node.0));
     }
 }
 
@@ -76,13 +76,13 @@ fn on_hierarchy_node_click(
 pub fn sync_detail_panel(world: &mut World) {
     // Extract state info first and check for changes
     let state = world.resource::<InspectorState>();
-    let selected_entity = state.selected_object;
+    let selected_object = state.selected_object;
     let active_tab = state.active_detail_tab;
-    let previous_selection = state.previous_selection;
-    let previous_tab = state.previous_tab;
+    let previous_selection = state.previous_selected_object;
+    let previous_tab = state.previous_detail_tab;
 
     // Skip if nothing has changed
-    let selection_changed = selected_entity != previous_selection;
+    let selection_changed = selected_object != previous_selection;
     let tab_changed = active_tab != previous_tab;
     if !selection_changed && !tab_changed {
         return;
@@ -91,8 +91,8 @@ pub fn sync_detail_panel(world: &mut World) {
     // Update previous values for next frame comparison
     {
         let mut state = world.resource_mut::<InspectorState>();
-        state.previous_selection = selected_entity;
-        state.previous_tab = active_tab;
+        state.previous_selected_object = selected_object;
+        state.previous_detail_tab = active_tab;
     }
 
     // Find the detail content entity
@@ -119,26 +119,41 @@ pub fn sync_detail_panel(world: &mut World) {
     // Get config (clone values we need)
     let config = world.resource::<InspectorConfig>().clone();
 
-    // Show empty state if no entity selected
-    let Some(entity) = selected_entity else {
+    // Show empty state if no object selected
+    let Some(selected_object) = selected_object else {
         spawn_empty_state_exclusive(
             world,
             content_entity,
             &config,
-            "Select an entity to view details",
+            "Select an object to view details",
         );
         return;
     };
 
     // Check if entity still exists
-    if !world.entities().contains(entity) {
-        spawn_error_state_exclusive(
-            world,
-            content_entity,
-            &config,
-            "Selected entity no longer exists",
-        );
-        return;
+    match selected_object {
+        InspectableObject::Entity(entity) => {
+            if !world.entities().contains(entity) {
+                spawn_error_message(
+                    world,
+                    content_entity,
+                    &config,
+                    "Selected entity no longer exists",
+                );
+                return;
+            }
+        }
+        InspectableObject::Resource(id) => {
+            if !world.contains_resource_by_id(id) {
+                spawn_error_message(
+                    world,
+                    content_entity,
+                    &config,
+                    "Selected resource no longer exists",
+                );
+                return;
+            }
+        }
     }
 
     // Ensure we have a metadata map - take it out to avoid borrow conflicts
@@ -156,13 +171,35 @@ pub fn sync_detail_panel(world: &mut World) {
     // Render based on active tab
     match active_tab {
         DetailTab::Components => {
+            let InspectableObject::Entity(selected_entity) = selected_object else {
+                warn_once!(
+                    "Components tab selected for non-entity object: {:?}",
+                    selected_object
+                );
+                return;
+            };
+
             if let Some(ref mut mm) = metadata_map {
-                spawn_components_tab_exclusive(world, content_entity, entity, mm, &config);
+                spawn_components_tab_exclusive(world, content_entity, selected_entity, mm, &config);
             }
         }
         DetailTab::Relationships => {
+            let InspectableObject::Entity(selected_entity) = selected_object else {
+                warn_once!(
+                    "Relationships tab selected for non-entity object: {:?}",
+                    selected_object
+                );
+                return;
+            };
+
             if let Some(ref mm) = metadata_map {
-                spawn_relationships_tab_exclusive(world, content_entity, entity, mm, &config);
+                spawn_relationships_tab_exclusive(
+                    world,
+                    content_entity,
+                    selected_entity,
+                    mm,
+                    &config,
+                );
             }
         }
     }
@@ -201,12 +238,8 @@ fn spawn_empty_state_exclusive(
     });
 }
 
-fn spawn_error_state_exclusive(
-    world: &mut World,
-    parent: Entity,
-    config: &InspectorConfig,
-    message: &str,
-) {
+/// Spawns an error message with the text `message` in the detail panel.
+fn spawn_error_message(world: &mut World, parent: Entity, config: &InspectorConfig, message: &str) {
     let body_font_size = config.body_font_size;
     let error_text_color = config.error_text_color;
     let message = message.to_string();
@@ -708,7 +741,7 @@ fn spawn_components_tab_exclusive(
             });
         }
         Err(e) => {
-            spawn_error_state_exclusive(world, parent, config, &format!("Error: {:?}", e));
+            spawn_error_message(world, parent, config, &format!("Error: {:?}", e));
         }
     }
 }

@@ -21,19 +21,19 @@ pub struct InspectorInternal;
 #[derive(Resource, Default)]
 pub struct InspectorState {
     /// Currently selected object for detail view.
-    pub selected_object: Option<Entity>,
+    pub selected_object: Option<InspectableObject>,
+    /// Previously selected object (for change detection).
+    pub previous_selected_object: Option<InspectableObject>,
     /// Active tab in the object list panel.
-    pub active_list_tab: ObjectListTab,
+    pub active_objects_tab: ObjectListTab,
     /// Active tab in the detail panel.
     pub active_detail_tab: DetailTab,
+    /// Previous active tab (for change detection).
+    pub previous_detail_tab: DetailTab,
     /// Current search/filter text for entity list.
     pub filter_text: String,
     /// Component filter: only show entities with these components.
     pub mandatory_components: Vec<ComponentId>,
-    /// Previously selected entity (for change detection).
-    pub previous_selection: Option<Entity>,
-    /// Previous active tab (for change detection).
-    pub previous_tab: DetailTab,
 }
 
 /// Active tab in the object list panel.
@@ -61,6 +61,15 @@ pub struct InspectorCache {
     pub filtered_entities: Vec<ObjectListEntry>,
     /// Cached metadata map (reused across inspections).
     pub metadata_map: Option<ComponentMetadataMap>,
+}
+
+/// An object that can be selected and displayed in the object list.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum InspectableObject {
+    /// An entity.
+    Entity(Entity),
+    /// A resource.
+    Resource(ComponentId),
 }
 
 /// Data for a single object in the object list.

@@ -17,7 +17,9 @@ use crate::entity_inspection::{MultipleEntityInspectionSettings, NameFilter};
 use crate::entity_name_resolution::EntityName;
 use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::gui::config::InspectorConfig;
-use crate::gui::state::{InspectorCache, InspectorInternal, InspectorState, ObjectListEntry};
+use crate::gui::state::{
+    InspectableObject, InspectorCache, InspectorInternal, InspectorState, ObjectListEntry,
+};
 use crate::memory_size::MemorySize;
 
 /// Marker component for the object list panel container.
@@ -149,7 +151,8 @@ pub fn sync_object_list(
     // Spawn new rows
     commands.entity(content_entity).with_children(|list| {
         for entry in &cache.filtered_entities {
-            let is_selected = state.selected_object == Some(entry.entity);
+            let is_selected =
+                state.selected_object == Some(InspectableObject::Entity(entry.entity));
             spawn_object_row(list, entry, is_selected, &config);
         }
     });
@@ -213,7 +216,7 @@ pub fn on_object_row_click(
 
     loop {
         if let Ok(row) = rows.get(current) {
-            state.selected_object = Some(row.selected_object);
+            state.selected_object = Some(InspectableObject::Entity(row.selected_object));
             return;
         }
         if let Ok(child_of) = parents.get(current) {
