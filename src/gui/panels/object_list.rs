@@ -33,7 +33,7 @@ pub struct ObjectListContent;
 /// Marker for object rows. Stores the object this row represents.
 #[derive(Component)]
 pub struct ObjectRow {
-    pub selected_object: Entity,
+    pub selected_object: InspectableObject,
 }
 
 /// Marker for the search input.
@@ -110,7 +110,7 @@ pub fn refresh_object_cache(world: &mut World) {
                 return None;
             }
 
-            Some(ObjectListEntry {
+            Some(ObjectListEntry::Entity {
                 entity,
                 display_name: name.to_string(),
                 component_count: inspection.components.as_ref().map(|c| c.len()).unwrap_or(0),
@@ -123,10 +123,6 @@ pub fn refresh_object_cache(world: &mut World) {
     let mut cache = world.resource_mut::<InspectorCache>();
     cache.metadata_map = Some(metadata_map);
     cache.filtered_entities = filtered_entities;
-
-    // Sort by entity for consistent display
-    // TODO: this should use the ordering returned by inspect_multiple
-    cache.filtered_entities.sort_by_key(|e| e.entity.index());
 }
 
 /// System that syncs the object list display with the cache.
@@ -151,8 +147,7 @@ pub fn sync_object_list(
     // Spawn new rows
     commands.entity(content_entity).with_children(|list| {
         for entry in &cache.filtered_entities {
-            let is_selected =
-                state.selected_object == Some(InspectableObject::Entity(entry.entity));
+            let is_selected = state.selected_object == Some(entry.selected_object());
             spawn_object_row(list, entry, is_selected, &config);
         }
     });
@@ -166,21 +161,32 @@ fn spawn_object_row(
     config: &InspectorConfig,
 ) {
     // Truncate long names
-    let display_name = if entry.display_name.len() > 20 {
-        format!("{}...", &entry.display_name[..17])
+    let display_name = entry.display_name();
+
+    let display_name = if display_name.len() > 20 {
+        format!("{}...", &display_name[..17])
     } else {
-        entry.display_name.clone()
+        display_name.to_string()
     };
 
-    let label = format!(
-        "{:20} {} comp | {}",
-        display_name, entry.component_count, entry.memory_size
-    );
+    let label = match entry {
+        ObjectListEntry::Entity {
+            component_count,
+            memory_size,
+            ..
+        } => format!(
+            "{:20} {} comp | {}",
+            display_name, component_count, memory_size
+        ),
+        ObjectListEntry::Resource { memory_size, .. } => {
+            format!("{:20}     -   | {}", display_name, memory_size)
+        }
+    };
 
     parent.spawn((button(
         ButtonProps::default(),
         ObjectRow {
-            selected_object: entry.entity,
+            selected_object: entry.selected_object(),
         },
         bevy::prelude::Spawn((
             Text::new(label),
@@ -216,7 +222,7 @@ pub fn on_object_row_click(
 
     loop {
         if let Ok(row) = rows.get(current) {
-            state.selected_object = Some(InspectableObject::Entity(row.selected_object));
+            state.selected_object = Some(row.selected_object);
             return;
         }
         if let Ok(child_of) = parents.get(current) {

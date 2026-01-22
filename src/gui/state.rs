@@ -73,16 +73,45 @@ pub enum InspectableObject {
 }
 
 /// Data for a single object in the object list.
-#[derive(Clone, Debug)]
-pub struct ObjectListEntry {
-    /// The entity.
-    pub entity: Entity,
-    /// Display name for the entity.
-    pub display_name: String,
-    /// Number of components on this entity.
-    pub component_count: usize,
-    /// Total memory size of all components.
-    pub memory_size: MemorySize,
+pub enum ObjectListEntry {
+    /// An entity entry.
+    Entity {
+        /// The entity.
+        entity: Entity,
+        /// Display name for the entity.
+        display_name: String,
+        /// Number of components on this entity.
+        component_count: usize,
+        /// Total memory size of all components.
+        memory_size: MemorySize,
+    },
+    /// A resource entry.
+    Resource {
+        /// The component ID of the resource.
+        component_id: ComponentId,
+        /// Display name for the resource.
+        display_name: String,
+        /// Memory size of the resource.
+        memory_size: MemorySize,
+    },
+}
+
+impl ObjectListEntry {
+    pub fn display_name(&self) -> &str {
+        match self {
+            ObjectListEntry::Entity { display_name, .. } => display_name,
+            ObjectListEntry::Resource { display_name, .. } => display_name,
+        }
+    }
+
+    pub fn selected_object(&self) -> InspectableObject {
+        match self {
+            ObjectListEntry::Entity { entity, .. } => InspectableObject::Entity(*entity),
+            ObjectListEntry::Resource { component_id, .. } => {
+                InspectableObject::Resource(*component_id)
+            }
+        }
+    }
 }
 
 /// Tracks the state of the inspector window.
