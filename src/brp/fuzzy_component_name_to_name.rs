@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    fuzzy_name_mapping::fuzzy_component_name_to_id,
+    entity_name_resolution::fuzzy_name_mapping::fuzzy_component_name_to_id,
     inspection::component_inspection::ComponentMetadataMap,
 };
 

@@ -14,6 +14,8 @@ use core::any::TypeId;
 
 use crate::inspection::component_inspection::{ComponentInspection, ComponentTypeMetadata};
 
+pub mod fuzzy_name_mapping;
+
 /// The name of an inspected entity.
 ///
 /// This data is produced by [`resolve_name`].

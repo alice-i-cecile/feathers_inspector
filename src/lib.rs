@@ -15,7 +15,6 @@ pub mod brp;
 pub mod entity_grouping;
 pub mod entity_name_resolution;
 pub mod extension_methods;
-pub mod fuzzy_name_mapping;
 pub mod gui;
 pub mod inspection;
 pub mod memory_size;
