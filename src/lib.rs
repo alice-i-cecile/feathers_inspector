@@ -25,7 +25,6 @@ pub mod reflection_tools;
 pub mod resource_inspection;
 
 // Re-export the main plugin for convenience
-pub use gui::{InspectorConfig, InspectorWindowPlugin};
 #[cfg(feature = "serde")]
 pub mod serde_conversions;
 pub mod summary;

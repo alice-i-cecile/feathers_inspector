@@ -5,8 +5,8 @@
 
 use bevy::prelude::*;
 use feathers_inspector::{
-    InspectorWindowPlugin,
     entity_name_resolution::{NameResolutionPlugin, NameResolutionRegistry},
+    gui::plugin::InspectorWindowPlugin,
 };
 
 fn main() {
