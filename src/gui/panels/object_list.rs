@@ -250,6 +250,40 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
             ObjectListPanel,
         ))
         .with_children(|panel| {
+            // Tabs placeholder
+            panel
+                .spawn((
+                    Node {
+                        width: Percent(100.0),
+                        height: config.tab_bar_height,
+                        border: UiRect::bottom(Px(1.0)),
+                        // Space out tab items
+                        justify_content: JustifyContent::SpaceEvenly,
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                    BorderColor::all(config.border_color),
+                ))
+                .with_children(|tabs| {
+                    tabs.spawn((
+                        Text::new("Entities"),
+                        TextFont {
+                            font_size: config.body_font_size,
+                            ..default()
+                        },
+                        TextColor(config.muted_text_color),
+                    ));
+
+                    tabs.spawn((
+                        Text::new("Resources"),
+                        TextFont {
+                            font_size: config.body_font_size,
+                            ..default()
+                        },
+                        TextColor(config.muted_text_color),
+                    ));
+                });
+
             // Search bar placeholder
             panel
                 .spawn((
@@ -264,7 +298,7 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                 ))
                 .with_children(|search| {
                     search.spawn((
-                        Text::new("Search entities..."),
+                        Text::new("Search..."),
                         TextFont {
                             font_size: config.body_font_size,
                             ..default()
