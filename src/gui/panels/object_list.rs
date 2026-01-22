@@ -136,11 +136,6 @@ pub fn sync_object_list(
     list_content: Query<Entity, With<ObjectListContent>>,
     existing_rows: Query<Entity, With<ObjectRow>>,
 ) {
-    // Only update when selection or other state changes
-    if !state.is_changed() {
-        return;
-    }
-
     let Ok(content_entity) = list_content.iter().next().ok_or(()) else {
         return;
     };
