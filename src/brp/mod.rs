@@ -29,7 +29,7 @@ pub mod inspect_component;
 pub mod inspect_component_type;
 pub mod inspect_multiple;
 pub mod inspect_resource;
-pub mod summarize;
+pub mod summarize_world;
 
 /// Provides BRP verbs for calling functions and methods defined in this crate.
 ///
@@ -54,7 +54,7 @@ impl Plugin for InspectorBrpPlugin {
             inspect_component_type::VerbPlugin,
             inspect_multiple::VerbPlugin,
             inspect_resource::VerbPlugin,
-            summarize::VerbPlugin,
+            summarize_world::VerbPlugin,
         ));
     }
 }

@@ -24,4 +24,3 @@ pub mod reflection_tools;
 // Re-export the main plugin for convenience
 #[cfg(feature = "serde")]
 pub mod serde_conversions;
-pub mod summary;

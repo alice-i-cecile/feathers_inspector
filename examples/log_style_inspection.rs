@@ -13,7 +13,7 @@ use feathers_inspector::{
     inspection::component_inspection::{ComponentInspectionSettings, ComponentMetadataMap},
     inspection::entity_inspection::{EntityInspectionSettings, MultipleEntityInspectionSettings},
     inspection::resource_inspection::ResourceInspectionSettings,
-    summary::{CommandsSummaryExt, SummarySettings},
+    inspection::world_summary::{CommandsSummaryExt, SummarySettings},
 };
 
 fn main() {

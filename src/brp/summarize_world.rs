@@ -6,7 +6,7 @@ use bevy::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::summary::{SummarySettings, WorldSummaryExt};
+use crate::inspection::world_summary::{SummarySettings, WorldSummaryExt};
 
 pub const METHOD: &str = "world.summarize";
 

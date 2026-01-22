@@ -22,7 +22,7 @@ use feathers_inspector::inspection::entity_inspection::{
 use feathers_inspector::inspection::resource_inspection::{
     ResourceInspection, ResourceInspectionSettings,
 };
-use feathers_inspector::summary::{SummarySettings, WorldSummary};
+use feathers_inspector::inspection::world_summary::{SummarySettings, WorldSummary};
 
 use crate::helper::{construct_request, post_request, query};
 
@@ -216,8 +216,8 @@ fn inspect_sprite_component_type_when_m_pressed(
 fn summarize_when_s_pressed(keyboard_input: Res<ButtonInput<KeyCode>>, brp_url: Res<BrpUrl>) {
     if keyboard_input.just_pressed(KeyCode::KeyS) {
         let settings = SummarySettings::default();
-        let params = brp::summarize::Params { settings };
-        let request = construct_request(brp::summarize::METHOD, params);
+        let params = brp::summarize_world::Params { settings };
+        let request = construct_request(brp::summarize_world::METHOD, params);
         let summary = post_request::<WorldSummary>(request, &brp_url.0);
         info!("{summary}");
     }
