@@ -175,7 +175,7 @@ pub mod storage_type {
 /// Add `#[serde(with = "crate::serde_conversions::hash_map_component_id_component_type_metadata")]`
 /// to the struct's `HashMap<ComponentId, ComponentTypeMetadata>` field.
 pub mod hash_map_component_id_component_type_metadata {
-    use crate::component_inspection::ComponentTypeMetadata;
+    use crate::inspection::component_inspection::ComponentTypeMetadata;
     use bevy::ecs::component::ComponentId;
     use bevy::platform::collections::HashMap;
     use serde::ser::SerializeMap;

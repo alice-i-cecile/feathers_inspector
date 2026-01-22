@@ -8,7 +8,7 @@
 use bevy::ecs::component::ComponentId;
 use bevy::prelude::*;
 
-use crate::component_inspection::ComponentMetadataMap;
+use crate::inspection::component_inspection::ComponentMetadataMap;
 use crate::memory_size::MemorySize;
 
 /// Marker component for inspector-internal entities that should not appear in the entity list.

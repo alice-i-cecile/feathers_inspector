@@ -6,13 +6,13 @@
 
 use bevy::prelude::*;
 use feathers_inspector::{
-    component_inspection::{ComponentInspectionSettings, ComponentMetadataMap},
-    entity_inspection::{EntityInspectionSettings, MultipleEntityInspectionSettings},
     entity_name_resolution::NameResolutionPlugin,
     extension_methods::{
         CommandsExtensionTrait, EntityCommandsInspectionTrait, WorldInspectionExtensionTrait,
     },
-    resource_inspection::ResourceInspectionSettings,
+    inspection::component_inspection::{ComponentInspectionSettings, ComponentMetadataMap},
+    inspection::entity_inspection::{EntityInspectionSettings, MultipleEntityInspectionSettings},
+    inspection::resource_inspection::ResourceInspectionSettings,
     summary::{CommandsSummaryExt, SummarySettings},
 };
 

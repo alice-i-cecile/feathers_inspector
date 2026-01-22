@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    brp::inspect_cached::determine_error, entity_inspection::EntityInspectionSettings,
-    extension_methods::WorldInspectionExtensionTrait,
+    brp::inspect_cached::determine_error, extension_methods::WorldInspectionExtensionTrait,
+    inspection::entity_inspection::EntityInspectionSettings,
 };
 
 pub const METHOD: &str = "world.inspect";

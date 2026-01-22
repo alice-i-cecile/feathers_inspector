@@ -11,15 +11,17 @@ use bevy::remote::BrpRequest;
 use bevy::remote::builtin_methods::{BRP_QUERY_METHOD, BrpQuery, BrpQueryFilter, BrpQueryParams};
 use bevy::remote::http::{DEFAULT_ADDR, DEFAULT_PORT};
 use feathers_inspector::brp;
-use feathers_inspector::component_inspection::{
+use feathers_inspector::inspection::component_inspection::{
     ComponentDetailLevel, ComponentInspection, ComponentInspectionSettings, ComponentMetadataMap,
     ComponentTypeInspection,
 };
-use feathers_inspector::entity_inspection::{
+use feathers_inspector::inspection::entity_inspection::{
     EntityInspection, EntityInspectionError, EntityInspectionSettings,
     MultipleEntityInspectionSettings,
 };
-use feathers_inspector::resource_inspection::{ResourceInspection, ResourceInspectionSettings};
+use feathers_inspector::inspection::resource_inspection::{
+    ResourceInspection, ResourceInspectionSettings,
+};
 use feathers_inspector::summary::{SummarySettings, WorldSummary};
 
 use crate::helper::{construct_request, post_request, query};

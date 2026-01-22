@@ -17,7 +17,7 @@ use bevy::{
 };
 use serde_json::Value;
 
-use crate::component_inspection::{ComponentMetadataMap, ComponentTypeMetadata};
+use crate::inspection::component_inspection::{ComponentMetadataMap, ComponentTypeMetadata};
 
 pub mod component_metadata_map_generate;
 pub mod fuzzy_component_name_to_name;
@@ -97,7 +97,7 @@ pub mod error_codes {
     pub const NO_FUZZY_NAME_CANDIDATES: i16 = 1;
     /// The [`ComponentMetadataMap`] does not contain data about the given component.
     ///
-    /// [`ComponentMetadataMap`]: crate::component_inspection::ComponentMetadataMap
+    /// [`ComponentMetadataMap`]: crate::inspection::component_inspection::ComponentMetadataMap
     pub const COMPONENT_TYPE_NOT_IN_METADATA: i16 = 2;
 }
 

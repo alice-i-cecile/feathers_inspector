@@ -12,7 +12,7 @@ use bevy::prelude::*;
 use bevy::window::Monitor;
 use core::any::TypeId;
 
-use crate::component_inspection::{ComponentInspection, ComponentTypeMetadata};
+use crate::inspection::component_inspection::{ComponentInspection, ComponentTypeMetadata};
 
 /// The name of an inspected entity.
 ///

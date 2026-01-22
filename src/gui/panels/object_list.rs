@@ -12,14 +12,14 @@ use bevy::prelude::*;
 use bevy::ui::Val::*;
 use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar};
 
-use crate::component_inspection::ComponentMetadataMap;
-use crate::entity_inspection::{MultipleEntityInspectionSettings, NameFilter};
 use crate::entity_name_resolution::EntityName;
 use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::gui::config::InspectorConfig;
 use crate::gui::state::{
     InspectableObject, InspectorCache, InspectorInternal, InspectorState, ObjectListEntry,
 };
+use crate::inspection::component_inspection::ComponentMetadataMap;
+use crate::inspection::entity_inspection::{MultipleEntityInspectionSettings, NameFilter};
 use crate::memory_size::MemorySize;
 
 /// Marker component for the object list panel container.

@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    component_inspection::{ComponentInspectionError, ComponentMetadataMap},
     extension_methods::WorldInspectionExtensionTrait,
+    inspection::component_inspection::{ComponentInspectionError, ComponentMetadataMap},
 };
 
 pub const METHOD: &str = "world.inspect_component_type";

@@ -7,9 +7,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    component_inspection::ComponentMetadataMap,
     extension_methods::WorldInspectionExtensionTrait,
-    resource_inspection::{ResourceInspectionError, ResourceInspectionSettings},
+    inspection::component_inspection::ComponentMetadataMap,
+    inspection::resource_inspection::{ResourceInspectionError, ResourceInspectionSettings},
 };
 
 pub const METHOD: &str = "world.inspect_resource";

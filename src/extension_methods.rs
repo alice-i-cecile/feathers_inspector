@@ -7,23 +7,23 @@ use bevy::{
 use core::any::type_name;
 
 use crate::{
-    component_inspection::{
+    entity_grouping::EntityGrouping,
+    entity_name_resolution::resolve_name,
+    inspection::component_inspection::{
         ComponentDetailLevel, ComponentInspection, ComponentInspectionError,
         ComponentInspectionSettings, ComponentMetadataMap, ComponentTypeInspection,
         ComponentTypeMetadata,
     },
-    entity_grouping::EntityGrouping,
-    entity_inspection::{
+    inspection::entity_inspection::{
         EntityInspection, EntityInspectionError, EntityInspectionSettings,
         MultipleEntityInspectionSettings, filter_entity_list_for_inspection,
     },
-    entity_name_resolution::resolve_name,
+    inspection::resource_inspection::{
+        ResourceInspection, ResourceInspectionError, ResourceInspectionSettings,
+    },
     memory_size::MemorySize,
     reflection_tools::{
         get_reflected_component_ref, get_reflected_resource_ref, reflected_value_to_string,
-    },
-    resource_inspection::{
-        ResourceInspection, ResourceInspectionError, ResourceInspectionSettings,
     },
 };
 

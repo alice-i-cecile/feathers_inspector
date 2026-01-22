@@ -8,7 +8,7 @@ use serde_json::Value;
 
 use crate::{
     extension_methods::WorldInspectionExtensionTrait,
-    resource_inspection::ResourceInspectionSettings,
+    inspection::resource_inspection::ResourceInspectionSettings,
 };
 
 pub const METHOD: &str = "world.inspect_all_resources";

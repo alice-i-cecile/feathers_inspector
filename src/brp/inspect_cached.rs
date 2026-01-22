@@ -6,10 +6,10 @@ use bevy::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{
+use crate::extension_methods::WorldInspectionExtensionTrait;
+use crate::inspection::{
     component_inspection::ComponentMetadataMap,
     entity_inspection::{EntityInspectionError, EntityInspectionSettings},
-    extension_methods::WorldInspectionExtensionTrait,
 };
 
 pub const METHOD: &str = "world.inspect_cached";

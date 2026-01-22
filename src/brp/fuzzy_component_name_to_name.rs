@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    component_inspection::ComponentMetadataMap, fuzzy_name_mapping::fuzzy_component_name_to_id,
+    fuzzy_name_mapping::fuzzy_component_name_to_id,
+    inspection::component_inspection::ComponentMetadataMap,
 };
 
 pub const METHOD: &str = "world.fuzzy_component_name_to_name";

@@ -16,16 +16,16 @@ use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollb
 
 use core::any::TypeId;
 
-use crate::component_inspection::{
-    ComponentDetailLevel, ComponentInspectionSettings, ComponentMetadataMap,
-};
-use crate::entity_inspection::EntityInspectionSettings;
 use crate::entity_name_resolution::EntityName;
 use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::gui::config::InspectorConfig;
 use crate::gui::semantic_names::SemanticFieldNames;
 use crate::gui::state::{DetailTab, InspectableObject, InspectorCache, InspectorState};
 use crate::gui::widgets::{DragValue, DragValueDragState, FieldPath, FieldPathSegment};
+use crate::inspection::component_inspection::{
+    ComponentDetailLevel, ComponentInspectionSettings, ComponentMetadataMap,
+};
+use crate::inspection::entity_inspection::EntityInspectionSettings;
 use crate::reflection_tools::get_reflected_component_ref;
 
 /// Marker component for the detail panel container.

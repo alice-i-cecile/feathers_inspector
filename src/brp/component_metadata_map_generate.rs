@@ -5,7 +5,7 @@ use bevy::{
 };
 use serde_json::Value;
 
-use crate::component_inspection::ComponentMetadataMap;
+use crate::inspection::component_inspection::ComponentMetadataMap;
 
 pub const METHOD: &str = "component_metadata_map.generate";
 

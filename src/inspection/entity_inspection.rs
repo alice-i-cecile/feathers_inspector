@@ -3,7 +3,7 @@
 //! Entities are composed of components, but this module focuses on
 //! inspecting the entity as a whole.
 //!
-//! See the [`component_inspection`](crate::component_inspection) module
+//! See the [`component_inspection`](crate::inspection::component_inspection) module
 //! for information about inspecting and displaying components.
 
 use bevy::{
@@ -18,11 +18,11 @@ use core::fmt::Display;
 use thiserror::Error;
 
 use crate::{
-    component_inspection::{
-        ComponentDetailLevel, ComponentInspection, ComponentInspectionSettings,
-    },
     entity_grouping::GroupingStrategy,
     entity_name_resolution::EntityName,
+    inspection::component_inspection::{
+        ComponentDetailLevel, ComponentInspection, ComponentInspectionSettings,
+    },
     memory_size::MemorySize,
 };
 
@@ -316,7 +316,7 @@ fn does_entity_match_inspection_filter(
 
 #[cfg(test)]
 mod tests {
-    use crate::entity_inspection::NameFilter;
+    use crate::inspection::entity_inspection::NameFilter;
 
     #[test]
     fn case_insensitive() {
