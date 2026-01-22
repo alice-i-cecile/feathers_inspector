@@ -122,7 +122,7 @@ pub fn refresh_object_cache(world: &mut World) {
     // Put metadata_map back and update cache
     let mut cache = world.resource_mut::<InspectorCache>();
     cache.metadata_map = Some(metadata_map);
-    cache.filtered_entities = filtered_entities;
+    cache.filtered_objects = filtered_entities;
 }
 
 /// System that syncs the object list display with the cache.
@@ -146,8 +146,8 @@ pub fn sync_object_list(
 
     // Spawn new rows
     commands.entity(content_entity).with_children(|list| {
-        for entry in &cache.filtered_entities {
-            let is_selected = state.selected_object == Some(entry.selected_object());
+        for entry in &cache.filtered_objects {
+            let is_selected = state.selected_object == Some(entry.object());
             spawn_object_row(list, entry, is_selected, &config);
         }
     });
@@ -186,7 +186,7 @@ fn spawn_object_row(
     parent.spawn((button(
         ButtonProps::default(),
         ObjectRow {
-            selected_object: entry.selected_object(),
+            selected_object: entry.object(),
         },
         bevy::prelude::Spawn((
             Text::new(label),

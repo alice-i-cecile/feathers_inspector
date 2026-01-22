@@ -1,7 +1,7 @@
 //! Central UI state for the inspector.
 //!
 //! This state is the "model" for the inspector UI,
-//! tracking the currently selected entity, active tabs, filters, and cached data.
+//! tracking the currently selected object, active tabs, filters, and cached data.
 //!
 //! This information is then used to drive the UI rendering in the various panels.
 
@@ -30,7 +30,7 @@ pub struct InspectorState {
     pub active_detail_tab: DetailTab,
     /// Previous active tab (for change detection).
     pub previous_detail_tab: DetailTab,
-    /// Current search/filter text for entity list.
+    /// Current search/filter text for object list.
     pub filter_text: String,
     /// Component filter: only show entities with these components.
     pub mandatory_components: Vec<ComponentId>,
@@ -57,8 +57,8 @@ pub enum DetailTab {
 /// This is regularly invalidated, but this resource helps avoid repeated allocations.
 #[derive(Resource, Default)]
 pub struct InspectorCache {
-    /// Cached entity list after filtering.
-    pub filtered_entities: Vec<ObjectListEntry>,
+    /// Cached object list after filtering.
+    pub filtered_objects: Vec<ObjectListEntry>,
     /// Cached metadata map (reused across inspections).
     pub metadata_map: Option<ComponentMetadataMap>,
 }
@@ -104,7 +104,7 @@ impl ObjectListEntry {
         }
     }
 
-    pub fn selected_object(&self) -> InspectableObject {
+    pub fn object(&self) -> InspectableObject {
         match self {
             ObjectListEntry::Entity { entity, .. } => InspectableObject::Entity(*entity),
             ObjectListEntry::Resource { component_id, .. } => {
