@@ -107,8 +107,7 @@
 - [x] Display a list of entities
 - [x] List components under each entity
 - [x] Crudely display component values
-- [ ] Ensure that spawned and despawned entities / components are updated correctly
-  - [ ] Manual refresh button
+- [x] Ensure that spawned and despawned entities / components are updated correctly
   - [x] Timer-based update
 - [ ] Create a new window that inspects resources
 
@@ -142,8 +141,10 @@
 - [ ] Pin entities to the top of the list
 - [ ] Hide entities manually
 
-## Fancy GUI
+## GUI Refinement
 
+- [ ] Highlight selected entry in object list
+- [ ] Manual refresh button
 - [ ] Add pagination
 
 ## Summary statistics
