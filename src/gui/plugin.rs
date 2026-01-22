@@ -13,7 +13,9 @@ use bevy::prelude::*;
 use bevy::ui::Val::*;
 use bevy::window::{WindowRef, WindowResolution};
 
-use crate::gui::panels::{RefreshObjectList, on_object_row_click, periodic_object_list_refresh};
+use crate::gui::panels::{
+    RefreshObjectList, on_object_row_click, refresh_object_list_periodically,
+};
 
 use super::config::InspectorConfig;
 use super::panels::{
@@ -78,7 +80,7 @@ impl Plugin for InspectorWindowPlugin {
             // Startup
             .add_systems(Startup, setup_inspector_window)
             // PreUpdate systems
-            .add_systems(PreUpdate, periodic_object_list_refresh)
+            .add_systems(PreUpdate, refresh_object_list_periodically)
             // Update systems
             .add_systems(
                 Update,

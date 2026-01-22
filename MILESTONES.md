@@ -109,7 +109,7 @@
 - [x] Crudely display component values
 - [x] Ensure that spawned and despawned entities / components are updated correctly
   - [x] Timer-based update
-- [ ] Create a new window that inspects resources
+- [ ] Inspect resources
 
 ## Tabs
 

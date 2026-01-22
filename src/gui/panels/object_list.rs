@@ -375,7 +375,7 @@ pub struct RefreshObjectList;
 /// A system which periodically sends a [`RefreshObjectList`] message.
 ///
 /// The frequency is controlled by the `refresh_interval` field in [`InspectorConfig`].
-pub fn periodic_object_list_refresh(
+pub fn refresh_object_list_periodically(
     mut message_writer: MessageWriter<RefreshObjectList>,
     time: Res<Time>,
     mut timer: Local<Timer>,
