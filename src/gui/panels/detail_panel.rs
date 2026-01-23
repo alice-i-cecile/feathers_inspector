@@ -546,11 +546,10 @@ fn spawn_components_tab_exclusive(
                 format!("Entity {:?}", entity).as_str(),
             ));
 
-            let component_count = inspection.components.as_ref().map(|c| c.len()).unwrap_or(0);
+            let component_count = inspection.components.as_ref().map_or(0, |c| c.len());
             let memory_display = inspection
                 .total_memory_size
-                .map(|m| m.to_string())
-                .unwrap_or_else(|| "?".to_string());
+                .map_or_else(|| "?".to_string(), |m| m.to_string());
 
             // Collect component IDs for reflection access
             let component_ids: Vec<_> = inspection
@@ -575,12 +574,8 @@ fn spawn_components_tab_exclusive(
             for comp_id in &component_ids {
                 // Get metadata for this component
                 let meta = metadata_map.map.get(comp_id);
-                let name = meta
-                    .map(|m| m.name.shortname().to_string())
-                    .unwrap_or_else(|| "?".to_string());
-                let size = meta
-                    .map(|m| m.memory_size.to_string())
-                    .unwrap_or_else(|| "?".to_string());
+                let name = meta.map_or_else(|| "?".to_string(), |m| m.name.shortname().to_string());
+                let size = meta.map_or_else(|| "?".to_string(), |m| m.memory_size.to_string());
                 let component_type_id = meta.and_then(|m| m.type_id);
 
                 // Try to get reflected component data
@@ -766,8 +761,7 @@ fn spawn_relationships_tab_exclusive(
     let parent_node_data = parent_entity.map(|e| {
         let name = world
             .get::<Name>(e)
-            .map(|n| n.as_str().to_string())
-            .unwrap_or_else(|| format!("Entity {:?}", e));
+            .map_or_else(|| format!("Entity {:?}", e), |n| n.as_str().to_string());
         let component_count = world
             .inspect(e, EntityInspectionSettings::default())
             .ok()
@@ -781,8 +775,8 @@ fn spawn_relationships_tab_exclusive(
         .map(|&e| {
             let name = world
                 .get::<Name>(e)
-                .map(|n| n.as_str().to_string())
-                .unwrap_or_else(|| format!("Entity {:?}", e));
+                .map_or_else(|| format!("Entity {:?}", e), |n| n.as_str().to_string());
+
             let component_count = world
                 .inspect(e, EntityInspectionSettings::default())
                 .ok()

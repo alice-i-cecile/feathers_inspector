@@ -43,8 +43,7 @@ pub fn fuzzy_component_name_to_id(world: &World, fuzzy_name: &str) -> Option<Com
             return Some(id);
         }
         let similarity = normalized_levenshtein(&processed_fuzzy_name, &name);
-        if similarity >= THRESHOLD
-            && (best_match.is_none() || similarity > best_match.as_ref().unwrap().1)
+        if similarity >= THRESHOLD && best_match.is_none_or(|best_match| similarity > best_match.1)
         {
             best_match = Some((id, similarity));
         }
@@ -85,8 +84,7 @@ pub fn fuzzy_resource_name_to_id(world: &World, fuzzy_name: &str) -> Option<Comp
             return Some(id);
         }
         let similarity = normalized_levenshtein(&processed_fuzzy_name, &name);
-        if similarity >= THRESHOLD
-            && (best_match.is_none() || similarity > best_match.as_ref().unwrap().1)
+        if similarity >= THRESHOLD && best_match.is_none_or(|best_match| similarity > best_match.1)
         {
             best_match = Some((id, similarity));
         }

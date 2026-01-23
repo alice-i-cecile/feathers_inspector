@@ -147,10 +147,9 @@ fn drag_value_on_click(
         let now = Instant::now();
 
         // Check for double-click
-        let is_double_click = drag_state
-            .last_click_time
-            .map(|last| now.duration_since(last) < Duration::from_millis(DOUBLE_CLICK_THRESHOLD_MS))
-            .unwrap_or(false);
+        let is_double_click = drag_state.last_click_time.is_some_and(|last| {
+            now.duration_since(last) < Duration::from_millis(DOUBLE_CLICK_THRESHOLD_MS)
+        });
 
         if is_double_click && !drag_state.editing {
             // Enter edit mode
