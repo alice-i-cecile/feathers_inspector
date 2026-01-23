@@ -19,7 +19,7 @@ use crate::gui::panels::{
 
 use super::config::InspectorConfig;
 use super::panels::{
-    refresh_object_cache, spawn_detail_panel, spawn_object_list_panel, sync_detail_panel,
+    generate_object_list, spawn_detail_panel, spawn_object_list_panel, sync_detail_panel,
     sync_object_list,
 };
 use super::semantic_names::SemanticFieldNames;
@@ -88,7 +88,7 @@ impl Plugin for InspectorWindowPlugin {
                     // Input handling
                     handle_mouse_wheel_scroll.in_set(InspectorSet::Input),
                     // Cache refresh
-                    refresh_object_cache.in_set(InspectorSet::RefreshCache),
+                    generate_object_list.in_set(InspectorSet::RefreshCache),
                     // UI sync - chain these to avoid resource conflicts
                     (setup_inspector_ui, sync_object_list, sync_detail_panel)
                         .chain()

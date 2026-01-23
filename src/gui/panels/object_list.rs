@@ -17,6 +17,7 @@ use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::gui::config::InspectorConfig;
 use crate::gui::state::{
     InspectableObject, InspectorCache, InspectorInternal, InspectorState, ObjectListEntry,
+    ObjectListTab,
 };
 use crate::inspection::component_inspection::ComponentMetadataMap;
 use crate::inspection::entity_inspection::{MultipleEntityInspectionSettings, NameFilter};
@@ -45,24 +46,47 @@ pub struct SearchInput;
 /// as the world may have changed substantially in between.
 ///
 /// Uses exclusive world access to avoid resource conflicts.
-pub fn refresh_object_cache(world: &mut World) {
-    // Check if we need to refresh - extract state info first
-    // TODO: we don't seem to actually check if the state changed?
-    let state = world.resource::<InspectorState>();
-
+pub fn generate_object_list(world: &mut World) {
     // Extract data we need now to avoid borrow check problems
+    let state = world.resource::<InspectorState>();
+    let active_objects_tab = state.active_objects_tab;
+
+    // Generate / update metadata map
+    world.resource_scope(|world, mut inspector_cache: Mut<InspectorCache>| {
+        let metadata_map = match inspector_cache.metadata_map.take() {
+            Some(mut mm) => {
+                mm.update(world);
+                mm
+            }
+            None => ComponentMetadataMap::generate(world),
+        };
+        inspector_cache.metadata_map = Some(metadata_map);
+    });
+
+    // Generate the object list based on the active tab
+    let object_list = match active_objects_tab {
+        ObjectListTab::Entities => generate_entity_list(world),
+        ObjectListTab::Resources => generate_resource_list(world),
+    };
+
+    let mut cache = world.resource_mut::<InspectorCache>();
+    cache.filtered_objects = object_list;
+}
+
+/// Generates the list of entities to display in the object list,
+/// applying any filters from the [`InspectorState`].
+///
+/// Part of the [`generate_object_list`] system.
+fn generate_entity_list(world: &mut World) -> Vec<ObjectListEntry> {
+    let state = world.resource::<InspectorState>();
     let filter_text = state.filter_text.clone();
     let mandatory_components = state.mandatory_components.clone();
-    let metadata_map = world.resource_mut::<InspectorCache>().metadata_map.take();
 
-    // Generate if needed, otherwise reuse and update
-    let mut metadata_map = match metadata_map {
-        Some(mut mm) => {
-            mm.update(world);
-            mm
-        }
-        None => ComponentMetadataMap::generate(world),
-    };
+    let mut metadata_map = world
+        .resource_mut::<InspectorCache>()
+        .metadata_map
+        .take()
+        .unwrap();
 
     // Query all entities (excluding UI nodes, windows, and inspector-internal entities)
     // TODO: This should include UI nodes and windows, as long as they're not spawned by the inspector
@@ -82,20 +106,28 @@ pub fn refresh_object_cache(world: &mut World) {
         .collect();
 
     // Build inspection settings with filter
-    let mut settings = MultipleEntityInspectionSettings::default();
-    if !filter_text.is_empty() {
-        settings.name_filter = Some(NameFilter::from(&filter_text));
-    }
-    if !mandatory_components.is_empty() {
-        settings.with_component_filter = mandatory_components;
-    }
+    let inspection_settings = MultipleEntityInspectionSettings {
+        name_filter: if filter_text.is_empty() {
+            None
+        } else {
+            Some(NameFilter::from(filter_text.clone()))
+        },
+        with_component_filter: mandatory_components.clone(),
+        ..Default::default()
+    };
 
     // Inspect entities
-    let inspections = world.inspect_multiple(entities.iter().copied(), settings, &mut metadata_map);
+    let inspections = world.inspect_multiple(
+        entities.iter().copied(),
+        inspection_settings,
+        &mut metadata_map,
+    );
+    // Reinsert the updated metadata map
+    world.resource_mut::<InspectorCache>().metadata_map = Some(metadata_map);
 
     // Build filtered list - use object from each inspection since inspect_multiple reorders
     // TODO: inspect_multiple's ordering should be stable and sufficient for this purpose
-    let filtered_entities: Vec<ObjectListEntry> = inspections
+    inspections
         .into_iter()
         .filter_map(|result| {
             let inspection = result.ok()?;
@@ -117,12 +149,16 @@ pub fn refresh_object_cache(world: &mut World) {
                 memory_size: inspection.total_memory_size.unwrap_or(MemorySize::new(0)),
             })
         })
-        .collect();
+        .collect()
+}
 
-    // Put metadata_map back and update cache
-    let mut cache = world.resource_mut::<InspectorCache>();
-    cache.metadata_map = Some(metadata_map);
-    cache.filtered_objects = filtered_entities;
+/// Generates the list of resources to display in the object list,
+/// applying any filters from the [`InspectorState`].
+///
+/// Part of the [`generate_object_list`] system.
+fn generate_resource_list(_world: &mut World) -> Vec<ObjectListEntry> {
+    // Placeholder implementation
+    vec![]
 }
 
 /// System that syncs the object list display with the cache.
