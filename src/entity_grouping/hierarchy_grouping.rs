@@ -52,8 +52,7 @@ fn collect_root_entities(world: &World, entities: &HashSet<Entity>) -> Vec<Entit
         .filter(|&entity| {
             let has_parent_in_set = world
                 .get::<ChildOf>(entity)
-                .map(|child_of| entities.contains(&child_of.parent()))
-                .unwrap_or(false);
+                .is_some_and(|child_of| entities.contains(&child_of.parent()));
             !has_parent_in_set
         })
         .collect()

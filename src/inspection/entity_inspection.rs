@@ -292,8 +292,7 @@ fn does_entity_match_inspection_filter(
     if let Some(name_filter) = &settings.name_filter {
         let name_matches = world
             .get::<Name>(entity)
-            .map(|name| name_filter.matches(name.as_str()))
-            .unwrap_or(false);
+            .is_some_and(|name| name_filter.matches(name.as_str()));
         if !name_matches {
             return false;
         }
