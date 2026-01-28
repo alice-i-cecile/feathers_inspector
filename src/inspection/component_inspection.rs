@@ -359,7 +359,7 @@ pub struct ComponentInspectionSettings {
 
 /// The amount of component information to include when inspecting an entity.
 ///
-/// This impacts the values held in the `components` field of [`EntityInspection`](crate::entity_inspection::EntityInspection),
+/// This impacts the values held in the `components` field of [`EntityInspection`](crate::inspection::entity_inspection::EntityInspection),
 /// or inside of [`ComponentInspection`] if inspecting a single component.
 ///
 /// Gathering full component values can be expensive,
