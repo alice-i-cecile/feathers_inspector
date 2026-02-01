@@ -1,7 +1,7 @@
 //! A panel that lists the objects that can be inspected in the current view,
 //! typically shown on the left side of the inspector.
 //!
-//! See [`ObjectListTab`](crate::gui::state::ObjectListTab) for the different tabs available in this panel,
+//! See [`ObjectListTab`] for the different tabs available in this panel,
 //! which is used to switch between different object types (e.g., entities, resources).
 
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
@@ -240,7 +240,7 @@ fn spawn_object_row(
 }
 
 /// Global observer for object row clicks.
-/// Added in [`InspectorWindowPlugin`](crate::gui::InspectorWindowPlugin).
+/// Added in [`InspectorWindowPlugin`](crate::gui::plugin::InspectorWindowPlugin).
 ///
 /// Traverses up the parent hierarchy to find the [`ObjectRow`] component.
 pub fn on_object_row_click(
@@ -401,10 +401,13 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
 
 /// A message that drives a refresh of the object list panel.
 ///
-/// This will cause [`refresh_object_cache`] and [`sync_object_list`] to run when seen,
+/// This will cause the system sets [`RefreshCache`] and [`SyncUI`] to run when seen,
 /// via the use of run conditions added as part of [`InspectorWindowPlugin`](crate::gui::plugin::InspectorWindowPlugin).
 ///
 /// This is a public message to allow users to trigger (or cancel!) refreshes manually if desired.
+///
+/// [`RefreshCache`]: crate::gui::plugin::InspectorSet::RefreshCache
+/// [`SyncUI`]: crate::gui::plugin::InspectorSet::SyncUI
 #[derive(Message)]
 pub struct RefreshObjectList;
 
