@@ -6,6 +6,7 @@
 //!   - Double-click to enter text input mode
 
 pub mod drag_value;
+pub mod tabs;
 
 pub use drag_value::{
     DragValue, DragValueChanged, DragValueDragState, DragValueEditModeChanged, DragValuePlugin,
