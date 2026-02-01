@@ -21,7 +21,7 @@ use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::gui::config::InspectorConfig;
 use crate::gui::semantic_names::SemanticFieldNames;
 use crate::gui::state::{DetailTab, InspectableObject, InspectorCache, InspectorState};
-use crate::gui::widgets::{DragValue, DragValueDragState, FieldPath, FieldPathSegment};
+use crate::gui::widgets::drag_value::{DragValue, DragValueDragState, FieldPath, FieldPathSegment};
 use crate::inspection::component_inspection::{
     ComponentDetailLevel, ComponentInspectionSettings, ComponentMetadataMap,
 };

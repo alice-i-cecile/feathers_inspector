@@ -24,7 +24,7 @@ use super::panels::{
 };
 use super::semantic_names::SemanticFieldNames;
 use super::state::{InspectorCache, InspectorInternal, InspectorState, InspectorWindowState};
-use super::widgets::DragValuePlugin;
+use super::widgets::drag_value::DragValuePlugin;
 
 /// Marker component for the inspector window.
 #[derive(Component)]
