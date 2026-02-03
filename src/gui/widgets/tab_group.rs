@@ -1,8 +1,6 @@
 //! Organizes [`Node`]s into separate views, where only one is visible at a time.
 // TODO: Write usage example (after integrating into `object_list.rs`).
 
-// TODO: Create a `TabGroupPlugin`, with observers.
-
 // TODO: Reorganize relationships.
 
 use bevy::prelude::*;
@@ -102,4 +100,14 @@ fn switch_active_content_on_switch_tab(
     commands
         .entity(tab_group)
         .insert(ActiveTab(content_to_activate));
+}
+
+/// Plugin that adds the [`TabGroup`] widget observers.
+pub struct TabGroupPlugin;
+
+impl Plugin for TabGroupPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_observer(trigger_switch_tab_on_click)
+            .add_observer(switch_active_content_on_switch_tab);
+    }
 }
