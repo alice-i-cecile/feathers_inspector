@@ -11,41 +11,35 @@ use bevy::prelude::*;
 #[derive(Component)]
 pub struct TabGroup;
 
-/// Points to the [`TabPanel`] associated with a button.
+/// Content entity associated to a tab, made visible when the tab is activated.
 #[derive(Component)]
-#[relationship(relationship_target = TabTriggerTarget)]
-pub struct TabTrigger {
-    /// The [`TabPanel`] associated to this button.
-    #[relationship]
-    pub target: Entity,
-}
+#[relationship(relationship_target = AssociatedToTab)]
+pub struct TabContent(pub Entity);
 
-/// Target component for [`TabTrigger`] relationship.
+/// The tab entity that is associated to the content.
 #[derive(Component, Default)]
-#[relationship_target(relationship = TabTrigger)]
-pub struct TabTriggerTarget(Vec<Entity>);
+#[relationship_target(relationship = TabContent)]
+pub struct AssociatedToTab(Vec<Entity>);
 
-/// Points to the root [`TabGroup`] entity.
-///
-/// This is used to easily find the root [`TabGroup`] entity
-/// from a [`TabTrigger`] without having to traverse the hierarchy.
+/// The [`TabGroup`] entity that owns the tab.
 #[derive(Component)]
-#[relationship(relationship_target = TabGroupRootTarget)]
-pub struct TabTriggerRoot(pub Entity);
+#[relationship(relationship_target = HasTabs)]
+pub struct BelongsToTabGroup(pub Entity);
 
-/// Target component for [`TabTriggerRoot`] relationship.
+/// The tab entities owned by the [`TabGroup`].
 #[derive(Component, Default)]
-#[relationship_target(relationship = TabTriggerRoot)]
-pub struct TabGroupRootTarget(Vec<Entity>);
+#[relationship_target(relationship = BelongsToTabGroup)]
+pub struct HasTabs(Vec<Entity>);
 
-/// Determines the visible tab in the [`TabGroup`].
+// TODO: Make it actually point to the tab, not the content.
+/// Points to the active content in the [`TabGroup`].
 #[derive(Component)]
 #[relationship(relationship_target = ActiveTabOfGroup)]
-pub struct CurrentTab(pub Entity);
+pub struct ActiveTab(pub Entity);
 
 /// Target component for [`ActiveTab`] relationship.
 #[derive(Component)]
-#[relationship_target(relationship = CurrentTab)]
+#[relationship_target(relationship = ActiveTab)]
 pub struct ActiveTabOfGroup(Vec<Entity>);
 
 /// Event triggered when a tab needs to be switched.
@@ -53,59 +47,59 @@ pub struct ActiveTabOfGroup(Vec<Entity>);
 pub struct SwitchTab {
     /// The [`TabGroup`] that this event targets.
     pub tab_group: Entity,
-    // TODO: Consider using the tab button as target instead of the panel.
-    /// The [`TabPanel`] that needs to be made visible.
-    pub target_panel: Entity,
+    // TODO: Use the tab as target instead of the content.
+    /// The content that needs to be made visible.
+    pub target_content: Entity,
 }
 
 /// Observes for [`Click`]ed tab buttons to trigger the [`SwitchTab`] event.
 fn trigger_switch_tab_on_click(
     on_click: On<Pointer<Click>>,
-    tab_trigger_query: Query<(&TabTrigger, &TabTriggerRoot)>,
-    current_tabs: Query<&CurrentTab>,
+    relations: Query<(&TabContent, &BelongsToTabGroup)>,
+    active_tabs: Query<&ActiveTab>,
     mut commands: Commands,
 ) {
-    let clicked_button = on_click.entity;
-    let Ok((tab_trigger, to_root)) = tab_trigger_query.get(clicked_button) else {
+    let clicked_entity = on_click.entity;
+    let Ok((tab_content_entity, tab_group_entity)) = relations.get(clicked_entity) else {
         return;
     };
 
-    if current_tabs
-        .get(to_root.0)
-        .is_ok_and(|current_tab| current_tab.0 == tab_trigger.target)
+    if active_tabs
+        .get(tab_group_entity.0)
+        .is_ok_and(|active_tab| active_tab.0 == tab_content_entity.0)
     {
         return;
     }
     commands.trigger(SwitchTab {
-        tab_group: to_root.0,
-        target_panel: tab_trigger.target,
+        tab_group: tab_group_entity.0,
+        target_content: tab_content_entity.0,
     });
 }
 
-/// Observes [`SwitchTab`] to switch which panel is currently active.
-fn switch_active_panel_on_switch_tab(
+/// Observes [`SwitchTab`] to switch which content is currently active.
+fn switch_active_content_on_switch_tab(
     on_switch_tab: On<SwitchTab>,
     mut commands: Commands,
-    current_tabs: Query<&CurrentTab>,
+    active_tabs: Query<&ActiveTab>,
     mut nodes: Query<&mut Node>,
 ) {
     let event = on_switch_tab.event();
     let tab_group = event.tab_group;
-    let panel_to_activate = event.target_panel;
+    let content_to_activate = event.target_content;
 
-    if let Ok(panel_to_deactivate) = current_tabs.get(tab_group) {
-        let panel_to_deactivate = panel_to_deactivate.0;
-        if panel_to_deactivate == panel_to_activate {
+    if let Ok(content_to_deactivate) = active_tabs.get(tab_group) {
+        let content_to_deactivate = content_to_deactivate.0;
+        if content_to_deactivate == content_to_activate {
             return;
         }
-        if let Ok(mut node) = nodes.get_mut(panel_to_deactivate) {
+        if let Ok(mut node) = nodes.get_mut(content_to_deactivate) {
             node.display = Display::None;
         }
     }
-    if let Ok(mut node) = nodes.get_mut(panel_to_activate) {
+    if let Ok(mut node) = nodes.get_mut(content_to_activate) {
         node.display = Display::Flex;
     }
     commands
         .entity(tab_group)
-        .insert(CurrentTab(panel_to_activate));
+        .insert(ActiveTab(content_to_activate));
 }
