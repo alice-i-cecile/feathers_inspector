@@ -1,8 +1,10 @@
 //! Organizes [`Node`]s into separate views, where only one is visible at a time.
+// TODO: Write usage example (after integrating into `object_list.rs`).
 
 // TODO: Create a `TabGroupPlugin`, with observers.
 
-use bevy::ecs::event::EntityEvent;
+// TODO: Reorganize relationships.
+
 use bevy::prelude::*;
 
 /// Root marker for the TabGroup widget.
@@ -69,14 +71,13 @@ pub struct CurrentTab(pub Entity);
 pub struct ActiveTabOfGroup(Vec<Entity>);
 
 /// Event triggered when a tab needs to be switched.
-// TODO: Make it a plain `Event`.
-#[derive(EntityEvent, Clone, Debug)]
+#[derive(Event, Clone, Debug)]
 pub struct SwitchTab {
     /// The [`TabGroup`] that this event targets.
-    #[event_target]
     pub tab_group: Entity,
+    // TODO: Consider using the tab button as target instead of the panel.
     /// The [`TabPanel`] that needs to be made visible.
-    pub panel: Entity,
+    pub target_panel: Entity,
 }
 
 /// Observes for [`Click`]ed tab buttons to trigger the [`SwitchTab`] event.
@@ -99,7 +100,7 @@ fn trigger_switch_tab_on_click(
     }
     commands.trigger(SwitchTab {
         tab_group: to_root.0,
-        panel: tab_trigger.target,
+        target_panel: tab_trigger.target,
     });
 }
 
@@ -112,7 +113,7 @@ fn switch_active_panel_on_switch_tab(
 ) {
     let event = on_switch_tab.event();
     let tab_group = event.tab_group;
-    let panel_to_activate = event.panel;
+    let panel_to_activate = event.target_panel;
 
     if let Ok(panel_to_deactivate) = current_tabs.get(tab_group) {
         let panel_to_deactivate = panel_to_deactivate.0;
