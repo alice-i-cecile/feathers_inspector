@@ -60,13 +60,13 @@ pub struct HasTab(Vec<Entity>);
 
 /// Determines the visible tab in the [`TabGroup`].
 #[derive(Component)]
-#[relationship(relationship_target = ActiveInTabGroup)]
-pub struct ActiveTab(pub Entity);
+#[relationship(relationship_target = ActiveTabOfGroup)]
+pub struct CurrentTab(pub Entity);
 
 /// Target component for [`ActiveTab`] relationship.
 #[derive(Component)]
-#[relationship_target(relationship = ActiveTab)]
-pub struct ActiveInTabGroup(Vec<Entity>);
+#[relationship_target(relationship = CurrentTab)]
+pub struct ActiveTabOfGroup(Vec<Entity>);
 
 /// Event triggered when a tab needs to be switched.
 // TODO: Make it a plain `Event`.
@@ -83,7 +83,7 @@ pub struct SwitchTab {
 fn trigger_switch_tab_on_click(
     on_click: On<Pointer<Click>>,
     tab_trigger_query: Query<(&TabTrigger, &TabTriggerRoot)>,
-    active_tabs: Query<&ActiveTab>,
+    current_tabs: Query<&CurrentTab>,
     mut commands: Commands,
 ) {
     let clicked_button = on_click.entity;
@@ -91,9 +91,9 @@ fn trigger_switch_tab_on_click(
         return;
     };
 
-    if active_tabs
+    if current_tabs
         .get(to_root.0)
-        .is_ok_and(|t| t.0 == tab_trigger.target)
+        .is_ok_and(|current_tab| current_tab.0 == tab_trigger.target)
     {
         return;
     }
@@ -107,14 +107,14 @@ fn trigger_switch_tab_on_click(
 fn switch_active_panel_on_switch_tab(
     on_switch_tab: On<SwitchTab>,
     mut commands: Commands,
-    active_tabs: Query<&ActiveTab>,
+    current_tabs: Query<&CurrentTab>,
     mut nodes: Query<&mut Node>,
 ) {
     let event = on_switch_tab.event();
     let tab_group = event.tab_group;
     let panel_to_activate = event.panel;
 
-    if let Ok(panel_to_deactivate) = active_tabs.get(tab_group) {
+    if let Ok(panel_to_deactivate) = current_tabs.get(tab_group) {
         let panel_to_deactivate = panel_to_deactivate.0;
         if panel_to_deactivate == panel_to_activate {
             return;
@@ -128,5 +128,5 @@ fn switch_active_panel_on_switch_tab(
     }
     commands
         .entity(tab_group)
-        .insert(ActiveTab(panel_to_activate));
+        .insert(CurrentTab(panel_to_activate));
 }
