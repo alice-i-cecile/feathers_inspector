@@ -11,18 +11,6 @@ use bevy::prelude::*;
 #[derive(Component)]
 pub struct TabGroup;
 
-/// Marker for the header UI node that holds tab buttons (see [`TabTrigger`]).
-#[derive(Component)]
-pub struct TabGroupHeader;
-
-/// Marker for the body UI node that holds tab panels with content (see [`TabPanel`]).
-#[derive(Component)]
-pub struct TabGroupBody;
-
-/// Marker for tab panels containing content.
-#[derive(Component)]
-pub struct TabPanel;
-
 /// Points to the [`TabPanel`] associated with a button.
 #[derive(Component)]
 #[relationship(relationship_target = TabTriggerTarget)]
@@ -49,16 +37,6 @@ pub struct TabTriggerRoot(pub Entity);
 #[derive(Component, Default)]
 #[relationship_target(relationship = TabTriggerRoot)]
 pub struct TabGroupRootTarget(Vec<Entity>);
-
-/// Determines to which [`TabGroup`] the panel belongs to.
-#[derive(Component)]
-#[relationship(relationship_target = HasTab)]
-pub struct BelongsToTabGroup(pub Entity);
-
-/// Target component for [`BelongsToTabGroup`] relationship.
-#[derive(Component)]
-#[relationship_target(relationship = BelongsToTabGroup)]
-pub struct HasTab(Vec<Entity>);
 
 /// Determines the visible tab in the [`TabGroup`].
 #[derive(Component)]
