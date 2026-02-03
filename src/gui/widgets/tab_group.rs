@@ -3,8 +3,6 @@
 // TODO: Create a `TabGroupPlugin`, with observers.
 
 use bevy::ecs::event::EntityEvent;
-use bevy::feathers::theme::ThemeBackgroundColor;
-use bevy::feathers::tokens;
 use bevy::prelude::*;
 
 /// Root marker for the TabGroup widget.
@@ -99,28 +97,28 @@ fn trigger_switch_tab_on_click(
     });
 }
 
-/// Observes [`SwitchTab`] to update panel visibility.
+/// Observes [`SwitchTab`] to switch which panel is currently active.
 fn switch_active_panel_on_switch_tab(
     on_switch_tab: On<SwitchTab>,
     mut commands: Commands,
-    mut active_tab: Query<&mut Node, With<ActiveTab>>,
-    mut inactive_tabs: Query<&mut Node, Without<ActiveTab>>,
+    active_tabs: Query<&ActiveTab>,
+    mut nodes: Query<&mut Node>,
 ) {
     let event = on_switch_tab.event();
     let tab_group = event.tab_group;
     let panel_to_activate = event.panel;
 
-    if let Err(e) = active_tab.single_mut().and_then(|mut node| {
-        node.display = Display::None;
-        Ok(())
-    }) {
-        warn!("Unable to find tab do deactivate: {e}");
+    if let Ok(panel_to_deactivate) = active_tabs.get(tab_group) {
+        let panel_to_deactivate = panel_to_deactivate.0;
+        if panel_to_deactivate == panel_to_activate {
+            return;
+        }
+        if let Ok(mut node) = nodes.get_mut(panel_to_deactivate) {
+            node.display = Display::None;
+        }
     }
-    if let Err(e) = inactive_tabs.get_mut(event.panel).and_then(|mut node| {
+    if let Ok(mut node) = nodes.get_mut(panel_to_activate) {
         node.display = Display::Flex;
-        Ok(())
-    }) {
-        warn!("Unable to find tab to activate: {e}");
     }
     commands
         .entity(tab_group)
