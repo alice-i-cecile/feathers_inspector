@@ -19,7 +19,6 @@ use crate::gui::state::{
     InspectableObject, InspectorCache, InspectorInternal, InspectorState, ObjectListEntry,
     ObjectListTab,
 };
-use crate::gui::widgets::{spawn_tab_group, tab_group::SwitchTab};
 use crate::inspection::component_inspection::ComponentMetadataMap;
 use crate::inspection::entity_inspection::{MultipleEntityInspectionSettings, NameFilter};
 use crate::memory_size::MemorySize;
@@ -28,11 +27,9 @@ use crate::memory_size::MemorySize;
 #[derive(Component)]
 pub struct ObjectListPanel;
 
-/// Identifies the scrollable object list content.
-///
-/// The [`ObjectListTab`] field allows to query the exact object kind.
+/// Marker component for the scrollable object list content.
 #[derive(Component)]
-pub struct ObjectListContent(pub ObjectListTab);
+pub struct ObjectListContent;
 
 /// Marker for object rows. Stores the object this row represents.
 #[derive(Component)]
@@ -43,10 +40,6 @@ pub struct ObjectRow {
 /// Marker for the search input.
 #[derive(Component)]
 pub struct SearchInput;
-
-/// Marker for the panel associated with a tab.
-#[derive(Component)]
-struct ObjectListPanelTab(ObjectListTab);
 
 /// Exclusive system that refreshes the [`InspectorCache`].
 /// We can't sensibly cache results from one call to the next,
@@ -174,27 +167,17 @@ pub fn sync_object_list(
     cache: ResMut<InspectorCache>,
     state: Res<InspectorState>,
     config: Res<InspectorConfig>,
-    list_content: Query<(Entity, &ObjectListContent, Option<&Children>)>,
+    list_content: Query<Entity, With<ObjectListContent>>,
     existing_rows: Query<Entity, With<ObjectRow>>,
 ) {
-    // Find the content entity for the active tab
-    let Some((content_entity, _, children)) = list_content
-        .iter()
-        .find(|(_, c, _)| c.0 == state.active_objects_tab)
-    else {
-        // TODO: Refine warning message.
-        warn!("Could not find content panel");
+    let Ok(content_entity) = list_content.iter().next().ok_or(()) else {
         return;
     };
 
-    // Clear existing rows (only in the currently active tab)
+    // Clear existing rows
     // TODO: can we reuse existing rows instead of despawning all?
-    if let Some(children) = children {
-        for &child in children {
-            if existing_rows.contains(child) {
-                commands.entity(child).despawn();
-            }
-        }
+    for row_entity in existing_rows.iter() {
+        commands.entity(row_entity).despawn();
     }
 
     // Spawn new rows
@@ -303,7 +286,41 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
             ObjectListPanel,
         ))
         .with_children(|panel| {
-            // Search bar
+            // Tabs placeholder
+            panel
+                .spawn((
+                    Node {
+                        width: Percent(100.0),
+                        height: config.tab_bar_height,
+                        border: UiRect::bottom(Px(1.0)),
+                        // Space out tab items
+                        justify_content: JustifyContent::SpaceEvenly,
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                    BorderColor::all(config.border_color),
+                ))
+                .with_children(|tabs| {
+                    tabs.spawn((
+                        Text::new("Entities"),
+                        TextFont {
+                            font_size: config.body_font_size,
+                            ..default()
+                        },
+                        TextColor(config.muted_text_color),
+                    ));
+
+                    tabs.spawn((
+                        Text::new("Resources"),
+                        TextFont {
+                            font_size: config.body_font_size,
+                            ..default()
+                        },
+                        TextColor(config.muted_text_color),
+                    ));
+                });
+
+            // Search bar placeholder
             panel
                 .spawn((
                     Node {
@@ -326,127 +343,60 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                     ));
                 });
 
-            // Tab Group
-            let (tab_group, panels) = spawn_tab_group(
-                panel,
-                vec![
-                    (
-                        "Entities",
-                        Box::new(|parent| {
-                            spawn_scrollable_list(parent, config, ObjectListTab::Entities);
-                        }),
-                    ),
-                    (
-                        "Resources",
-                        Box::new(|parent| {
-                            spawn_scrollable_list(parent, config, ObjectListTab::Resources);
-                        }),
-                    ),
-                ],
-            );
-
-            // Tag panels with their tab type so the observer can identify them
-            if let Some(&entities_panel) = panels.first() {
-                panel
-                    .commands()
-                    .entity(entities_panel)
-                    .insert(ObjectListPanelTab(ObjectListTab::Entities));
-            }
-            if let Some(&resources_panel) = panels.get(1) {
-                panel
-                    .commands()
-                    .entity(resources_panel)
-                    .insert(ObjectListPanelTab(ObjectListTab::Resources));
-            }
-
-            // Observe tab switch
+            // Scrollable area with scrollbar - use Grid layout
+            let scrollbar_width = 8.0;
             panel
-                .commands()
-                .entity(tab_group)
-                .observe(update_active_tab_on_switch_tab);
+                .spawn(Node {
+                    width: Percent(100.0),
+                    flex_grow: 1.0,
+                    display: Display::Grid,
+                    grid_template_columns: vec![GridTrack::fr(1.0), GridTrack::px(scrollbar_width)],
+                    ..default()
+                })
+                .with_children(|scroll_area| {
+                    // Scroll content
+                    let content_id = scroll_area
+                        .spawn((
+                            Node {
+                                display: Display::Flex,
+                                flex_direction: FlexDirection::Column,
+                                row_gap: config.item_gap,
+                                padding: config.panel_padding,
+                                overflow: Overflow::scroll_y(),
+                                ..default()
+                            },
+                            ScrollPosition::default(),
+                            ObjectListContent,
+                        ))
+                        .id();
 
-            // Initialize state
-            if let Some(&first_tab) = panels.first() {
-                panel.commands().trigger(SwitchTab {
-                    target: tab_group,
-                    panel: first_tab,
-                });
-            }
-        });
-}
-
-fn spawn_scrollable_list(
-    parent: &mut ChildSpawnerCommands,
-    config: &InspectorConfig,
-    tab: ObjectListTab,
-) {
-    let scrollbar_width = 8.0;
-    parent
-        .spawn(Node {
-            width: Percent(100.0),
-            height: Percent(100.0),
-            display: Display::Grid,
-            grid_template_columns: vec![GridTrack::fr(1.0), GridTrack::px(scrollbar_width)],
-            ..default()
-        })
-        .with_children(|scroll_area| {
-            // Scroll content
-            let content_id = scroll_area
-                .spawn((
-                    Node {
-                        display: Display::Flex,
-                        flex_direction: FlexDirection::Column,
-                        row_gap: config.item_gap,
-                        padding: config.panel_padding,
-                        overflow: Overflow::scroll_y(),
-                        ..default()
-                    },
-                    ScrollPosition::default(),
-                    ObjectListContent(tab),
-                ))
-                .id();
-
-            // Scrollbar
-            scroll_area
-                .spawn((
-                    Scrollbar {
-                        target: content_id,
-                        orientation: ControlOrientation::Vertical,
-                        min_thumb_length: 20.0,
-                    },
-                    Node {
-                        width: Px(scrollbar_width),
-                        height: Percent(100.0),
-                        ..default()
-                    },
-                    BackgroundColor(Color::srgba(0.15, 0.15, 0.15, 0.5)),
-                ))
-                .with_children(|sb| {
-                    sb.spawn((
-                        CoreScrollbarThumb,
-                        Node {
-                            width: Percent(100.0),
-                            ..default()
-                        },
-                        BackgroundColor(Color::srgba(0.5, 0.5, 0.5, 0.8)),
-                    ));
+                    // Scrollbar
+                    scroll_area
+                        .spawn((
+                            Scrollbar {
+                                target: content_id,
+                                orientation: ControlOrientation::Vertical,
+                                min_thumb_length: 20.0,
+                            },
+                            Node {
+                                width: Px(scrollbar_width),
+                                height: Percent(100.0),
+                                ..default()
+                            },
+                            BackgroundColor(Color::srgba(0.15, 0.15, 0.15, 0.5)),
+                        ))
+                        .with_children(|sb| {
+                            sb.spawn((
+                                CoreScrollbarThumb,
+                                Node {
+                                    width: Percent(100.0),
+                                    ..default()
+                                },
+                                BackgroundColor(Color::srgba(0.5, 0.5, 0.5, 0.8)),
+                            ));
+                        });
                 });
         });
-}
-
-/// Observes [`SwitchTab`] events to update the active tab in the [`InspectorState`].
-fn update_active_tab_on_switch_tab(
-    on_switch_tab: On<SwitchTab>,
-    mut state: ResMut<InspectorState>,
-    mut writer: MessageWriter<RefreshObjectList>,
-    panel_tabs: Query<&ObjectListPanelTab>,
-) {
-    let event = on_switch_tab.event();
-    if let Ok(tab) = panel_tabs.get(event.panel) {
-        state.active_objects_tab = tab.0;
-        // Forced UI sync to avoid showing stale state.
-        writer.write(RefreshObjectList);
-    }
 }
 
 /// A message that drives a refresh of the object list panel.

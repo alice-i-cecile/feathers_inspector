@@ -8,9 +8,3 @@
 pub mod drag_value;
 pub mod tab_group;
 pub mod tabs;
-
-pub use drag_value::{
-    DragValue, DragValueChanged, DragValueDragState, DragValueEditModeChanged, DragValuePlugin,
-    DragValueProps, FieldPath, FieldPathSegment, PendingValueChanges, apply_pending_value_changes,
-};
-pub use tab_group::{SwitchTab, TabGroup, spawn_tab_group};
