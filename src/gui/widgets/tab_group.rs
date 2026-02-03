@@ -83,6 +83,7 @@ pub struct SwitchTab {
 fn trigger_switch_tab_on_click(
     on_click: On<Pointer<Click>>,
     tab_trigger_query: Query<(&TabTrigger, &TabTriggerRoot)>,
+    active_tabs: Query<&ActiveTab>,
     mut commands: Commands,
 ) {
     let clicked_button = on_click.entity;
@@ -90,7 +91,12 @@ fn trigger_switch_tab_on_click(
         return;
     };
 
-    // TODO: Instead of blindly triggering, check if tab is already active.
+    if active_tabs
+        .get(to_root.0)
+        .is_ok_and(|t| t.0 == tab_trigger.target)
+    {
+        return;
+    }
     commands.trigger(SwitchTab {
         tab_group: to_root.0,
         panel: tab_trigger.target,
