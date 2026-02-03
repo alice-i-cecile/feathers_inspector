@@ -1,5 +1,7 @@
 //! Organizes [`Node`]s into separate views, where only one is visible at a time.
 
+// TODO: Create a `TabGroupPlugin`, with observers.
+
 use bevy::ecs::event::EntityEvent;
 use bevy::feathers::theme::ThemeBackgroundColor;
 use bevy::feathers::tokens;
@@ -48,12 +50,33 @@ pub struct TabTriggerRoot(pub Entity);
 #[relationship_target(relationship = TabTriggerRoot)]
 pub struct TabGroupRootTarget(Vec<Entity>);
 
+/// Determines to which [`TabGroup`] the panel belongs to.
+#[derive(Component)]
+#[relationship(relationship_target = HasTab)]
+pub struct BelongsToTabGroup(pub Entity);
+
+/// Target component for [`BelongsToTabGroup`] relationship.
+#[derive(Component)]
+#[relationship_target(relationship = BelongsToTabGroup)]
+pub struct HasTab(Vec<Entity>);
+
+/// Determines the visible tab in the [`TabGroup`].
+#[derive(Component)]
+#[relationship(relationship_target = ActiveInTabGroup)]
+pub struct ActiveTab(pub Entity);
+
+/// Target component for [`ActiveTab`] relationship.
+#[derive(Component)]
+#[relationship_target(relationship = ActiveTab)]
+pub struct ActiveInTabGroup(Vec<Entity>);
+
 /// Event triggered when a tab needs to be switched.
+// TODO: Make it a plain `Event`.
 #[derive(EntityEvent, Clone, Debug)]
 pub struct SwitchTab {
     /// The [`TabGroup`] that this event targets.
     #[event_target]
-    pub target: Entity,
+    pub tab_group: Entity,
     /// The [`TabPanel`] that needs to be made visible.
     pub panel: Entity,
 }
@@ -69,57 +92,39 @@ fn trigger_switch_tab_on_click(
         return;
     };
 
+    // TODO: Instead of blindly triggering, check if tab is already active.
     commands.trigger(SwitchTab {
-        target: to_root.0,
+        tab_group: to_root.0,
         panel: tab_trigger.target,
     });
 }
 
 /// Observes [`SwitchTab`] to update panel visibility.
-fn update_panel_visibility_on_switch_tab(
+fn switch_active_panel_on_switch_tab(
     on_switch_tab: On<SwitchTab>,
-    root_query: Query<Option<&Children>, With<TabGroup>>,
-    body_query: Query<(Entity, Option<&Children>), With<TabGroupBody>>,
-    mut tab_panel_query: Query<&mut Node, With<TabPanel>>,
+    mut commands: Commands,
+    mut active_tab: Query<&mut Node, With<ActiveTab>>,
+    mut inactive_tabs: Query<&mut Node, Without<ActiveTab>>,
 ) {
     let event = on_switch_tab.event();
-    let root_entity = on_switch_tab.observer();
-    let Ok(root_children) = root_query.get(root_entity) else {
-        warn!("`TabGroup` does not have children.");
-        return;
-    };
-    let Some(root_children) = root_children else {
-        warn!("`TabGroup` has no children.");
-        return;
-    };
-    let Some((_, body_children)) = root_children
-        .iter()
-        .find_map(|child| body_query.get(child).ok())
-    else {
-        warn!("Could not find body in `TabGroup`.");
-        return;
-    };
-    let Some(panels) = body_children else {
-        return;
-    };
+    let tab_group = event.tab_group;
+    let panel_to_activate = event.panel;
 
-    // While cycling through all tabs is slower than tracking the last active tab,
-    // it is worth it in this case because it lets us avoid setting up sync logic.
-    for &panel in panels {
-        let Ok(mut node) = tab_panel_query.get_mut(panel) else {
-            continue;
-        };
-        let new_display = if panel == event.panel {
-            Display::Flex
-        } else {
-            Display::None
-        };
-
-        // Checking avoids needless triggering of change detection.
-        if node.display != new_display {
-            node.display = new_display;
-        }
+    if let Err(e) = active_tab.single_mut().and_then(|mut node| {
+        node.display = Display::None;
+        Ok(())
+    }) {
+        warn!("Unable to find tab do deactivate: {e}");
     }
+    if let Err(e) = inactive_tabs.get_mut(event.panel).and_then(|mut node| {
+        node.display = Display::Flex;
+        Ok(())
+    }) {
+        warn!("Unable to find tab to activate: {e}");
+    }
+    commands
+        .entity(tab_group)
+        .insert(ActiveTab(panel_to_activate));
 }
 
 /// Observes [`SwitchTab`] to update button styling.
