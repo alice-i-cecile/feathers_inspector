@@ -27,9 +27,9 @@ use crate::memory_size::MemorySize;
 #[derive(Component)]
 pub struct ObjectListPanel;
 
-/// Marker component for the scrollable object list content.
+/// Identifies an object list content entity.
 #[derive(Component)]
-pub struct ObjectListContent;
+pub struct ObjectListContent(pub ObjectListTab);
 
 /// Marker for object rows. Stores the object this row represents.
 #[derive(Component)]
@@ -167,26 +167,31 @@ pub fn sync_object_list(
     cache: ResMut<InspectorCache>,
     state: Res<InspectorState>,
     config: Res<InspectorConfig>,
-    list_content: Query<Entity, With<ObjectListContent>>,
+    list_content: Query<(Entity, &ObjectListContent)>,
     existing_rows: Query<Entity, With<ObjectRow>>,
 ) {
-    let Ok(content_entity) = list_content.iter().next().ok_or(()) else {
-        return;
-    };
-
-    // Clear existing rows
-    // TODO: can we reuse existing rows instead of despawning all?
-    for row_entity in existing_rows.iter() {
-        commands.entity(row_entity).despawn();
-    }
-
-    // Spawn new rows
-    commands.entity(content_entity).with_children(|list| {
-        for entry in &cache.filtered_objects {
-            let is_selected = state.selected_object == Some(entry.object());
-            spawn_object_row(list, entry, is_selected, &config);
+    for (content_entity, object_type) in &list_content {
+        if state.active_objects_tab != object_type.0 {
+            continue;
         }
-    });
+
+        // Clear existing rows
+        // TODO: can we reuse existing rows instead of despawning all?
+        //
+        // NOTE: This despawns ALL `ObjectRow`s in the world,
+        // including those in the inactive tab.
+        for row_entity in existing_rows.iter() {
+            commands.entity(row_entity).despawn();
+        }
+
+        // Spawn new rows
+        commands.entity(content_entity).with_children(|list| {
+            for entry in &cache.filtered_objects {
+                let is_selected = state.selected_object == Some(entry.object());
+                spawn_object_row(list, entry, is_selected, &config);
+            }
+        });
+    }
 }
 
 /// Spawns a single object row button.
@@ -358,8 +363,18 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                     ..default()
                 })
                 .with_children(|content_panels_container| {
-                    scrollable_area(content_panels_container, config, Display::Grid);
-                    scrollable_area(content_panels_container, config, Display::None);
+                    scrollable_area(
+                        content_panels_container,
+                        config,
+                        ObjectListTab::Entities,
+                        Display::Grid,
+                    );
+                    scrollable_area(
+                        content_panels_container,
+                        config,
+                        ObjectListTab::Resources,
+                        Display::None,
+                    );
                 });
         });
 }
@@ -367,6 +382,7 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
 fn scrollable_area(
     parent: &mut ChildSpawnerCommands<'_>,
     config: &InspectorConfig,
+    tab: ObjectListTab,
     display: Display,
 ) {
     let scrollbar_width = 8.0;
@@ -391,7 +407,7 @@ fn scrollable_area(
                         ..default()
                     },
                     ScrollPosition::default(),
-                    ObjectListContent,
+                    ObjectListContent(tab),
                 ))
                 .id();
 
