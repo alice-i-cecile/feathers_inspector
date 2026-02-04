@@ -19,6 +19,7 @@ use crate::gui::state::{
     InspectableObject, InspectorCache, InspectorInternal, InspectorState, ObjectListEntry,
     ObjectListTab,
 };
+use crate::gui::widgets::tab_group::{ActiveTab, TabGroup};
 use crate::inspection::component_inspection::ComponentMetadataMap;
 use crate::inspection::entity_inspection::{MultipleEntityInspectionSettings, NameFilter};
 use crate::memory_size::MemorySize;
@@ -363,18 +364,22 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                     ..default()
                 })
                 .with_children(|content_panels_container| {
-                    scrollable_area(
+                    let entities_list_entity = scrollable_area(
                         content_panels_container,
                         config,
                         ObjectListTab::Entities,
                         Display::Grid,
                     );
-                    scrollable_area(
+                    let _resources_list_entity = scrollable_area(
                         content_panels_container,
                         config,
                         ObjectListTab::Resources,
                         Display::None,
                     );
+                    let _tab_group = content_panels_container
+                        .spawn((TabGroup, ActiveTab(entities_list_entity)))
+                        .id();
+                    // TODO: Insert `BelongsToTabGroup(tab_group)` to the two lists.
                 });
         });
 }
@@ -384,7 +389,7 @@ fn scrollable_area(
     config: &InspectorConfig,
     tab: ObjectListTab,
     display: Display,
-) {
+) -> Entity {
     let scrollbar_width = 8.0;
     parent
         .spawn(Node {
@@ -436,7 +441,8 @@ fn scrollable_area(
                         BackgroundColor(Color::srgba(0.5, 0.5, 0.5, 0.8)),
                     ));
                 });
-        });
+        })
+        .id()
 }
 
 /// A message that drives a refresh of the object list panel.
