@@ -85,8 +85,9 @@ fn switch_active_content_on_switch_tab(
     let tab_group = event.tab_group;
     let content_to_activate = event.target_content;
 
-    if let Ok(content_to_deactivate) = active_tabs.get(tab_group) {
-        let content_to_deactivate = content_to_deactivate.0;
+    // FIXME: Iterate all tabs to avoid the command desync.
+    if let Ok(active_tab) = active_tabs.get(tab_group) {
+        let content_to_deactivate = active_tab.0;
         if content_to_deactivate == content_to_activate {
             return;
         }
@@ -109,5 +110,138 @@ impl Plugin for TabGroupPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(trigger_switch_tab_on_click)
             .add_observer(switch_active_content_on_switch_tab);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_switch_tab_logic() {
+        let mut app = App::new();
+        app.add_plugins(TabGroupPlugin);
+        let content1 = app
+            .world_mut()
+            .spawn(Node {
+                display: Display::Flex,
+                ..default()
+            })
+            .id();
+        let content2 = app
+            .world_mut()
+            .spawn(Node {
+                display: Display::None,
+                ..default()
+            })
+            .id();
+
+        // Initial `TabGroup` state
+        let tab_group = app.world_mut().spawn((TabGroup, ActiveTab(content1))).id();
+
+        // Verify switching works
+        app.world_mut().trigger(SwitchTab {
+            tab_group,
+            target_content: content2,
+        });
+        app.update();
+
+        let active_tab = app.world().get::<ActiveTab>(tab_group).unwrap();
+        assert_eq!(active_tab.0, content2);
+        let node1 = app.world().get::<Node>(content1).unwrap();
+        assert_eq!(node1.display, Display::None);
+        let node2 = app.world().get::<Node>(content2).unwrap();
+        assert_eq!(node2.display, Display::Flex);
+
+        // Verify idempotency
+        app.world_mut().trigger(SwitchTab {
+            tab_group,
+            target_content: content2,
+        });
+        app.update();
+
+        let active_tab = app.world().get::<ActiveTab>(tab_group).unwrap();
+        assert_eq!(active_tab.0, content2);
+        let node1 = app.world().get::<Node>(content1).unwrap();
+        assert_eq!(node1.display, Display::None);
+        let node2 = app.world().get::<Node>(content2).unwrap();
+        assert_eq!(node2.display, Display::Flex);
+
+        // Switch back to first tab
+        app.world_mut().trigger(SwitchTab {
+            tab_group,
+            target_content: content1,
+        });
+        app.update();
+
+        let active_tab = app.world().get::<ActiveTab>(tab_group).unwrap();
+        assert_eq!(active_tab.0, content1);
+        let node1 = app.world().get::<Node>(content1).unwrap();
+        assert_eq!(node1.display, Display::Flex);
+        let node2 = app.world().get::<Node>(content2).unwrap();
+        assert_eq!(node2.display, Display::None);
+    }
+
+    // Demonstrates a bug that occurs when multiple `SwitchTab` events
+    // are triggered in the same frame.
+    //
+    // Because the `ActiveTab` relationship is updated via deferred `Commands`,
+    // the second event reads the stale `ActiveTab` state
+    // (it still sees the original tab as active, not the intermediate one).
+    // As a result, the second event fails to hide the content activated by the first event,
+    // resulting in multiple tabs being visible simultaneously.
+    #[test]
+    #[ignore = "Fails due to race condition in `ActiveTab` update"]
+    fn rapid_switching() {
+        let mut app = App::new();
+        app.add_plugins(TabGroupPlugin);
+        let content1 = app
+            .world_mut()
+            .spawn(Node {
+                display: Display::Flex,
+                ..default()
+            })
+            .id();
+        let content2 = app
+            .world_mut()
+            .spawn(Node {
+                display: Display::None,
+                ..default()
+            })
+            .id();
+        let content3 = app
+            .world_mut()
+            .spawn(Node {
+                display: Display::None,
+                ..default()
+            })
+            .id();
+
+        // Initial `TabGroup` state
+        let tab_group = app.world_mut().spawn((TabGroup, ActiveTab(content1))).id();
+
+        // Two consecutive `SwitchTab` trigger
+        // to test resilience against rapid switching.
+        app.world_mut().trigger(SwitchTab {
+            tab_group,
+            target_content: content2,
+        });
+        app.world_mut().trigger(SwitchTab {
+            tab_group,
+            target_content: content3,
+        });
+        app.update();
+
+        let active_tab = app.world().get::<ActiveTab>(tab_group).unwrap();
+        assert_eq!(
+            active_tab.0, content3,
+            "Should end up at content3 after rapid switch"
+        );
+
+        // Multiple contents shown simultaneously.
+        let node3 = app.world().get::<Node>(content3).unwrap();
+        assert_eq!(node3.display, Display::Flex, "Content 3 should be visible");
+        let node2 = app.world().get::<Node>(content2).unwrap();
+        assert_eq!(node2.display, Display::None, "Content 2 should be hidden");
     }
 }
