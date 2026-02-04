@@ -301,22 +301,29 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                     BorderColor::all(config.border_color),
                 ))
                 .with_children(|tabs| {
-                    tabs.spawn((
-                        Text::new("Entities"),
-                        TextFont {
-                            font_size: config.body_font_size,
-                            ..default()
-                        },
-                        TextColor(config.muted_text_color),
+                    tabs.spawn(button(
+                        ButtonProps::default(),
+                        // TODO: Attach `TabContent` relationship.
+                        (),
+                        bevy::prelude::Spawn((
+                            Text::new("Entities"),
+                            TextFont {
+                                font_size: config.body_font_size,
+                                ..default()
+                            },
+                        )),
                     ));
-
-                    tabs.spawn((
-                        Text::new("Resources"),
-                        TextFont {
-                            font_size: config.body_font_size,
-                            ..default()
-                        },
-                        TextColor(config.muted_text_color),
+                    tabs.spawn(button(
+                        ButtonProps::default(),
+                        // TODO: Attach `TabContent` relationship.
+                        (),
+                        bevy::prelude::Spawn((
+                            Text::new("Resources"),
+                            TextFont {
+                                font_size: config.body_font_size,
+                                ..default()
+                            },
+                        )),
                     ));
                 });
 
@@ -343,58 +350,63 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                     ));
                 });
 
-            // Scrollable area with scrollbar - use Grid layout
-            let scrollbar_width = 8.0;
-            panel
-                .spawn(Node {
-                    width: Percent(100.0),
-                    flex_grow: 1.0,
-                    display: Display::Grid,
-                    grid_template_columns: vec![GridTrack::fr(1.0), GridTrack::px(scrollbar_width)],
-                    ..default()
-                })
-                .with_children(|scroll_area| {
-                    // Scroll content
-                    let content_id = scroll_area
-                        .spawn((
-                            Node {
-                                display: Display::Flex,
-                                flex_direction: FlexDirection::Column,
-                                row_gap: config.item_gap,
-                                padding: config.panel_padding,
-                                overflow: Overflow::scroll_y(),
-                                ..default()
-                            },
-                            ScrollPosition::default(),
-                            ObjectListContent,
-                        ))
-                        .id();
+            // TODO: Add intermediate node with two `scrollable_area`s,
+            // where only one is displayed.
+            scrollable_area(panel, config);
+        });
+}
 
-                    // Scrollbar
-                    scroll_area
-                        .spawn((
-                            Scrollbar {
-                                target: content_id,
-                                orientation: ControlOrientation::Vertical,
-                                min_thumb_length: 20.0,
-                            },
-                            Node {
-                                width: Px(scrollbar_width),
-                                height: Percent(100.0),
-                                ..default()
-                            },
-                            BackgroundColor(Color::srgba(0.15, 0.15, 0.15, 0.5)),
-                        ))
-                        .with_children(|sb| {
-                            sb.spawn((
-                                CoreScrollbarThumb,
-                                Node {
-                                    width: Percent(100.0),
-                                    ..default()
-                                },
-                                BackgroundColor(Color::srgba(0.5, 0.5, 0.5, 0.8)),
-                            ));
-                        });
+fn scrollable_area(parent: &mut ChildSpawnerCommands<'_>, config: &InspectorConfig) {
+    let scrollbar_width = 8.0;
+    parent
+        .spawn(Node {
+            width: Percent(100.0),
+            flex_grow: 1.0,
+            display: Display::Grid,
+            grid_template_columns: vec![GridTrack::fr(1.0), GridTrack::px(scrollbar_width)],
+            ..default()
+        })
+        .with_children(|scroll_area| {
+            // Scroll content
+            let content_id = scroll_area
+                .spawn((
+                    Node {
+                        display: Display::Flex,
+                        flex_direction: FlexDirection::Column,
+                        row_gap: config.item_gap,
+                        padding: config.panel_padding,
+                        overflow: Overflow::scroll_y(),
+                        ..default()
+                    },
+                    ScrollPosition::default(),
+                    ObjectListContent,
+                ))
+                .id();
+
+            // Scrollbar
+            scroll_area
+                .spawn((
+                    Scrollbar {
+                        target: content_id,
+                        orientation: ControlOrientation::Vertical,
+                        min_thumb_length: 20.0,
+                    },
+                    Node {
+                        width: Px(scrollbar_width),
+                        height: Percent(100.0),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgba(0.15, 0.15, 0.15, 0.5)),
+                ))
+                .with_children(|sb| {
+                    sb.spawn((
+                        CoreScrollbarThumb,
+                        Node {
+                            width: Percent(100.0),
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgba(0.5, 0.5, 0.5, 0.8)),
+                    ));
                 });
         });
 }
