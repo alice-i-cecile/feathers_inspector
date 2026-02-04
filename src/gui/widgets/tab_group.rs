@@ -96,7 +96,7 @@ fn switch_active_content_on_switch_tab(
         }
     }
     if let Ok(mut node) = nodes.get_mut(content_to_activate) {
-        node.display = Display::Flex;
+        node.display = Display::Grid;
     }
     commands
         .entity(tab_group)
@@ -124,7 +124,7 @@ mod tests {
         let content1 = app
             .world_mut()
             .spawn(Node {
-                display: Display::Flex,
+                display: Display::Grid,
                 ..default()
             })
             .id();
@@ -151,7 +151,7 @@ mod tests {
         let node1 = app.world().get::<Node>(content1).unwrap();
         assert_eq!(node1.display, Display::None);
         let node2 = app.world().get::<Node>(content2).unwrap();
-        assert_eq!(node2.display, Display::Flex);
+        assert_eq!(node2.display, Display::Grid);
 
         // Verify idempotency
         app.world_mut().trigger(SwitchTab {
@@ -165,7 +165,7 @@ mod tests {
         let node1 = app.world().get::<Node>(content1).unwrap();
         assert_eq!(node1.display, Display::None);
         let node2 = app.world().get::<Node>(content2).unwrap();
-        assert_eq!(node2.display, Display::Flex);
+        assert_eq!(node2.display, Display::Grid);
 
         // Switch back to first tab
         app.world_mut().trigger(SwitchTab {
@@ -177,7 +177,7 @@ mod tests {
         let active_tab = app.world().get::<ActiveTab>(tab_group).unwrap();
         assert_eq!(active_tab.0, content1);
         let node1 = app.world().get::<Node>(content1).unwrap();
-        assert_eq!(node1.display, Display::Flex);
+        assert_eq!(node1.display, Display::Grid);
         let node2 = app.world().get::<Node>(content2).unwrap();
         assert_eq!(node2.display, Display::None);
     }
@@ -198,7 +198,7 @@ mod tests {
         let content1 = app
             .world_mut()
             .spawn(Node {
-                display: Display::Flex,
+                display: Display::Grid,
                 ..default()
             })
             .id();
@@ -240,7 +240,7 @@ mod tests {
 
         // Multiple contents shown simultaneously.
         let node3 = app.world().get::<Node>(content3).unwrap();
-        assert_eq!(node3.display, Display::Flex, "Content 3 should be visible");
+        assert_eq!(node3.display, Display::Grid, "Content 3 should be visible");
         let node2 = app.world().get::<Node>(content2).unwrap();
         assert_eq!(node2.display, Display::None, "Content 2 should be hidden");
     }

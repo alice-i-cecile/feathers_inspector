@@ -350,19 +350,31 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                     ));
                 });
 
-            // TODO: Add intermediate node with two `scrollable_area`s,
-            // where only one is displayed.
-            scrollable_area(panel, config);
+            panel
+                .spawn(Node {
+                    display: Display::Flex,
+                    flex_direction: FlexDirection::Column,
+                    flex_grow: 1.0,
+                    ..default()
+                })
+                .with_children(|content_panels_container| {
+                    scrollable_area(content_panels_container, config, Display::Grid);
+                    scrollable_area(content_panels_container, config, Display::None);
+                });
         });
 }
 
-fn scrollable_area(parent: &mut ChildSpawnerCommands<'_>, config: &InspectorConfig) {
+fn scrollable_area(
+    parent: &mut ChildSpawnerCommands<'_>,
+    config: &InspectorConfig,
+    display: Display,
+) {
     let scrollbar_width = 8.0;
     parent
         .spawn(Node {
             width: Percent(100.0),
             flex_grow: 1.0,
-            display: Display::Grid,
+            display,
             grid_template_columns: vec![GridTrack::fr(1.0), GridTrack::px(scrollbar_width)],
             ..default()
         })
