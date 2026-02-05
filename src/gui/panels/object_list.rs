@@ -19,7 +19,9 @@ use crate::gui::state::{
     InspectableObject, InspectorCache, InspectorInternal, InspectorState, ObjectListEntry,
     ObjectListTab,
 };
-use crate::gui::widgets::tab_group::{ActiveTab, TabGroup};
+use crate::gui::widgets::tab_group::{
+    HasContent, InTabGroup, Tab, TabActivated, TabContentDisplayMode, TabGroup,
+};
 use crate::inspection::component_inspection::ComponentMetadataMap;
 use crate::inspection::entity_inspection::{MultipleEntityInspectionSettings, NameFilter};
 use crate::memory_size::MemorySize;
@@ -169,7 +171,7 @@ pub fn sync_object_list(
     state: Res<InspectorState>,
     config: Res<InspectorConfig>,
     list_content: Query<(Entity, &ObjectListContent)>,
-    existing_rows: Query<Entity, With<ObjectRow>>,
+    children: Query<&Children>,
 ) {
     for (content_entity, object_type) in &list_content {
         if state.active_objects_tab != object_type.0 {
@@ -178,11 +180,10 @@ pub fn sync_object_list(
 
         // Clear existing rows
         // TODO: can we reuse existing rows instead of despawning all?
-        //
-        // NOTE: This despawns ALL `ObjectRow`s in the world,
-        // including those in the inactive tab.
-        for row_entity in existing_rows.iter() {
-            commands.entity(row_entity).despawn();
+        if let Ok(children) = children.get(content_entity) {
+            for child in children {
+                commands.entity(*child).despawn();
+            }
         }
 
         // Spawn new rows
@@ -245,6 +246,28 @@ fn spawn_object_row(
     ),));
 }
 
+/// Observes [`TabActivated`] events to update the active objects tab
+/// in the [`InspectorState`].
+pub fn update_active_objects_tab_on_activate_tab(
+    on_activate_tab: On<TabActivated>,
+    has_contents: Query<&HasContent, With<Tab>>,
+    object_list_contents: Query<&ObjectListContent>,
+    mut state: ResMut<InspectorState>,
+    mut writer: MessageWriter<RefreshObjectList>,
+) {
+    let event = on_activate_tab.event();
+    if let Ok(has_content) = has_contents.get(event.tab) {
+        let content_entity = has_content.0;
+        if let Ok(object_list_content) = object_list_contents.get(content_entity) {
+            let object_list_tab = object_list_content.0;
+
+            state.active_objects_tab = object_list_tab;
+            // Forced UI sync to avoid showing stale state.
+            writer.write(RefreshObjectList);
+        }
+    }
+}
+
 /// Global observer for object row clicks.
 /// Added in [`InspectorWindowPlugin`](crate::gui::plugin::InspectorWindowPlugin).
 ///
@@ -292,8 +315,36 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
             ObjectListPanel,
         ))
         .with_children(|panel| {
-            // Tabs placeholder
-            panel
+            // Tab buttons
+            let entities_tab_entity = panel
+                .commands()
+                .spawn(button(
+                    ButtonProps::default(),
+                    Tab,
+                    bevy::prelude::Spawn((
+                        Text::new("Entities"),
+                        TextFont {
+                            font_size: config.body_font_size,
+                            ..default()
+                        },
+                    )),
+                ))
+                .id();
+            let resources_tab_entity = panel
+                .commands()
+                .spawn(button(
+                    ButtonProps::default(),
+                    Tab,
+                    bevy::prelude::Spawn((
+                        Text::new("Resources"),
+                        TextFont {
+                            font_size: config.body_font_size,
+                            ..default()
+                        },
+                    )),
+                ))
+                .id();
+            let tab_group_entity = panel
                 .spawn((
                     Node {
                         width: Percent(100.0),
@@ -305,33 +356,18 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                         ..default()
                     },
                     BorderColor::all(config.border_color),
+                    TabGroup::new(Some(entities_tab_entity)),
                 ))
-                .with_children(|tabs| {
-                    tabs.spawn(button(
-                        ButtonProps::default(),
-                        // TODO: Attach `TabContent` relationship.
-                        (),
-                        bevy::prelude::Spawn((
-                            Text::new("Entities"),
-                            TextFont {
-                                font_size: config.body_font_size,
-                                ..default()
-                            },
-                        )),
-                    ));
-                    tabs.spawn(button(
-                        ButtonProps::default(),
-                        // TODO: Attach `TabContent` relationship.
-                        (),
-                        bevy::prelude::Spawn((
-                            Text::new("Resources"),
-                            TextFont {
-                                font_size: config.body_font_size,
-                                ..default()
-                            },
-                        )),
-                    ));
-                });
+                .add_children(&[entities_tab_entity, resources_tab_entity])
+                .id();
+            panel
+                .commands()
+                .entity(entities_tab_entity)
+                .insert(InTabGroup(tab_group_entity));
+            panel
+                .commands()
+                .entity(resources_tab_entity)
+                .insert(InTabGroup(tab_group_entity));
 
             // Search bar placeholder
             panel
@@ -370,16 +406,26 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                         ObjectListTab::Entities,
                         Display::Grid,
                     );
-                    let _resources_list_entity = scrollable_area(
+                    let resources_list_entity = scrollable_area(
                         content_panels_container,
                         config,
                         ObjectListTab::Resources,
                         Display::None,
                     );
-                    let _tab_group = content_panels_container
-                        .spawn((TabGroup, ActiveTab(entities_list_entity)))
-                        .id();
-                    // TODO: Insert `BelongsToTabGroup(tab_group)` to the two lists.
+                    content_panels_container
+                        .commands()
+                        .entity(entities_tab_entity)
+                        .insert((
+                            HasContent(entities_list_entity),
+                            TabContentDisplayMode(Display::Grid),
+                        ));
+                    content_panels_container
+                        .commands()
+                        .entity(resources_tab_entity)
+                        .insert((
+                            HasContent(resources_list_entity),
+                            TabContentDisplayMode(Display::Grid),
+                        ));
                 });
         });
 }
