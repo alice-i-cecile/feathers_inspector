@@ -6,4 +6,5 @@
 //!   - Double-click to enter text input mode
 
 pub mod drag_value;
+pub mod tab_group;
 pub mod tabs;

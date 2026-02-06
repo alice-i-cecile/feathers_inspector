@@ -19,6 +19,9 @@ use crate::gui::state::{
     InspectableObject, InspectorCache, InspectorInternal, InspectorState, ObjectListEntry,
     ObjectListTab,
 };
+use crate::gui::widgets::tab_group::{
+    HasContent, InTabGroup, Tab, TabActivated, TabContentDisplayMode, TabGroup,
+};
 use crate::inspection::component_inspection::ComponentMetadataMap;
 use crate::inspection::entity_inspection::{MultipleEntityInspectionSettings, NameFilter};
 use crate::memory_size::MemorySize;
@@ -27,9 +30,9 @@ use crate::memory_size::MemorySize;
 #[derive(Component)]
 pub struct ObjectListPanel;
 
-/// Marker component for the scrollable object list content.
+/// Identifies an object list content entity.
 #[derive(Component)]
-pub struct ObjectListContent;
+pub struct ObjectListContent(pub ObjectListTab);
 
 /// Marker for object rows. Stores the object this row represents.
 #[derive(Component)]
@@ -167,26 +170,30 @@ pub fn sync_object_list(
     cache: ResMut<InspectorCache>,
     state: Res<InspectorState>,
     config: Res<InspectorConfig>,
-    list_content: Query<Entity, With<ObjectListContent>>,
-    existing_rows: Query<Entity, With<ObjectRow>>,
+    list_content: Query<(Entity, &ObjectListContent)>,
+    children: Query<&Children>,
 ) {
-    let Ok(content_entity) = list_content.iter().next().ok_or(()) else {
-        return;
-    };
-
-    // Clear existing rows
-    // TODO: can we reuse existing rows instead of despawning all?
-    for row_entity in existing_rows.iter() {
-        commands.entity(row_entity).despawn();
-    }
-
-    // Spawn new rows
-    commands.entity(content_entity).with_children(|list| {
-        for entry in &cache.filtered_objects {
-            let is_selected = state.selected_object == Some(entry.object());
-            spawn_object_row(list, entry, is_selected, &config);
+    for (content_entity, object_type) in &list_content {
+        if state.active_objects_tab != object_type.0 {
+            continue;
         }
-    });
+
+        // Clear existing rows
+        // TODO: can we reuse existing rows instead of despawning all?
+        if let Ok(children) = children.get(content_entity) {
+            for child in children {
+                commands.entity(*child).despawn();
+            }
+        }
+
+        // Spawn new rows
+        commands.entity(content_entity).with_children(|list| {
+            for entry in &cache.filtered_objects {
+                let is_selected = state.selected_object == Some(entry.object());
+                spawn_object_row(list, entry, is_selected, &config);
+            }
+        });
+    }
 }
 
 /// Spawns a single object row button.
@@ -239,6 +246,28 @@ fn spawn_object_row(
     ),));
 }
 
+/// Observes [`TabActivated`] events to update the active objects tab
+/// in the [`InspectorState`].
+pub fn update_active_objects_tab_on_activate_tab(
+    on_activate_tab: On<TabActivated>,
+    has_contents: Query<&HasContent, With<Tab>>,
+    object_list_contents: Query<&ObjectListContent>,
+    mut state: ResMut<InspectorState>,
+    mut writer: MessageWriter<RefreshObjectList>,
+) {
+    let event = on_activate_tab.event();
+    if let Ok(has_content) = has_contents.get(event.tab) {
+        let content_entity = has_content.0;
+        if let Ok(object_list_content) = object_list_contents.get(content_entity) {
+            let object_list_tab = object_list_content.0;
+
+            state.active_objects_tab = object_list_tab;
+            // Forced UI sync to avoid showing stale state.
+            writer.write(RefreshObjectList);
+        }
+    }
+}
+
 /// Global observer for object row clicks.
 /// Added in [`InspectorWindowPlugin`](crate::gui::plugin::InspectorWindowPlugin).
 ///
@@ -286,8 +315,36 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
             ObjectListPanel,
         ))
         .with_children(|panel| {
-            // Tabs placeholder
-            panel
+            // Tab buttons
+            let entities_tab_entity = panel
+                .commands()
+                .spawn(button(
+                    ButtonProps::default(),
+                    Tab,
+                    bevy::prelude::Spawn((
+                        Text::new("Entities"),
+                        TextFont {
+                            font_size: config.body_font_size,
+                            ..default()
+                        },
+                    )),
+                ))
+                .id();
+            let resources_tab_entity = panel
+                .commands()
+                .spawn(button(
+                    ButtonProps::default(),
+                    Tab,
+                    bevy::prelude::Spawn((
+                        Text::new("Resources"),
+                        TextFont {
+                            font_size: config.body_font_size,
+                            ..default()
+                        },
+                    )),
+                ))
+                .id();
+            let tab_group_entity = panel
                 .spawn((
                     Node {
                         width: Percent(100.0),
@@ -299,26 +356,18 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                         ..default()
                     },
                     BorderColor::all(config.border_color),
+                    TabGroup::new(Some(entities_tab_entity)),
                 ))
-                .with_children(|tabs| {
-                    tabs.spawn((
-                        Text::new("Entities"),
-                        TextFont {
-                            font_size: config.body_font_size,
-                            ..default()
-                        },
-                        TextColor(config.muted_text_color),
-                    ));
-
-                    tabs.spawn((
-                        Text::new("Resources"),
-                        TextFont {
-                            font_size: config.body_font_size,
-                            ..default()
-                        },
-                        TextColor(config.muted_text_color),
-                    ));
-                });
+                .add_children(&[entities_tab_entity, resources_tab_entity])
+                .id();
+            panel
+                .commands()
+                .entity(entities_tab_entity)
+                .insert(InTabGroup(tab_group_entity));
+            panel
+                .commands()
+                .entity(resources_tab_entity)
+                .insert(InTabGroup(tab_group_entity));
 
             // Search bar placeholder
             panel
@@ -343,60 +392,103 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                     ));
                 });
 
-            // Scrollable area with scrollbar - use Grid layout
-            let scrollbar_width = 8.0;
             panel
                 .spawn(Node {
-                    width: Percent(100.0),
+                    display: Display::Flex,
+                    flex_direction: FlexDirection::Column,
                     flex_grow: 1.0,
-                    display: Display::Grid,
-                    grid_template_columns: vec![GridTrack::fr(1.0), GridTrack::px(scrollbar_width)],
                     ..default()
                 })
-                .with_children(|scroll_area| {
-                    // Scroll content
-                    let content_id = scroll_area
-                        .spawn((
-                            Node {
-                                display: Display::Flex,
-                                flex_direction: FlexDirection::Column,
-                                row_gap: config.item_gap,
-                                padding: config.panel_padding,
-                                overflow: Overflow::scroll_y(),
-                                ..default()
-                            },
-                            ScrollPosition::default(),
-                            ObjectListContent,
-                        ))
-                        .id();
-
-                    // Scrollbar
-                    scroll_area
-                        .spawn((
-                            Scrollbar {
-                                target: content_id,
-                                orientation: ControlOrientation::Vertical,
-                                min_thumb_length: 20.0,
-                            },
-                            Node {
-                                width: Px(scrollbar_width),
-                                height: Percent(100.0),
-                                ..default()
-                            },
-                            BackgroundColor(Color::srgba(0.15, 0.15, 0.15, 0.5)),
-                        ))
-                        .with_children(|sb| {
-                            sb.spawn((
-                                CoreScrollbarThumb,
-                                Node {
-                                    width: Percent(100.0),
-                                    ..default()
-                                },
-                                BackgroundColor(Color::srgba(0.5, 0.5, 0.5, 0.8)),
-                            ));
-                        });
+                .with_children(|content_panels_container| {
+                    let entities_list_entity = scrollable_area(
+                        content_panels_container,
+                        config,
+                        ObjectListTab::Entities,
+                        Display::Grid,
+                    );
+                    let resources_list_entity = scrollable_area(
+                        content_panels_container,
+                        config,
+                        ObjectListTab::Resources,
+                        Display::None,
+                    );
+                    content_panels_container
+                        .commands()
+                        .entity(entities_tab_entity)
+                        .insert((
+                            HasContent(entities_list_entity),
+                            TabContentDisplayMode(Display::Grid),
+                        ));
+                    content_panels_container
+                        .commands()
+                        .entity(resources_tab_entity)
+                        .insert((
+                            HasContent(resources_list_entity),
+                            TabContentDisplayMode(Display::Grid),
+                        ));
                 });
         });
+}
+
+fn scrollable_area(
+    parent: &mut ChildSpawnerCommands<'_>,
+    config: &InspectorConfig,
+    tab: ObjectListTab,
+    display: Display,
+) -> Entity {
+    let scrollbar_width = 8.0;
+    parent
+        .spawn(Node {
+            width: Percent(100.0),
+            flex_grow: 1.0,
+            display,
+            grid_template_columns: vec![GridTrack::fr(1.0), GridTrack::px(scrollbar_width)],
+            ..default()
+        })
+        .with_children(|scroll_area| {
+            // Scroll content
+            let content_id = scroll_area
+                .spawn((
+                    Node {
+                        display: Display::Flex,
+                        flex_direction: FlexDirection::Column,
+                        row_gap: config.item_gap,
+                        padding: config.panel_padding,
+                        overflow: Overflow::scroll_y(),
+                        ..default()
+                    },
+                    ScrollPosition::default(),
+                    ObjectListContent(tab),
+                ))
+                .id();
+
+            // Scrollbar
+            scroll_area
+                .spawn((
+                    Scrollbar {
+                        target: content_id,
+                        orientation: ControlOrientation::Vertical,
+                        min_thumb_length: 20.0,
+                    },
+                    Node {
+                        width: Px(scrollbar_width),
+                        height: Percent(100.0),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgba(0.15, 0.15, 0.15, 0.5)),
+                ))
+                .with_children(|sb| {
+                    sb.spawn((
+                        CoreScrollbarThumb,
+                        Node {
+                            width: Percent(100.0),
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgba(0.5, 0.5, 0.5, 0.8)),
+                    ));
+                });
+        })
+        .id()
 }
 
 /// A message that drives a refresh of the object list panel.
