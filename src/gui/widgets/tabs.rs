@@ -8,16 +8,18 @@
 //!
 //! ## Headless Tabs
 //!
-//! The [`TabGroup`] entity manages a collection of [`Tab`] entities. Each tab entity should have two children:
-//! first for a header and then for content area. The [`TabGroup`] handles user interactions, such as
-//! switching between tabs and rendering the appropriate content based on the selected tab.
+//! [`Tab`] entities are arranged into groups using a controlling [`TabGroup`] component.
+//! The [`TabGroup`] manages which tab is currently active and ensures that only the content of the active tab is visible at any given time.
+//! The link between [`Tab`] and [`TabGroup`] entities is established through the [`InTabGroup`]/[`HasTabs`] relationship.
 //!
-//! These components represent "headless" widgets, meaning they provide the underlying
+//! Underneath each [`Tab`] is a content entity, linked via the [`HasContent`]/[`ContentOfTab`] relationship.
+//! When a tab is activated, its content is shown, while its sibling tabs' content is hidden.
+//!
+//! [`TabGroup`]s handles user interactions (e.g., clicking on a tab header) (via [`TabPlugin`]) and updates the content nodes accordingly.
+//!
+//! These components define "headless" widgets, meaning they provide the underlying
 //! functionality without any specific styling or appearance. This allows developers to
 //! customize the look and feel of the tabs according to their application's design requirements.
-//!
-//! This behavior is managed by the [`TabPlugin`], which registers the necessary systems and observers
-//! to handle tab interactions and state management.
 //!
 //! //! # Example
 //!
