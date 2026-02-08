@@ -26,7 +26,7 @@ use super::panels::{
 use super::semantic_names::SemanticFieldNames;
 use super::state::{InspectorCache, InspectorInternal, InspectorState, InspectorWindowState};
 use super::widgets::drag_value::DragValuePlugin;
-use super::widgets::tab_group::TabGroupPlugin;
+use super::widgets::tabs::TabPlugin;
 
 /// Marker component for the inspector window.
 #[derive(Component)]
@@ -54,7 +54,7 @@ impl Plugin for InspectorWindowPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(FeathersPlugins)
             .add_plugins(DragValuePlugin)
-            .add_plugins(TabGroupPlugin)
+            .add_plugins(TabPlugin)
             .insert_resource(UiTheme(create_dark_theme()))
             // Resources
             .init_resource::<InspectorState>()

@@ -19,7 +19,7 @@ use crate::gui::state::{
     InspectableObject, InspectorCache, InspectorInternal, InspectorState, ObjectListEntry,
     ObjectListTab,
 };
-use crate::gui::widgets::tab_group::{
+use crate::gui::widgets::tabs::{
     HasContent, InTabGroup, Tab, TabActivated, TabContentDisplayMode, TabGroup,
 };
 use crate::inspection::component_inspection::ComponentMetadataMap;
