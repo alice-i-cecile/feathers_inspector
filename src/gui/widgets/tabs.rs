@@ -10,7 +10,8 @@
 //!
 //! [`Tab`] entities are arranged into groups using a controlling [`TabGroup`] component.
 //! The [`TabGroup`] manages which tab is currently active and ensures that only the content of the active tab is visible at any given time.
-//! The link between [`Tab`] and [`TabGroup`] entities is established through the [`InTabGroup`]/[`HasTabs`] relationship.
+//! Each [`Tab`] should be a child (or grandchild or...) if a [`TabGroup`]: when an [`Activate`] event
+//! is sent to a [`Tab`] entity, we search upward to find the controlling [`TabGroup`].
 //!
 //! Underneath each [`Tab`] is a content entity, linked via the [`HasContent`]/[`ContentOfTab`] relationship.
 //! When a tab is activated, its content is shown, while its sibling tabs' content is hidden.
@@ -20,31 +21,6 @@
 //! These components define "headless" widgets, meaning they provide the underlying
 //! functionality without any specific styling or appearance. This allows developers to
 //! customize the look and feel of the tabs according to their application's design requirements.
-//!
-//! //! # Example
-//!
-//! ```rust
-//! # use bevy::prelude::*;
-//! # use feathers_inspector::gui::widgets::tab_group::{TabGroup, Tab, InTabGroup, HasContent};
-//!
-//! fn setup(mut commands: Commands) {
-//!     // 1. Create content nodes
-//!     let content_1 = commands.spawn(Node::default()).id();
-//!     let content_2 = commands.spawn(Node::default()).id();
-//!
-//!     // 2. Create tab buttons pointing to content
-//!     let tab_1 = commands.spawn((Tab, HasContent(content_1))).id();
-//!     let tab_2 = commands.spawn((Tab, HasContent(content_2))).id();
-//!
-//!     // 3. Create the group and assign tabs to it
-//!     let group = commands
-//!         .spawn(TabGroup::new(Some(tab_1)))
-//!         .id();
-//!
-//!     commands.entity(tab_1).insert(InTabGroup(group));
-//!     commands.entity(tab_2).insert(InTabGroup(group));
-//! }
-//! ```
 //!
 //! ## Feathers-Styled Tabs
 //!
@@ -87,16 +63,6 @@ impl TabGroup {
 #[derive(Component)]
 pub struct Tab;
 
-/// Designates a tab to a specific [`TabGroup`].
-#[derive(Component)]
-#[relationship(relationship_target = HasTabs)]
-pub struct InTabGroup(pub Entity);
-
-/// The collection of [`Tab`]s owned by a [`TabGroup`].
-#[derive(Component)]
-#[relationship_target(relationship = InTabGroup)]
-pub struct HasTabs(Vec<Entity>);
-
 /// Points to the content shown by a [`Tab`].
 #[derive(Component)]
 #[relationship(relationship_target = ContentOfTab)]
@@ -138,31 +104,44 @@ pub struct TabActivated {
 /// Observes for [`Activate`]d tab buttons to trigger the [`ActivateTab`] event.
 fn trigger_activate_tab_on_activate(
     on_activate: On<Activate>,
-    tabs: Query<Option<&InTabGroup>, With<Tab>>,
+    child_of: Query<&ChildOf>,
+    tabs: Query<&Tab>,
     tab_groups: Query<&TabGroup>,
     mut commands: Commands,
 ) {
     let clicked_entity = on_activate.entity;
 
-    match tabs.get(clicked_entity) {
-        Ok(Some(in_tab_group)) => {
-            let tab_group_entity = in_tab_group.0;
-            if tab_groups
-                .get(tab_group_entity)
-                .is_ok_and(|tab_group| tab_group.active_tab != Some(clicked_entity))
-            {
-                commands.trigger(ActivateTab {
-                    group: tab_group_entity,
-                    tab: clicked_entity,
-                });
-            }
-        }
+    // Ensure the clicked entity is a Tab
+    if !tabs.contains(clicked_entity) {
+        return;
+    }
 
-        Ok(None) => {
-            warn!("`Tab` entity {clicked_entity} doesn't belong to any `TabGroup`");
-        }
-        Err(_) => {
-            // Not a tab, ignore
+    let Ok(mut current_child_of) = child_of.get(clicked_entity) else {
+        warn!(
+            "Clicked tab entity {clicked_entity} has no parent, and so cannot be inside a TabGroup"
+        );
+        return;
+    };
+
+    let mut tab_group_found = false;
+
+    while !tab_group_found {
+        let parent_entity = current_child_of.0;
+        if let Ok(_tab_group) = tab_groups.get(parent_entity) {
+            tab_group_found = true;
+            commands.trigger(ActivateTab {
+                group: parent_entity,
+                tab: clicked_entity,
+            });
+        } else if let Ok(parent_child_of) = child_of.get(parent_entity) {
+            // Continue traversing up the hierarchy
+            current_child_of = parent_child_of
+        } else {
+            // Reached an entity that is not a tab and not a tab group, warn
+            warn!(
+                "Clicked tab entity {clicked_entity} is not inside a TabGroup (traversal stopped at {parent_entity})"
+            );
+            return;
         }
     }
 }
@@ -171,7 +150,6 @@ fn trigger_activate_tab_on_activate(
 fn show_content_on_activate_tab(
     on_activate_tab: On<ActivateTab>,
     mut tab_groups: Query<&mut TabGroup>,
-    in_tab_group: Query<&InTabGroup>,
     contents: Query<(&HasContent, Option<&TabContentDisplayMode>), With<Tab>>,
     mut nodes: Query<&mut Node>,
     mut commands: Commands,
@@ -179,23 +157,10 @@ fn show_content_on_activate_tab(
     let event = on_activate_tab.event();
     let tab_group = event.group;
     let tab_to_activate = event.tab;
-    // The tab we activate must belong to its `TabGroup`.
-    match in_tab_group.get(tab_to_activate) {
-        Ok(group_of_tab_to_activate) if group_of_tab_to_activate.0 != tab_group => {
-            warn!(
-                "Tab {:?} belongs to group {:?}, but ActivateTab event targeted group {:?}",
-                tab_to_activate, group_of_tab_to_activate.0, tab_group
-            );
-            return;
-        }
-        Err(_) => {
-            warn!("Tab {tab_to_activate} in ActivateTab event is not in any TabGroup");
-            return;
-        }
-        _ => (),
-    }
+
     if let Ok(mut tab_group) = tab_groups.get_mut(tab_group) {
         if let Some(tab_to_deactivate) = tab_group.active_tab {
+            // Do nothing if the active tab is clicked again, to avoid unnecessary UI updates.
             if tab_to_deactivate == tab_to_activate {
                 return;
             }
@@ -294,10 +259,10 @@ mod tests {
         let tab_group_entity = app.world_mut().spawn(TabGroup::new(Some(tab1))).id();
         app.world_mut()
             .entity_mut(tab1)
-            .insert(InTabGroup(tab_group_entity));
+            .insert(ChildOf(tab_group_entity));
         app.world_mut()
             .entity_mut(tab2)
-            .insert(InTabGroup(tab_group_entity));
+            .insert(ChildOf(tab_group_entity));
 
         // Flush archetype updates so queries in observers work correctly
         app.update();
@@ -393,13 +358,13 @@ mod tests {
         let tab_group_entity = app.world_mut().spawn(TabGroup::new(Some(tab1))).id();
         app.world_mut()
             .entity_mut(tab1)
-            .insert(InTabGroup(tab_group_entity));
+            .insert(ChildOf(tab_group_entity));
         app.world_mut()
             .entity_mut(tab2)
-            .insert(InTabGroup(tab_group_entity));
+            .insert(ChildOf(tab_group_entity));
         app.world_mut()
             .entity_mut(tab3)
-            .insert(InTabGroup(tab_group_entity));
+            .insert(ChildOf(tab_group_entity));
 
         // Flush archetype updates so queries in observers work correctly
         app.update();
@@ -455,7 +420,7 @@ mod tests {
         let tab_group_entity = app.world_mut().spawn(TabGroup::default()).id();
         app.world_mut()
             .entity_mut(tab)
-            .insert(InTabGroup(tab_group_entity));
+            .insert(ChildOf(tab_group_entity));
 
         app.update();
 
@@ -494,7 +459,7 @@ mod tests {
         let tab_in_a = app.world_mut().spawn(Tab).id();
         app.world_mut()
             .entity_mut(tab_in_a)
-            .insert((HasContent(content_node), InTabGroup(group_a)));
+            .insert((HasContent(content_node), ChildOf(group_a)));
         app.update();
 
         // Attempt to activate `tab_in_a` using `group_b`

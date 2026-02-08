@@ -19,9 +19,7 @@ use crate::gui::state::{
     InspectableObject, InspectorCache, InspectorInternal, InspectorState, ObjectListEntry,
     ObjectListTab,
 };
-use crate::gui::widgets::tabs::{
-    HasContent, InTabGroup, Tab, TabActivated, TabContentDisplayMode, TabGroup,
-};
+use crate::gui::widgets::tabs::{HasContent, Tab, TabActivated, TabContentDisplayMode, TabGroup};
 use crate::inspection::component_inspection::ComponentMetadataMap;
 use crate::inspection::entity_inspection::{MultipleEntityInspectionSettings, NameFilter};
 use crate::memory_size::MemorySize;
@@ -344,7 +342,7 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                     )),
                 ))
                 .id();
-            let tab_group_entity = panel
+            let _tab_group_entity = panel
                 .spawn((
                     Node {
                         width: Percent(100.0),
@@ -360,14 +358,6 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                 ))
                 .add_children(&[entities_tab_entity, resources_tab_entity])
                 .id();
-            panel
-                .commands()
-                .entity(entities_tab_entity)
-                .insert(InTabGroup(tab_group_entity));
-            panel
-                .commands()
-                .entity(resources_tab_entity)
-                .insert(InTabGroup(tab_group_entity));
 
             // Search bar placeholder
             panel
