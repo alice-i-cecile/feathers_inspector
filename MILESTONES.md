@@ -113,10 +113,11 @@
 
 ## Tabs
 
-- [ ] Create a simple feathers-based tab abstraction
+- [x] Create a headless tab abstraction
+- [ ] Create a Feathers-based style for the tabs
+- [ ] Add an enum to control tab behavior on swap: despawn/disable/hide
 - [ ] Split entities into tabs based on categories
-- [ ] Move resources inspection into a tab
-- [ ] Close and open tabs
+- [ ] Close and open new tabs
 - [ ] Reorder tabs
 
 ## Pop-out
