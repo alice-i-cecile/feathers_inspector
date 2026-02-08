@@ -15,6 +15,7 @@ use bevy::window::{WindowRef, WindowResolution};
 
 use crate::gui::panels::{
     RefreshObjectList, on_object_row_click, refresh_object_list_periodically,
+    update_active_objects_tab_on_activate_tab,
 };
 
 use super::config::InspectorConfig;
@@ -25,6 +26,7 @@ use super::panels::{
 use super::semantic_names::SemanticFieldNames;
 use super::state::{InspectorCache, InspectorInternal, InspectorState, InspectorWindowState};
 use super::widgets::drag_value::DragValuePlugin;
+use super::widgets::tab_group::TabGroupPlugin;
 
 /// Marker component for the inspector window.
 #[derive(Component)]
@@ -52,6 +54,7 @@ impl Plugin for InspectorWindowPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(FeathersPlugins)
             .add_plugins(DragValuePlugin)
+            .add_plugins(TabGroupPlugin)
             .insert_resource(UiTheme(create_dark_theme()))
             // Resources
             .init_resource::<InspectorState>()
@@ -97,7 +100,8 @@ impl Plugin for InspectorWindowPlugin {
                     handle_window_close,
                 ),
             )
-            .add_observer(on_object_row_click);
+            .add_observer(on_object_row_click)
+            .add_observer(update_active_objects_tab_on_activate_tab);
     }
 }
 
