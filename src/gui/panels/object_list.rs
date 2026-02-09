@@ -301,18 +301,24 @@ pub fn update_active_objects_tab_on_activate_tab(
     on_activate_tab: On<TabActivated>,
     has_contents: Query<&HasContent, With<Tab>>,
     object_list_contents: Query<&ObjectListContent>,
+    children: Query<&Children>,
     mut state: ResMut<InspectorState>,
     mut writer: MessageWriter<RefreshObjectList>,
 ) {
     let event = on_activate_tab.event();
     if let Ok(has_content) = has_contents.get(event.tab) {
-        let content_entity = has_content.0;
-        if let Ok(object_list_content) = object_list_contents.get(content_entity) {
-            let object_list_tab = object_list_content.tab;
+        let content_parent_entity = has_content.0;
+        if let Ok(children) = children.get(content_parent_entity) {
+            for child in children {
+                if let Ok(object_list_content) = object_list_contents.get(*child) {
+                    let object_list_tab = object_list_content.tab;
 
-            state.active_objects_tab = object_list_tab;
-            // Forced UI sync to avoid showing stale state.
-            writer.write(RefreshObjectList);
+                    state.active_objects_tab = object_list_tab;
+                    // Forced UI sync to avoid showing stale state.
+                    writer.write(RefreshObjectList);
+                    return;
+                }
+            }
         }
     }
 }
