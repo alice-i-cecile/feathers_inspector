@@ -110,6 +110,9 @@
 - [x] Ensure that spawned and despawned entities / components are updated correctly
   - [x] Timer-based update
 - [ ] Inspect resources
+  - [x] Add tabs, and switch between components and resources
+  - [x] Populate object list
+  - [ ] Populate detail panel
 
 ## Tabs
 
