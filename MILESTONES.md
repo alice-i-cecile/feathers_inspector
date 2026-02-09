@@ -114,7 +114,6 @@
 ## Tabs
 
 - [x] Create a headless tab abstraction
-- [ ] Revisit the `HasContent` relationship
 - [ ] Create a Feathers-based style for the tabs
 - [ ] Add an enum to control tab behavior on swap: despawn/disable/hide
 - [ ] Split entities into tabs based on categories
@@ -157,6 +156,13 @@
   - [x] Show number of entities by archetype
   - [x] Show sorted list
 - [x] List total number of resources
+
+## Cleanup
+
+- [ ] Make the search bar part of the tab content
+- [ ] Remove / rethink `InspectorCache`
+- [ ] Consider moving away from a central `InspectorState`, or at least move it to a component
+- [ ] Revisit the `HasContent` relationship
 
 ## Categories
 
