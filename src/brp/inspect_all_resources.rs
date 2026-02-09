@@ -29,6 +29,6 @@ pub struct Params {
 
 pub fn process_remote_request(In(params): In<Option<Value>>, world: &World) -> BrpResult {
     let Params { settings } = parse_some(params)?;
-    let inspection = world.inspect_all_resources(settings);
-    serde_json::to_value(inspection).map_err(BrpError::internal)
+    let inspections = world.inspect_all_resources(settings);
+    serde_json::to_value(inspections).map_err(BrpError::internal)
 }

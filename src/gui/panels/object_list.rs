@@ -22,6 +22,7 @@ use crate::gui::state::{
 use crate::gui::widgets::tabs::{HasContent, Tab, TabActivated, TabContentDisplayMode, TabGroup};
 use crate::inspection::component_inspection::ComponentMetadataMap;
 use crate::inspection::entity_inspection::{MultipleEntityInspectionSettings, NameFilter};
+use crate::inspection::resource_inspection::ResourceInspectionSettings;
 use crate::memory_size::MemorySize;
 
 /// Marker component for the object list panel container.
@@ -157,9 +158,22 @@ fn generate_entity_list(world: &mut World) -> Vec<ObjectListEntry> {
 /// applying any filters from the [`InspectorState`].
 ///
 /// Part of the [`generate_object_list`] system.
-fn generate_resource_list(_world: &mut World) -> Vec<ObjectListEntry> {
-    // Placeholder implementation
-    vec![]
+fn generate_resource_list(world: &mut World) -> Vec<ObjectListEntry> {
+    // TODO: add filtering based on state.filter_text
+
+    let inspections = world.inspect_all_resources(ResourceInspectionSettings::default());
+
+    inspections
+        .iter()
+        .map(|inspection| {
+            let name = inspection.name.shortname();
+            ObjectListEntry::Resource {
+                component_id: inspection.component_id,
+                display_name: name.to_string(),
+                memory_size: inspection.memory_size.unwrap_or(MemorySize::new(0)),
+            }
+        })
+        .collect()
 }
 
 /// System that syncs the object list display with the cache.
