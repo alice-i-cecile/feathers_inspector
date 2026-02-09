@@ -153,12 +153,32 @@ fn show_content_on_activate_tab(
     contents: Query<(&HasContent, Option<&TabContentDisplayMode>), With<Tab>>,
     mut nodes: Query<&mut Node>,
     mut commands: Commands,
+    parents: Query<&ChildOf>,
 ) {
     let event = on_activate_tab.event();
-    let tab_group = event.group;
+    let tab_group_entity = event.group;
     let tab_to_activate = event.tab;
 
-    if let Ok(mut tab_group) = tab_groups.get_mut(tab_group) {
+    // Verify that the tab belongs to the group
+    let mut is_descendant = false;
+    let mut current_entity = tab_to_activate;
+    while let Ok(child_of) = parents.get(current_entity) {
+        if child_of.0 == tab_group_entity {
+            is_descendant = true;
+            break;
+        }
+        current_entity = child_of.0;
+    }
+
+    if !is_descendant {
+        warn!(
+            "Attempted to activate tab {:?} which is not a descendant of group {:?}",
+            tab_to_activate, tab_group_entity
+        );
+        return;
+    }
+
+    if let Ok(mut tab_group) = tab_groups.get_mut(tab_group_entity) {
         if let Some(tab_to_deactivate) = tab_group.active_tab {
             // Do nothing if the active tab is clicked again, to avoid unnecessary UI updates.
             if tab_to_deactivate == tab_to_activate {
@@ -169,7 +189,7 @@ fn show_content_on_activate_tab(
         }
         tab_group.active_tab = Some(tab_to_activate);
     } else {
-        warn!("TabGroup entity {:?} not found", tab_group);
+        warn!("TabGroup entity {:?} not found", tab_group_entity);
     }
 
     let new_display_mode = if let Ok((_, Some(mode))) = contents.get(tab_to_activate) {
@@ -181,7 +201,7 @@ fn show_content_on_activate_tab(
     set_tab_content_display(&contents, &mut nodes, tab_to_activate, new_display_mode);
 
     commands.trigger(TabActivated {
-        group: tab_group,
+        group: tab_group_entity,
         tab: tab_to_activate,
     });
 }
