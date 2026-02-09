@@ -11,7 +11,7 @@ use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::picking::hover::HoverMap;
 use bevy::prelude::*;
 use bevy::ui::Val::*;
-use bevy::window::{WindowRef, WindowResolution};
+use bevy::window::{PrimaryWindow, WindowRef, WindowResolution};
 
 use crate::gui::panels::{
     RefreshObjectList, on_object_row_click, refresh_object_list_periodically,
@@ -106,7 +106,11 @@ impl Plugin for InspectorWindowPlugin {
 }
 
 /// Spawns the inspector window on startup.
-fn setup_inspector_window(mut commands: Commands, mut window_state: ResMut<InspectorWindowState>) {
+fn setup_inspector_window(
+    primary_window: Query<Entity, With<PrimaryWindow>>,
+    mut commands: Commands,
+    mut window_state: ResMut<InspectorWindowState>,
+) {
     let window_entity = commands
         .spawn((
             Window {
@@ -120,6 +124,15 @@ fn setup_inspector_window(mut commands: Commands, mut window_state: ResMut<Inspe
             ViewVisibility::default(),
         ))
         .id();
+
+    // Inserting the inspector window as a child of the primary window
+    // allows the app to close when closing the primary window.
+    // Otherwise, you would need to close both windows.
+    if let Ok(primary_window_entity) = primary_window.single() {
+        commands
+            .entity(window_entity)
+            .insert(ChildOf(primary_window_entity));
+    }
 
     window_state.window_entity = Some(window_entity);
     window_state.is_open = true;
