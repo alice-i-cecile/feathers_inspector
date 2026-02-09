@@ -85,8 +85,7 @@ pub struct ActivateTab {
     pub group: Entity,
     /// The [`Tab`] entity that needs to be made visible.
     ///
-    /// It must be an entity that belongs to the `group`
-    /// via the [`InTabGroup`] relationship.
+    /// It must be a child of the `group` entity.
     pub tab: Entity,
 }
 
