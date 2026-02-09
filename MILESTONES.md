@@ -114,6 +114,7 @@
 ## Tabs
 
 - [x] Create a headless tab abstraction
+- [ ] Revisit the `HasContent` relationship
 - [ ] Create a Feathers-based style for the tabs
 - [ ] Add an enum to control tab behavior on swap: despawn/disable/hide
 - [ ] Split entities into tabs based on categories
