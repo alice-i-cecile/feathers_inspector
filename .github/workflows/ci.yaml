@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
@@ -13,7 +17,7 @@ env:
   CARGO_PROFILE_DEV_DEBUG: 0
 
 jobs:
-  # Run cargo test --all-features
+  # Run test suite
   test:
     name: Test Suite
     runs-on: ubuntu-latest
@@ -23,49 +27,36 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
-      - name: Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.toml') }}
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Install Dependencies
         run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
       - name: Run cargo test
-        run: cargo test --all-features
+        run: cargo test --all-features --features "bevy/dynamic_linking"
 
-  # Run cargo clippy --all-targets --all-features -- -D warnings
+  # Run Clippy with various feature combinations
   clippy_check:
     name: Clippy
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      matrix:
+        features: ["--no-default-features", "", "--all-features"]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
-      - name: Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.toml') }}
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
       - name: Install Dependencies
         run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
       - name: Run clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets ${{ matrix.features }} -- -D warnings
 
   # Run cargo fmt --all -- --check
   format:
@@ -90,21 +81,24 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
-      - name: Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-doc-${{ hashFiles('**/Cargo.toml') }}
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Install Dependencies
         run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
       - name: Run cargo doc
         env:
           RUSTDOCFLAGS: "-D warnings"
         run: cargo doc --workspace --document-private-items --no-deps
+
+  # Check for typos
+  typos:
+    name: Spell Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Check for typos
+        uses: crate-ci/typos@v1
