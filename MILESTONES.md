@@ -160,27 +160,45 @@
   - [x] Show sorted list
 - [x] List total number of resources
 
-## Cleanup
+## Code Cleanup
 
 - [ ] Make the search bar part of the tab content
 - [ ] Remove / rethink `InspectorCache`
 - [ ] Consider moving away from a central `InspectorState`, or at least move it to a component
 - [ ] Revisit the `HasContent` relationship
+- [ ] Clearly distinguish between 0 B and unknown B
+
+## UX polish
+
+- [ ] Add a pause / manually refresh options to the entity list
+- [ ] Scroll wheel is way too slow
+- [ ] Advanced entity sorting
+  - [ ] Exclude sparse-set components and ensure relatively stable sorting
+  - [ ] Persist entity clusters and incrementally recompute
+- [ ] Easily toggle visibility
+- [ ] Pin entities
+
+## Visual polish
+
+- [ ] Object list entries are a bit too tight
+- [ ] Tabs are ugly
+- [ ] Show selected object in object list
+- [ ] Show selected tab
 
 ## Categories
 
 - [ ] Define user-extensible categories for entities to be filtered by
 - [ ] Return and log category as part of `EntityInspection`
 
-## Out-of scope
+## Text input features
 
-- GUI value editing
-  - Needs text input
-  - Lots of work
-- Spawn, despawn, insert, remove components, reparenting...
-  - Really wants value editing to be useful
-- Advanced entity sorting
-  - Exclude sparse-set components and ensure relatively stable sorting
-  - Persist entity clusters and incrementally recompute
-- GUI-based search
-  - Requires text input to work well
+- [ ] GUI value editing
+- [ ] Search
+
+## Structural changes
+
+- [ ] Spawn
+- [ ] Despawn
+- [ ] Insert
+- [ ] Remove
+- [ ] Disable + enable
