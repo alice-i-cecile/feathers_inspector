@@ -17,9 +17,37 @@ env:
   CARGO_PROFILE_DEV_DEBUG: 0
 
 jobs:
-  # Run test suite
+  # Check for typos
+  typos:
+    name: Spell Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Check for typos
+        uses: crate-ci/typos@v1
+
+  # Run `cargo fmt`
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Run cargo fmt
+        run: cargo fmt --all -- --check
+
+  # Run `cargo test` (with dynamic linking) AND `cargo doc`
+  # Consolidated into one job to ensure reuse of build artifacts.
   test:
-    name: Test Suite
+    name: Test Suite & Docs
+    needs: [typos, format]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -35,10 +63,15 @@ jobs:
         uses: Swatinem/rust-cache@v2
       - name: Run cargo test
         run: cargo test --all-features --features "bevy/dynamic_linking"
+      - name: Run cargo doc
+        env:
+          RUSTDOCFLAGS: "-D warnings"
+        run: cargo doc --workspace --document-private-items --no-deps
 
-  # Run Clippy with various feature combinations
+  # Run cargo clippy with various feature combinations
   clippy_check:
     name: Clippy
+    needs: [typos, format]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -57,48 +90,3 @@ jobs:
         uses: Swatinem/rust-cache@v2
       - name: Run clippy
         run: cargo clippy --all-targets ${{ matrix.features }} -- -D warnings
-
-  # Run cargo fmt --all -- --check
-  format:
-    name: Format
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
-      - name: Run cargo fmt
-        run: cargo fmt --all -- --check
-
-  # Run RUSTDOCFLAGS="-D warnings" cargo doc --workspace --document-private-items --no-deps
-  docs:
-    name: Docs
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-      - name: Install Dependencies
-        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
-      - name: Run cargo doc
-        env:
-          RUSTDOCFLAGS: "-D warnings"
-        run: cargo doc --workspace --document-private-items --no-deps
-
-  # Check for typos
-  typos:
-    name: Spell Check
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-      - name: Check for typos
-        uses: crate-ci/typos@v1
