@@ -66,7 +66,7 @@ jobs:
       - name: Run cargo doc
         env:
           RUSTDOCFLAGS: "-D warnings"
-        run: cargo doc --workspace --document-private-items --no-deps
+        run: cargo doc --workspace --document-private-items --all-features --no-deps
 
   # Run cargo clippy with various feature combinations
   clippy_check:
