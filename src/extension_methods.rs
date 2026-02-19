@@ -250,7 +250,7 @@ impl WorldInspectionExtensionTrait for World {
         let component_info = self.components().get_info(component_id).ok_or(
             ComponentInspectionError::ComponentIdNotRegistered(component_id),
         )?;
-        let size = Some(MemorySize::new(component_info.layout().size()));
+        let memory_size = Some(MemorySize::new(component_info.layout().size()));
 
         if !self.entity(entity).contains_id(component_id) {
             return Err(ComponentInspectionError::ComponentNotFound(component_id));
@@ -258,21 +258,18 @@ impl WorldInspectionExtensionTrait for World {
 
         let name = component_info.name();
 
-        let (value, memory_size) = if settings.detail_level == ComponentDetailLevel::Names {
-            (None, size)
+        let value = if settings.detail_level == ComponentDetailLevel::Names {
+            None
         } else {
             match metadata.type_id {
                 Some(type_id) => match get_reflected_component_ref(self, entity, type_id) {
-                    Ok(reflected) => (
-                        Some(reflected_value_to_string(
-                            reflected,
-                            settings.full_type_names,
-                        )),
-                        size,
-                    ),
-                    Err(err) => (Some(format!("<Unreflectable: {}>", err)), size),
+                    Ok(reflected) => Some(reflected_value_to_string(
+                        reflected,
+                        settings.full_type_names,
+                    )),
+                    Err(err) => Some(format!("<Unreflectable: {}>", err)),
                 },
-                None => (Some("Dynamic Type".to_string()), None),
+                None => Some("Dynamic Type".to_string()),
             }
         };
 
