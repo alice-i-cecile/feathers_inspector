@@ -40,15 +40,11 @@ pub struct ComponentInspection {
         serde(with = "crate::serde_conversions::debug_name")
     )]
     pub name: DebugName,
-    /// The size, in bytes, of the component value.
+    /// The shallow size of the component in memory.
     ///
     /// Note that this may differ from the size of the component type
     /// if the component is a dynamically-sized type: heap-allocated data is not included.
-    ///
-    /// Computing this value requires reflection of the component value.
-    /// As a result, it may be `None` if the component type is not reflected and registered,
-    /// or if [`ComponentDetailLevel::Names`] was specified when inspecting the component.
-    pub memory_size: Option<MemorySize>,
+    pub memory_size: MemorySize,
     /// The value of the component as a string.
     ///
     /// This information is gathered via reflection,
@@ -61,14 +57,8 @@ impl Display for ComponentInspection {
         let shortname = self.name.shortname();
 
         match &self.value {
-            Some(value) => match &self.memory_size {
-                Some(size) => write!(f, "{shortname} ({}): {value}", size)?,
-                None => write!(f, "{shortname}: {value}")?,
-            },
-            None => match &self.memory_size {
-                Some(size) => write!(f, "{shortname} ({})", size)?,
-                None => write!(f, "{shortname}")?,
-            },
+            Some(value) => write!(f, "{shortname} ({}): {value}", &self.memory_size)?,
+            None => write!(f, "{shortname} ({})", &self.memory_size)?,
         }
 
         Ok(())

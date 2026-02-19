@@ -194,8 +194,10 @@ impl WorldInspectionExtensionTrait for World {
 
             let total_bytes = components
                 .iter()
-                .filter_map(|comp| comp.memory_size.as_ref())
-                .fold(0usize, |acc, size| acc + size.as_bytes());
+                .map(|comp| comp.memory_size)
+                .fold(std::mem::size_of::<Entity>(), |acc, size| {
+                    acc + size.as_bytes()
+                });
             let total_memory_size = MemorySize::new(total_bytes);
 
             (Some(components), Some(total_memory_size))
@@ -248,6 +250,7 @@ impl WorldInspectionExtensionTrait for World {
         let component_info = self.components().get_info(component_id).ok_or(
             ComponentInspectionError::ComponentIdNotRegistered(component_id),
         )?;
+        let memory_size = MemorySize::new(component_info.layout().size());
 
         if !self.entity(entity).contains_id(component_id) {
             return Err(ComponentInspectionError::ComponentNotFound(component_id));
@@ -255,21 +258,18 @@ impl WorldInspectionExtensionTrait for World {
 
         let name = component_info.name();
 
-        let (value, memory_size) = if settings.detail_level == ComponentDetailLevel::Names {
-            (None, None)
+        let value = if settings.detail_level == ComponentDetailLevel::Names {
+            None
         } else {
             match metadata.type_id {
                 Some(type_id) => match get_reflected_component_ref(self, entity, type_id) {
-                    Ok(reflected) => (
-                        Some(reflected_value_to_string(
-                            reflected,
-                            settings.full_type_names,
-                        )),
-                        Some(MemorySize::new(size_of_val(reflected))),
-                    ),
-                    Err(err) => (Some(format!("<Unreflectable: {}>", err)), None),
+                    Ok(reflected) => Some(reflected_value_to_string(
+                        reflected,
+                        settings.full_type_names,
+                    )),
+                    Err(err) => Some(format!("<Unreflectable: {}>", err)),
                 },
-                None => (Some("Dynamic Type".to_string()), None),
+                None => Some("Dynamic Type".to_string()),
             }
         };
 
@@ -317,6 +317,7 @@ impl WorldInspectionExtensionTrait for World {
             .components()
             .get_info(component_id)
             .ok_or(ResourceInspectionError::ResourceNotFound(component_id))?;
+        let memory_size = MemorySize::new(component_info.layout().size());
 
         let name = component_info.name();
         let type_id = component_info.type_id();
@@ -327,15 +328,13 @@ impl WorldInspectionExtensionTrait for World {
             None => None,
         };
 
-        let (value, memory_size) = match type_id {
+        let value = match type_id {
             Some(type_id) => match get_reflected_resource_ref(self, type_id) {
-                Ok(reflected) => (
-                    reflected_value_to_string(reflected, settings.full_type_names),
-                    Some(MemorySize::new(size_of_val(reflected))),
-                ),
-                Err(err) => (format!("<Unreflectable: {}>", err), None),
+                Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
+
+                Err(err) => format!("<Unreflectable: {}>", err),
             },
-            None => ("Dynamic Type".to_string(), None),
+            None => "Dynamic Type".to_string(),
         };
 
         Ok(ResourceInspection {
