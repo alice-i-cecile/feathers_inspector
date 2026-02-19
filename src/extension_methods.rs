@@ -194,7 +194,7 @@ impl WorldInspectionExtensionTrait for World {
 
             let total_bytes = components
                 .iter()
-                .filter_map(|comp| comp.memory_size.as_ref())
+                .map(|comp| comp.memory_size)
                 .fold(std::mem::size_of::<Entity>(), |acc, size| {
                     acc + size.as_bytes()
                 });
@@ -250,7 +250,7 @@ impl WorldInspectionExtensionTrait for World {
         let component_info = self.components().get_info(component_id).ok_or(
             ComponentInspectionError::ComponentIdNotRegistered(component_id),
         )?;
-        let memory_size = Some(MemorySize::new(component_info.layout().size()));
+        let memory_size = MemorySize::new(component_info.layout().size());
 
         if !self.entity(entity).contains_id(component_id) {
             return Err(ComponentInspectionError::ComponentNotFound(component_id));
