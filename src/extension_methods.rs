@@ -317,6 +317,7 @@ impl WorldInspectionExtensionTrait for World {
             .components()
             .get_info(component_id)
             .ok_or(ResourceInspectionError::ResourceNotFound(component_id))?;
+        let memory_size = MemorySize::new(component_info.layout().size());
 
         let name = component_info.name();
         let type_id = component_info.type_id();
@@ -327,15 +328,13 @@ impl WorldInspectionExtensionTrait for World {
             None => None,
         };
 
-        let (value, memory_size) = match type_id {
+        let value = match type_id {
             Some(type_id) => match get_reflected_resource_ref(self, type_id) {
-                Ok(reflected) => (
-                    reflected_value_to_string(reflected, settings.full_type_names),
-                    Some(MemorySize::new(size_of_val(reflected))),
-                ),
-                Err(err) => (format!("<Unreflectable: {}>", err), None),
+                Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
+
+                Err(err) => format!("<Unreflectable: {}>", err),
             },
-            None => ("Dynamic Type".to_string(), None),
+            None => "Dynamic Type".to_string(),
         };
 
         Ok(ResourceInspection {

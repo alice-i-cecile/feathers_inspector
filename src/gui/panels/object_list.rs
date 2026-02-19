@@ -207,7 +207,7 @@ fn generate_resource_list(world: &mut World) -> Vec<ObjectListEntry> {
             ObjectListEntry::Resource {
                 component_id: inspection.component_id,
                 display_name: name.to_string(),
-                memory_size: inspection.memory_size.unwrap_or(MemorySize::new(0)),
+                memory_size: inspection.memory_size,
             }
         })
         .collect()

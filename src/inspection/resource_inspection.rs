@@ -39,7 +39,7 @@ pub struct ResourceInspection {
     /// The size of the resource in memory.
     ///
     /// This is computed using [`core::mem::size_of_val`], and requires reflection of the resource value.
-    pub memory_size: Option<MemorySize>,
+    pub memory_size: MemorySize,
     /// The type information of the resource.
     ///
     /// This contains metadata about the resource's type,
@@ -59,10 +59,7 @@ pub struct ResourceInspection {
 impl Display for ResourceInspection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let short_name = self.name.shortname();
-        match &self.memory_size {
-            Some(size) => write!(f, "{} ({}): {}", short_name, size, self.value)?,
-            None => write!(f, "{}: {}", short_name, self.value)?,
-        }
+        write!(f, "{} ({}): {}", short_name, self.memory_size, self.value)?;
 
         Ok(())
     }
