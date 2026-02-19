@@ -36,9 +36,10 @@ pub struct ResourceInspection {
     /// Note that dynamic types will not have a [`TypeId`].
     #[cfg_attr(feature = "serde", serde(skip))]
     pub type_id: Option<TypeId>,
-    /// The size of the resource in memory.
+    /// The shallow size of the resource in memory.
     ///
-    /// This is computed using [`core::mem::size_of_val`], and requires reflection of the resource value.
+    /// Note that this may differ from the size of the resource type
+    /// if it is a dynamically-sized: heap-allocated data is not included.
     pub memory_size: MemorySize,
     /// The type information of the resource.
     ///
