@@ -66,8 +66,7 @@ pub fn fuzzy_resource_name_to_id(world: &World, fuzzy_name: &str) -> Option<Comp
     let processed_fuzzy_name = fuzzy_name.trim().to_lowercase();
 
     // TODO: this should be much easier to look up, but Bevy's API for this is limited.
-    let resources = &world.storages().resources;
-    let resource_ids = resources.iter().map(|(id, _)| id);
+    let resource_ids = world.resource_entities().iter().map(|(id, _)| *id);
     let resource_names: Vec<(ComponentId, String)> = resource_ids
         .filter_map(|id| {
             let name = world.components().get_name(id)?;

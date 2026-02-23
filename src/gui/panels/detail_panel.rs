@@ -10,7 +10,7 @@ use bevy::feathers::controls::{ButtonProps, button};
 use bevy::feathers::theme::ThemeBackgroundColor;
 use bevy::feathers::tokens;
 use bevy::prelude::*;
-use bevy::reflect::{ReflectRef, VariantType};
+use bevy::reflect::{ReflectRef, enums::VariantType};
 use bevy::ui::Val::*;
 use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar, observe};
 
@@ -226,7 +226,7 @@ fn spawn_empty_state_exclusive(
         p.spawn((
             Text::new(message),
             TextFont {
-                font_size: body_font_size,
+                font_size: FontSize::Px(body_font_size),
                 ..default()
             },
             TextColor(muted_text_color),
@@ -248,7 +248,7 @@ fn spawn_error_message(world: &mut World, parent: Entity, config: &InspectorConf
         p.spawn((
             Text::new(message),
             TextFont {
-                font_size: body_font_size,
+                font_size: FontSize::Px(body_font_size),
                 ..default()
             },
             TextColor(error_text_color),
@@ -603,7 +603,7 @@ fn spawn_components_tab_exclusive(
                         *resolved_name, component_count, memory_display
                     )),
                     TextFont {
-                        font_size: title_font_size,
+                        font_size: FontSize::Px(title_font_size),
                         ..default()
                     },
                     TextColor(Color::WHITE),
@@ -634,7 +634,7 @@ fn spawn_components_tab_exclusive(
                         card.spawn((
                             Text::new(format!("{} | {}", card_data.name, card_data.size)),
                             TextFont {
-                                font_size: body_font_size,
+                                font_size: FontSize::Px(body_font_size),
                                 ..default()
                             },
                             TextColor(Color::srgba(0.9, 0.9, 0.9, 1.0)),
@@ -662,7 +662,7 @@ fn spawn_components_tab_exclusive(
                                 row.spawn((
                                     Text::new(format!("{}:", field.name)),
                                     TextFont {
-                                        font_size: small_font_size,
+                                        font_size: FontSize::Px(small_font_size),
                                         ..default()
                                     },
                                     TextColor(field_name_color),
@@ -701,7 +701,7 @@ fn spawn_components_tab_exclusive(
                                     .with_child((
                                         Text::new(format!("{:.2}", editable.numeric_value)),
                                         TextFont {
-                                            font_size: small_font_size,
+                                            font_size: FontSize::Px(small_font_size),
                                             ..default()
                                         },
                                         TextColor(Color::srgba(0.9, 0.9, 0.6, 1.0)), // Yellow for editable
@@ -711,7 +711,7 @@ fn spawn_components_tab_exclusive(
                                     row.spawn((
                                         Text::new(field.value.clone()),
                                         TextFont {
-                                            font_size: small_font_size,
+                                            font_size: FontSize::Px(small_font_size),
                                             ..default()
                                         },
                                         TextColor(muted_text_color),
@@ -725,7 +725,7 @@ fn spawn_components_tab_exclusive(
                             card.spawn((
                                 Text::new("<no reflected data>"),
                                 TextFont {
-                                    font_size: small_font_size,
+                                    font_size: FontSize::Px(small_font_size),
                                     ..default()
                                 },
                                 TextColor(muted_text_color),
@@ -798,7 +798,7 @@ fn spawn_relationships_tab_exclusive(
         p.spawn((
             Text::new("Parent"),
             TextFont {
-                font_size: title_font_size,
+                font_size: FontSize::Px(title_font_size),
                 ..default()
             },
             TextColor(Color::WHITE),
@@ -823,7 +823,7 @@ fn spawn_relationships_tab_exclusive(
                         bevy::prelude::Spawn((
                             Text::new(label),
                             TextFont {
-                                font_size: body_font_size,
+                                font_size: FontSize::Px(body_font_size),
                                 ..default()
                             },
                             TextColor(Color::srgba(0.9, 0.9, 0.9, 1.0)),
@@ -836,7 +836,7 @@ fn spawn_relationships_tab_exclusive(
             p.spawn((
                 Text::new("No parent (root entity)"),
                 TextFont {
-                    font_size: body_font_size,
+                    font_size: FontSize::Px(body_font_size),
                     ..default()
                 },
                 TextColor(muted_text_color),
@@ -851,7 +851,7 @@ fn spawn_relationships_tab_exclusive(
         p.spawn((
             Text::new(format!("Children ({})", children_len)),
             TextFont {
-                font_size: title_font_size,
+                font_size: FontSize::Px(title_font_size),
                 ..default()
             },
             TextColor(Color::WHITE),
@@ -865,7 +865,7 @@ fn spawn_relationships_tab_exclusive(
             p.spawn((
                 Text::new("No children"),
                 TextFont {
-                    font_size: body_font_size,
+                    font_size: FontSize::Px(body_font_size),
                     ..default()
                 },
                 TextColor(muted_text_color),
@@ -886,7 +886,7 @@ fn spawn_relationships_tab_exclusive(
                             bevy::prelude::Spawn((
                                 Text::new(label),
                                 TextFont {
-                                    font_size: body_font_size,
+                                    font_size: FontSize::Px(body_font_size),
                                     ..default()
                                 },
                                 TextColor(Color::srgba(0.9, 0.9, 0.9, 1.0)),
@@ -940,7 +940,7 @@ pub fn spawn_detail_panel(parent: &mut ChildSpawnerCommands<'_>, config: &Inspec
                             bevy::prelude::Spawn((
                                 Text::new("Components"),
                                 TextFont {
-                                    font_size: config.body_font_size,
+                                    font_size: FontSize::Px(config.body_font_size),
                                     ..default()
                                 },
                             )),
@@ -956,7 +956,7 @@ pub fn spawn_detail_panel(parent: &mut ChildSpawnerCommands<'_>, config: &Inspec
                             bevy::prelude::Spawn((
                                 Text::new("Relationships"),
                                 TextFont {
-                                    font_size: config.body_font_size,
+                                    font_size: FontSize::Px(config.body_font_size),
                                     ..default()
                                 },
                             )),

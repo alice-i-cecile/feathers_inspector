@@ -302,7 +302,7 @@ impl WorldInspectionExtensionTrait for World {
         &self,
         settings: ResourceInspectionSettings,
     ) -> Result<ResourceInspection, ResourceInspectionError> {
-        let component_id = self.components().resource_id::<R>().ok_or(
+        let component_id = self.components().component_id::<R>().ok_or(
             ResourceInspectionError::ResourceNotRegistered(type_name::<R>()),
         )?;
         self.inspect_resource_by_id(component_id, settings)

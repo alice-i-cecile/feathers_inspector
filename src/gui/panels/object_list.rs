@@ -283,7 +283,7 @@ fn spawn_object_row(
         bevy::prelude::Spawn((
             Text::new(label),
             TextFont {
-                font_size: config.small_font_size,
+                font_size: FontSize::Px(config.small_font_size),
                 ..default()
             },
             TextColor(if is_selected {
@@ -379,7 +379,7 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                     bevy::prelude::Spawn((
                         Text::new("Entities"),
                         TextFont {
-                            font_size: config.body_font_size,
+                            font_size: FontSize::Px(config.body_font_size),
                             ..default()
                         },
                     )),
@@ -393,7 +393,7 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                     bevy::prelude::Spawn((
                         Text::new("Resources"),
                         TextFont {
-                            font_size: config.body_font_size,
+                            font_size: FontSize::Px(config.body_font_size),
                             ..default()
                         },
                     )),
@@ -432,7 +432,7 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                     search.spawn((
                         Text::new("Search..."),
                         TextFont {
-                            font_size: config.body_font_size,
+                            font_size: FontSize::Px(config.body_font_size),
                             ..default()
                         },
                         TextColor(config.muted_text_color),

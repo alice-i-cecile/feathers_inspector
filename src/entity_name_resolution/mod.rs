@@ -3,9 +3,9 @@
 use bevy::core_pipeline::Skybox;
 use bevy::ecs::component::ComponentId;
 use bevy::ecs::system::SystemIdMarker;
-use bevy::light::{FogVolume, IrradianceVolume, SunDisk};
+use bevy::light::{Atmosphere, FogVolume, IrradianceVolume, SunDisk};
+use bevy::pbr::Lightmap;
 use bevy::pbr::wireframe::Wireframe;
-use bevy::pbr::{Atmosphere, Lightmap};
 use bevy::picking::pointer::PointerId;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;

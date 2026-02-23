@@ -4,7 +4,15 @@
 
 use bevy::{
     prelude::*,
-    reflect::{Array, Enum, List, Map, ReflectRef, Set, Tuple, VariantType},
+    reflect::{
+        ReflectRef,
+        array::Array,
+        enums::{Enum, VariantType},
+        list::List,
+        map::Map,
+        set::Set,
+        tuple::Tuple,
+    },
 };
 use core::any::TypeId;
 
@@ -42,12 +50,23 @@ pub fn get_reflected_resource_ref(
         return Err(ReflectionFetchError::NotRegistered(type_id));
     };
 
-    let Some(reflect_resource) = type_registration.data::<ReflectResource>() else {
+    let Some(reflect_component) = type_registration.data::<ReflectComponent>() else {
         // TODO: these should be distinct error variants
         return Err(ReflectionFetchError::MissingReflectTrait(type_id));
     };
 
-    let Ok(reflected) = reflect_resource.reflect(world) else {
+    // Resources are stored as components on special entities
+    // We need to get the component_id first
+    let Some(component_id) = world.components().get_id(type_id) else {
+        return Err(ReflectionFetchError::NotRegistered(type_id));
+    };
+
+    let Some(&entity) = world.resource_entities().get(component_id) else {
+        return Err(ReflectionFetchError::ReflectionRetrievalFailed(type_id));
+    };
+
+    let entity_ref = world.entity(entity);
+    let Some(reflected) = reflect_component.reflect(entity_ref) else {
         return Err(ReflectionFetchError::ReflectionRetrievalFailed(type_id));
     };
 
@@ -71,11 +90,22 @@ pub fn get_reflected_resource_mut<'w>(
     let type_registration = type_registration.clone();
     drop(type_registry_read_lock);
 
-    let Some(reflect_resource) = type_registration.data::<ReflectResource>() else {
+    let Some(reflect_component) = type_registration.data::<ReflectComponent>() else {
         return Err(ReflectionFetchError::MissingReflectTrait(type_id));
     };
 
-    let Ok(reflected) = reflect_resource.reflect_mut(world) else {
+    // Resources are stored as components on dedicated entities
+    // We need to get the component_id first, then look up the correct entity to access the component on
+    let Some(component_id) = world.components().get_id(type_id) else {
+        return Err(ReflectionFetchError::NotRegistered(type_id));
+    };
+
+    let Some(&entity) = world.resource_entities().get(component_id) else {
+        return Err(ReflectionFetchError::ReflectionRetrievalFailed(type_id));
+    };
+
+    let entity_mut = world.entity_mut(entity);
+    let Some(reflected) = reflect_component.reflect_mut(entity_mut) else {
         return Err(ReflectionFetchError::ReflectionRetrievalFailed(type_id));
     };
     Ok(reflected)
