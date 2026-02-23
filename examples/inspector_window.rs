@@ -95,7 +95,7 @@ The inspector window shows:
             ..default()
         },
         TextFont {
-            font_size: 16.0,
+            font_size: FontSize::Px(16.0),
             ..default()
         },
     ));

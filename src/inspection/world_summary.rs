@@ -156,8 +156,8 @@ pub trait WorldSummaryExt {
 impl WorldSummaryExt for World {
     fn summarize(&self, settings: SummarySettings) -> WorldSummary {
         let total_entities = self.entities().count_spawned();
-        let total_send_resources = self.storages().resources.len();
-        let total_non_send_resources = self.storages().non_send_resources.len();
+        let total_send_resources = self.resource_entities().len();
+        let total_non_send_resources = self.storages().non_sends.len();
         let total_archetypes = self.archetypes().len();
         let mut archetype_summaries: Vec<ArchetypeSummary> = self
             .archetypes()

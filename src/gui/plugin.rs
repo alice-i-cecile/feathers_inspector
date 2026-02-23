@@ -226,7 +226,7 @@ fn spawn_title_bar(parent: &mut ChildSpawnerCommands<'_>, config: &InspectorConf
             bar.spawn((
                 Text::new("Feathers Inspector"),
                 TextFont {
-                    font_size: config.title_font_size + 2.0,
+                    font_size: FontSize::Px(config.title_font_size + 2.0),
                     ..default()
                 },
                 TextColor(Color::WHITE),
