@@ -10,7 +10,7 @@ use bevy::feathers::controls::{ButtonProps, button};
 use bevy::feathers::theme::ThemeBackgroundColor;
 use bevy::feathers::tokens;
 use bevy::prelude::*;
-use bevy::reflect::{enums::VariantType, ReflectRef};
+use bevy::reflect::{ReflectRef, enums::VariantType};
 use bevy::ui::Val::*;
 use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar, observe};
 
