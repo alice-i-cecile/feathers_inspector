@@ -60,14 +60,6 @@
 - [x] display entities of the same archetype together
 - [x] sort archetypes by similarity
 
-## Tweak inspector output for your type
-
-- [x] define a stub `Inspectable` trait for reflected type information
-- [ ] customize the precision, increment and range of numbers
-- [x] hide fields from the inspector
-- [ ] customize display output based on `Inspectable`
-- [ ] add a derive macro
-
 ## Filtering and search
 
 - [x] allow users to pass in a search parameter to settings for relevant inspection methods
@@ -135,11 +127,6 @@
 - [ ] Show entities in parent-child hierarchy structure
 - [ ] Add entity folding
 
-## Asset inspection
-
-- [ ] Add inspection capabilities for assets
-- [ ] Display values for components that contain Handle
-
 ## Important entities
 
 - [ ] Pin entities to the top of the list
@@ -194,11 +181,3 @@
 
 - [ ] GUI value editing
 - [ ] Search
-
-## Structural changes
-
-- [ ] Spawn
-- [ ] Despawn
-- [ ] Insert
-- [ ] Remove
-- [ ] Disable + enable
