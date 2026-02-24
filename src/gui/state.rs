@@ -21,9 +21,9 @@ pub struct InspectorInternal;
 #[derive(Resource, Default)]
 pub struct InspectorState {
     /// Currently selected object for detail view.
-    pub selected_object: Option<InspectableObject>,
+    pub selected_object: Option<Entity>,
     /// Previously selected object (for change detection).
-    pub previous_selected_object: Option<InspectableObject>,
+    pub previous_selected_object: Option<Entity>,
     /// Active tab in the object list panel.
     pub active_objects_tab: ObjectListTab,
     /// Active tab in the detail panel.
@@ -42,6 +42,8 @@ pub enum ObjectListTab {
     #[default]
     Entities,
     Resources,
+    Observers,
+    OneShotSystems,
 }
 
 /// Active tab in the detail panel.
@@ -63,15 +65,6 @@ pub struct InspectorCache {
     pub metadata_map: Option<ComponentMetadataMap>,
 }
 
-/// An object that can be selected and displayed in the object list.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum InspectableObject {
-    /// An entity.
-    Entity(Entity),
-    /// A resource.
-    Resource(ComponentId),
-}
-
 /// Data for a single object in the object list.
 pub enum ObjectListEntry {
     /// An entity entry.
@@ -85,31 +78,18 @@ pub enum ObjectListEntry {
         /// Total memory size of all components.
         memory_size: MemorySize,
     },
-    /// A resource entry.
-    Resource {
-        /// The component ID of the resource.
-        component_id: ComponentId,
-        /// Display name for the resource.
-        display_name: String,
-        /// Memory size of the resource.
-        memory_size: MemorySize,
-    },
 }
 
 impl ObjectListEntry {
     pub fn display_name(&self) -> &str {
         match self {
             ObjectListEntry::Entity { display_name, .. } => display_name,
-            ObjectListEntry::Resource { display_name, .. } => display_name,
         }
     }
 
-    pub fn object(&self) -> InspectableObject {
+    pub fn object(&self) -> Entity {
         match self {
-            ObjectListEntry::Entity { entity, .. } => InspectableObject::Entity(*entity),
-            ObjectListEntry::Resource { component_id, .. } => {
-                InspectableObject::Resource(*component_id)
-            }
+            ObjectListEntry::Entity { entity, .. } => *entity,
         }
     }
 }
