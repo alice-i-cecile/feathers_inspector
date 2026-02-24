@@ -141,6 +141,8 @@ fn generate_entity_list(world: &mut World) -> Vec<ObjectListEntry> {
                         && !e.contains::<SystemIdMarker>()
                 }
                 ObjectListTab::Resources => e.contains::<IsResource>(),
+                // TODO: This inspector generates its own observers, which should be excluded
+                // using InspectorInternal
                 ObjectListTab::Observers => e.contains::<Observer>(),
                 ObjectListTab::OneShotSystems => e.contains::<SystemIdMarker>(),
             }
