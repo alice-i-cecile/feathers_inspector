@@ -2,6 +2,7 @@
 
 use bevy::core_pipeline::Skybox;
 use bevy::ecs::component::ComponentId;
+use bevy::ecs::resource::IsResource;
 use bevy::ecs::system::SystemIdMarker;
 use bevy::light::{Atmosphere, FogVolume, IrradianceVolume, SunDisk};
 use bevy::pbr::Lightmap;
@@ -83,6 +84,34 @@ pub fn resolve_name(
         let Some(component_data) = components else {
             return None;
         };
+
+        let is_resource = component_data.iter().any(|comp_inspection| {
+            metadata_map
+                .get(&comp_inspection.component_id)
+                .and_then(|meta| meta.type_id)
+                == Some(TypeId::of::<IsResource>())
+        });
+
+        if is_resource {
+            let mut resource_names = component_data
+                .iter()
+                .filter_map(|inspection| {
+                    let type_id = metadata_map
+                        .get(&inspection.component_id)
+                        .and_then(|meta| meta.type_id);
+                    if type_id == Some(TypeId::of::<IsResource>()) {
+                        None
+                    } else {
+                        Some(inspection.name.shortname().to_string())
+                    }
+                })
+                .collect::<Vec<String>>();
+
+            if !resource_names.is_empty() {
+                resource_names.sort();
+                return Some(EntityName::generated(&resource_names.join(" | ")));
+            }
+        }
 
         let mut name_resolution_priorities = component_data
             .iter()
