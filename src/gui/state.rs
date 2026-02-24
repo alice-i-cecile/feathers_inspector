@@ -65,32 +65,25 @@ pub struct InspectorCache {
     pub metadata_map: Option<ComponentMetadataMap>,
 }
 
-/// Data for a single object in the object list.
-pub enum ObjectListEntry {
-    /// An entity entry.
-    Entity {
-        /// The entity.
-        entity: Entity,
-        /// Display name for the entity.
-        display_name: String,
-        /// Number of components on this entity.
-        component_count: usize,
-        /// Total memory size of all components.
-        memory_size: MemorySize,
-    },
+/// Data for a single entity in the object list.
+pub struct ObjectListEntry {
+    /// The entity.
+    pub entity: Entity,
+    /// Display name for the entity.
+    pub display_name: String,
+    /// Number of components on this entity.
+    pub component_count: usize,
+    /// Total memory size of all components.
+    pub memory_size: MemorySize,
 }
 
 impl ObjectListEntry {
     pub fn display_name(&self) -> &str {
-        match self {
-            ObjectListEntry::Entity { display_name, .. } => display_name,
-        }
+        &self.display_name
     }
 
-    pub fn object(&self) -> Entity {
-        match self {
-            ObjectListEntry::Entity { entity, .. } => *entity,
-        }
+    pub fn entity(&self) -> Entity {
+        self.entity
     }
 }
 

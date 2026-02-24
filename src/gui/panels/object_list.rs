@@ -185,7 +185,7 @@ fn generate_entity_list(world: &mut World) -> Vec<ObjectListEntry> {
                 return None;
             }
 
-            Some(ObjectListEntry::Entity {
+            Some(ObjectListEntry {
                 entity,
                 display_name: name.to_string(),
                 component_count: inspection.components.as_ref().map(|c| c.len()).unwrap_or(0),
@@ -220,7 +220,7 @@ pub fn sync_object_list(
         // Spawn new rows
         commands.entity(content_entity).with_children(|list| {
             for entry in &cache.filtered_objects {
-                let is_selected = state.selected_object == Some(entry.object());
+                let is_selected = state.selected_object == Some(entry.entity());
                 spawn_object_row(list, entry, is_selected, &config);
             }
         });
@@ -243,21 +243,21 @@ fn spawn_object_row(
         display_name.to_string()
     };
 
-    let label = match entry {
-        ObjectListEntry::Entity {
-            component_count,
-            memory_size,
-            ..
-        } => format!(
-            "{:20} {} comp | {}",
-            display_name, component_count, memory_size
-        ),
-    };
+    let ObjectListEntry {
+        component_count,
+        memory_size,
+        ..
+    } = entry;
+
+    let label = format!(
+        "{:20} {} comp | {}",
+        display_name, component_count, memory_size
+    );
 
     parent.spawn((button(
         ButtonProps::default(),
         ObjectRow {
-            selected_object: entry.object(),
+            selected_object: entry.entity(),
         },
         bevy::prelude::Spawn((
             Text::new(label),
