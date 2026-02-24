@@ -20,7 +20,7 @@ use crate::entity_name_resolution::EntityName;
 use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::gui::config::InspectorConfig;
 use crate::gui::semantic_names::SemanticFieldNames;
-use crate::gui::state::{DetailTab, InspectableObject, InspectorCache, InspectorState};
+use crate::gui::state::{DetailTab, InspectorCache, InspectorState};
 use crate::gui::widgets::drag_value::{DragValue, DragValueDragState, FieldPath, FieldPathSegment};
 use crate::inspection::component_inspection::{
     ComponentDetailLevel, ComponentInspectionSettings, ComponentMetadataMap,
@@ -66,7 +66,7 @@ fn on_hierarchy_node_click(
     nodes: Query<&HierarchyNode>,
 ) {
     if let Ok(node) = nodes.get(activate.entity) {
-        state.selected_object = Some(InspectableObject::Entity(node.0));
+        state.selected_object = Some(node.0);
     }
 }
 
@@ -131,29 +131,14 @@ pub fn sync_detail_panel(world: &mut World) {
     };
 
     // Check if entity still exists
-    match selected_object {
-        InspectableObject::Entity(entity) => {
-            if !world.entities().contains(entity) {
-                spawn_error_message(
-                    world,
-                    content_entity,
-                    &config,
-                    "Selected entity no longer exists",
-                );
-                return;
-            }
-        }
-        InspectableObject::Resource(id) => {
-            if !world.contains_resource_by_id(id) {
-                spawn_error_message(
-                    world,
-                    content_entity,
-                    &config,
-                    "Selected resource no longer exists",
-                );
-                return;
-            }
-        }
+    if !world.entities().contains(selected_object) {
+        spawn_error_message(
+            world,
+            content_entity,
+            &config,
+            "Selected entity no longer exists",
+        );
+        return;
     }
 
     // Ensure we have a metadata map - take it out to avoid borrow conflicts
@@ -171,32 +156,16 @@ pub fn sync_detail_panel(world: &mut World) {
     // Render based on active tab
     match active_tab {
         DetailTab::Components => {
-            let InspectableObject::Entity(selected_entity) = selected_object else {
-                warn_once!(
-                    "Components tab selected for non-entity object: {:?}",
-                    selected_object
-                );
-                return;
-            };
-
             if let Some(ref mut mm) = metadata_map {
-                spawn_components_tab_exclusive(world, content_entity, selected_entity, mm, &config);
+                spawn_components_tab_exclusive(world, content_entity, selected_object, mm, &config);
             }
         }
         DetailTab::Relationships => {
-            let InspectableObject::Entity(selected_entity) = selected_object else {
-                warn_once!(
-                    "Relationships tab selected for non-entity object: {:?}",
-                    selected_object
-                );
-                return;
-            };
-
             if let Some(ref mm) = metadata_map {
                 spawn_relationships_tab_exclusive(
                     world,
                     content_entity,
-                    selected_entity,
+                    selected_object,
                     mm,
                     &config,
                 );

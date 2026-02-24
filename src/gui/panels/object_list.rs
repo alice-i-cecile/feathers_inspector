@@ -37,6 +37,8 @@
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::observer::On;
 use bevy::ecs::relationship::Relationship;
+use bevy::ecs::resource::IsResource;
+use bevy::ecs::system::SystemIdMarker;
 use bevy::feathers::controls::{ButtonProps, button};
 use bevy::prelude::*;
 use bevy::ui::Val::*;
@@ -46,13 +48,11 @@ use crate::entity_name_resolution::EntityName;
 use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::gui::config::InspectorConfig;
 use crate::gui::state::{
-    InspectableObject, InspectorCache, InspectorInternal, InspectorState, ObjectListEntry,
-    ObjectListTab,
+    InspectorCache, InspectorInternal, InspectorState, ObjectListEntry, ObjectListTab,
 };
 use crate::gui::widgets::tabs::{HasContent, Tab, TabActivated, TabContentDisplayMode, TabGroup};
 use crate::inspection::component_inspection::ComponentMetadataMap;
 use crate::inspection::entity_inspection::{MultipleEntityInspectionSettings, NameFilter};
-use crate::inspection::resource_inspection::ResourceInspectionSettings;
 use crate::memory_size::MemorySize;
 
 /// Marker component for the object list panel container.
@@ -73,7 +73,7 @@ pub struct ObjectListContent {
 /// Marker component for object rows, which stores the object this row represents.
 #[derive(Component)]
 pub struct ObjectRow {
-    pub selected_object: InspectableObject,
+    pub selected_object: Entity,
 }
 
 /// Marker component for the search bar input.
@@ -87,8 +87,6 @@ pub struct SearchInput;
 /// Uses exclusive world access to avoid resource conflicts.
 pub fn generate_object_list(world: &mut World) {
     // Extract data we need now to avoid borrow check problems
-    let state = world.resource::<InspectorState>();
-    let active_objects_tab = state.active_objects_tab;
 
     // Generate / update metadata map
     world.resource_scope(|world, mut inspector_cache: Mut<InspectorCache>| {
@@ -103,20 +101,18 @@ pub fn generate_object_list(world: &mut World) {
     });
 
     // Generate the object list based on the active tab
-    let object_list = match active_objects_tab {
-        ObjectListTab::Entities => generate_entity_list(world),
-        ObjectListTab::Resources => generate_resource_list(world),
-    };
+    let object_list = generate_entity_list(world);
 
     let mut cache = world.resource_mut::<InspectorCache>();
     cache.filtered_objects = object_list;
 }
 
-/// Generates the list of entities to display in the object list,
+/// Generates a list of entities to display in the object list,
 /// applying any filters from the [`InspectorState`].
 ///
 /// Part of the [`generate_object_list`] system.
 fn generate_entity_list(world: &mut World) -> Vec<ObjectListEntry> {
+    let active_objects_tab = world.resource::<InspectorState>().active_objects_tab;
     let state = world.resource::<InspectorState>();
     let filter_text = state.filter_text.clone();
     let mandatory_components = state.mandatory_components.clone();
@@ -133,13 +129,23 @@ fn generate_entity_list(world: &mut World) -> Vec<ObjectListEntry> {
     let entities: Vec<Entity> = query
         .iter(world)
         .filter(|e| {
-            !e.contains::<Node>()
-                && !e.contains::<Window>()
-                && !e.contains::<InspectorInternal>()
-                // TODO: these should be shown in a separate object list tab
-                // TODO: this inspector generates its own observers, which should be excluded
+            if e.contains::<InspectorInternal>() {
+                return false;
+            }
+
+            match active_objects_tab {
+                ObjectListTab::Entities => {
+                    !e.contains::<Node>()
+                        && !e.contains::<IsResource>()
+                        && !e.contains::<Observer>()
+                        && !e.contains::<SystemIdMarker>()
+                }
+                ObjectListTab::Resources => e.contains::<IsResource>(),
+                // TODO: This inspector generates its own observers, which should be excluded
                 // using InspectorInternal
-                && !e.contains::<Observer>()
+                ObjectListTab::Observers => e.contains::<Observer>(),
+                ObjectListTab::OneShotSystems => e.contains::<SystemIdMarker>(),
+            }
         })
         .map(|e| e.id())
         .collect();
@@ -181,34 +187,12 @@ fn generate_entity_list(world: &mut World) -> Vec<ObjectListEntry> {
                 return None;
             }
 
-            Some(ObjectListEntry::Entity {
+            Some(ObjectListEntry {
                 entity,
                 display_name: name.to_string(),
                 component_count: inspection.components.as_ref().map(|c| c.len()).unwrap_or(0),
                 memory_size: inspection.total_memory_size.unwrap_or(MemorySize::new(0)),
             })
-        })
-        .collect()
-}
-
-/// Generates the list of resources to display in the object list,
-/// applying any filters from the [`InspectorState`].
-///
-/// Part of the [`generate_object_list`] system.
-fn generate_resource_list(world: &mut World) -> Vec<ObjectListEntry> {
-    // TODO: add filtering based on state.filter_text
-
-    let inspections = world.inspect_all_resources(ResourceInspectionSettings::default());
-
-    inspections
-        .iter()
-        .map(|inspection| {
-            let name = inspection.name.shortname();
-            ObjectListEntry::Resource {
-                component_id: inspection.component_id,
-                display_name: name.to_string(),
-                memory_size: inspection.memory_size,
-            }
         })
         .collect()
 }
@@ -238,7 +222,7 @@ pub fn sync_object_list(
         // Spawn new rows
         commands.entity(content_entity).with_children(|list| {
             for entry in &cache.filtered_objects {
-                let is_selected = state.selected_object == Some(entry.object());
+                let is_selected = state.selected_object == Some(entry.entity());
                 spawn_object_row(list, entry, is_selected, &config);
             }
         });
@@ -261,24 +245,21 @@ fn spawn_object_row(
         display_name.to_string()
     };
 
-    let label = match entry {
-        ObjectListEntry::Entity {
-            component_count,
-            memory_size,
-            ..
-        } => format!(
-            "{:20} {} comp | {}",
-            display_name, component_count, memory_size
-        ),
-        ObjectListEntry::Resource { memory_size, .. } => {
-            format!("{:20}     -   | {}", display_name, memory_size)
-        }
-    };
+    let ObjectListEntry {
+        component_count,
+        memory_size,
+        ..
+    } = entry;
+
+    let label = format!(
+        "{:20} {} comp | {}",
+        display_name, component_count, memory_size
+    );
 
     parent.spawn((button(
         ButtonProps::default(),
         ObjectRow {
-            selected_object: entry.object(),
+            selected_object: entry.entity(),
         },
         bevy::prelude::Spawn((
             Text::new(label),
@@ -399,6 +380,34 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                     )),
                 ))
                 .id();
+            let observers_tab_entity = panel
+                .commands()
+                .spawn(button(
+                    ButtonProps::default(),
+                    Tab,
+                    bevy::prelude::Spawn((
+                        Text::new("Observers"),
+                        TextFont {
+                            font_size: FontSize::Px(config.body_font_size),
+                            ..default()
+                        },
+                    )),
+                ))
+                .id();
+            let one_shot_systems_tab_entity = panel
+                .commands()
+                .spawn(button(
+                    ButtonProps::default(),
+                    Tab,
+                    bevy::prelude::Spawn((
+                        Text::new("One-Shot systems"),
+                        TextFont {
+                            font_size: FontSize::Px(config.body_font_size),
+                            ..default()
+                        },
+                    )),
+                ))
+                .id();
             let _tab_group_entity = panel
                 .spawn((
                     Node {
@@ -413,7 +422,12 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                     BorderColor::all(config.border_color),
                     TabGroup::new(Some(entities_tab_entity)),
                 ))
-                .add_children(&[entities_tab_entity, resources_tab_entity])
+                .add_children(&[
+                    entities_tab_entity,
+                    resources_tab_entity,
+                    observers_tab_entity,
+                    one_shot_systems_tab_entity,
+                ])
                 .id();
 
             // Search bar placeholder
@@ -459,6 +473,18 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                         ObjectListTab::Resources,
                         Display::None,
                     );
+                    let observers_list_entity = scrollable_area(
+                        content_panels_container,
+                        config,
+                        ObjectListTab::Observers,
+                        Display::None,
+                    );
+                    let one_shot_systems_list_entity = scrollable_area(
+                        content_panels_container,
+                        config,
+                        ObjectListTab::OneShotSystems,
+                        Display::None,
+                    );
                     content_panels_container
                         .commands()
                         .entity(entities_tab_entity)
@@ -471,6 +497,20 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                         .entity(resources_tab_entity)
                         .insert((
                             HasContent(resources_list_entity),
+                            TabContentDisplayMode(Display::Grid),
+                        ));
+                    content_panels_container
+                        .commands()
+                        .entity(observers_tab_entity)
+                        .insert((
+                            HasContent(observers_list_entity),
+                            TabContentDisplayMode(Display::Grid),
+                        ));
+                    content_panels_container
+                        .commands()
+                        .entity(one_shot_systems_tab_entity)
+                        .insert((
+                            HasContent(one_shot_systems_list_entity),
                             TabContentDisplayMode(Display::Grid),
                         ));
                 });

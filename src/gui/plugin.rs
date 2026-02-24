@@ -122,6 +122,7 @@ fn setup_inspector_window(
             Visibility::Visible,
             InheritedVisibility::default(),
             ViewVisibility::default(),
+            InspectorInternal,
         ))
         .id();
 
