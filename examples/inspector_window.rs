@@ -26,6 +26,12 @@ fn main() {
     let mut name_registry = app.world_mut().resource_mut::<NameResolutionRegistry>();
     name_registry.register_name_defining_type::<Chaff>(0);
 
+    // Register a one-shot system to be shown in the inspector
+    let one_shot_system_id = app.world_mut().register_system(example_one_shot_system);
+    app.world_mut()
+        .entity_mut(one_shot_system_id.entity())
+        .insert(Name::new("Example One-Shot System"));
+
     app.run();
 }
 
@@ -83,6 +89,7 @@ The inspector window shows:
 - Entity list with component counts and memory usage
 - Components tab with reflected values
 - Relationships tab showing parent/child hierarchy
+- One-Shot systems tab showing registered systems
 - Click entities in the Relationships tab to navigate"
         .to_string();
 
@@ -124,4 +131,9 @@ fn fluctuating_entity_counts(
     {
         commands.entity(marked_for_death).despawn();
     }
+}
+
+/// One-shot system registered just to be shown in the inspector.
+fn example_one_shot_system() {
+    info!("This is an example one-shot system.");
 }
