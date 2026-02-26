@@ -168,7 +168,7 @@ fn toggle_inspector_window(
     }
 }
 
-/// Handles the [`ToggleHotkey`] event.
+/// Handles the keyboard input for toggling the [`InspectorWindow`].
 fn handle_toggle_key(
     button_input: Res<ButtonInput<KeyCode>>,
     mut writer: MessageWriter<SetInspectorWindow>,
