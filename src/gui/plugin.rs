@@ -148,7 +148,7 @@ fn toggle_inspector_window(
     let Some(action) = action.read().last() else {
         return;
     };
-    let window_opt: Option<Entity> = window_query.single().ok();
+    let window_opt = window_query.iter().next();
 
     match (window_opt, action) {
         (window, Toggle) => {
