@@ -21,6 +21,7 @@ fn main() {
         .add_systems(Update, fluctuating_entity_counts)
         .insert_resource(InspectorConfig {
             toggle_key: Some(KeyCode::KeyW),
+            open_on_startup: true,
             ..default()
         });
 

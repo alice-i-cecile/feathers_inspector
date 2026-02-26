@@ -129,8 +129,9 @@ pub enum SetInspectorWindow {
 fn order_inspector_window_creation(
     inspector_window_query: Query<Entity, With<InspectorWindow>>,
     mut writer: MessageWriter<SetInspectorWindow>,
+    config: Res<InspectorConfig>,
 ) {
-    if inspector_window_query.iter().next().is_none() {
+    if config.open_on_startup && inspector_window_query.iter().next().is_none() {
         writer.write(SetInspectorWindow::Open);
     }
 }
