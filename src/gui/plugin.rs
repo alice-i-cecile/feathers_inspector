@@ -303,8 +303,6 @@ fn spawn_title_bar(parent: &mut ChildSpawnerCommands<'_>, config: &InspectorConf
         });
 }
 
-/// Handles cleanup when the inspector window is closed.
-
 /// Handles mouse wheel scrolling by traversing up from hovered entities to find scrollable containers.
 fn handle_mouse_wheel_scroll(
     mut mouse_wheel_reader: MessageReader<MouseWheel>,
