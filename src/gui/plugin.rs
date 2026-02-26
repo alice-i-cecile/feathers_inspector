@@ -90,7 +90,7 @@ impl Plugin for InspectorWindowPlugin {
                 Update,
                 (
                     // Input handling
-                    handle_mouse_wheel_scroll.in_set(InspectorSet::Input),
+                    (handle_mouse_wheel_scroll, handle_toggle_key).in_set(InspectorSet::Input),
                     // Cache refresh
                     generate_object_list.in_set(InspectorSet::RefreshCache),
                     // UI sync - chain these to avoid resource conflicts
@@ -162,6 +162,21 @@ fn toggle_inspector_window(
         (window_opt, action) => {
             warn!("Invalid operation: window: {window_opt:?}, action: {action:?}")
         }
+    }
+}
+
+/// Handles the [`ToggleHotkey`] event.
+fn handle_toggle_key(
+    button_input: Res<ButtonInput<KeyCode>>,
+    mut writer: MessageWriter<SetInspectorWindow>,
+    config: Res<InspectorConfig>,
+) {
+    let Some(toggle_key) = config.toggle_key else {
+        return;
+    };
+
+    if button_input.just_pressed(toggle_key) {
+        writer.write(SetInspectorWindow::Toggle);
     }
 }
 
