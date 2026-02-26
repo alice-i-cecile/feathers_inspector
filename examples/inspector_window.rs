@@ -6,7 +6,7 @@
 use bevy::prelude::*;
 use feathers_inspector::{
     entity_name_resolution::{NameResolutionPlugin, NameResolutionRegistry},
-    gui::plugin::InspectorWindowPlugin,
+    gui::{config::InspectorConfig, plugin::InspectorWindowPlugin},
 };
 
 fn main() {
@@ -17,6 +17,11 @@ fn main() {
         .add_plugins(NameResolutionPlugin)
         // Add the inspector window plugin
         .add_plugins(InspectorWindowPlugin)
+        .insert_resource(InspectorConfig {
+            toggle_key: Some(KeyCode::KeyW),
+            open_on_startup: true,
+            ..default()
+        })
         .add_systems(Startup, setup)
         .add_systems(Update, fluctuating_entity_counts);
 
@@ -83,7 +88,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     // Add instructions on the main window
     let instructions = "\
-Check the Inspector Window!
+Press W to toggle the inspector window
 
 The inspector window shows:
 - Entity list with component counts and memory usage

@@ -11,7 +11,7 @@ use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::picking::hover::HoverMap;
 use bevy::prelude::*;
 use bevy::ui::Val::*;
-use bevy::window::{PrimaryWindow, WindowRef, WindowResolution};
+use bevy::window::{PrimaryWindow, WindowCloseRequested, WindowRef, WindowResolution};
 
 use crate::gui::panels::{
     RefreshObjectList, on_object_row_click, refresh_object_list_periodically,
@@ -24,7 +24,7 @@ use super::panels::{
     sync_object_list,
 };
 use super::semantic_names::SemanticFieldNames;
-use super::state::{InspectorCache, InspectorInternal, InspectorState, InspectorWindowState};
+use super::state::{InspectorCache, InspectorInternal, InspectorState};
 use super::widgets::drag_value::DragValuePlugin;
 use super::widgets::tabs::TabPlugin;
 
@@ -60,9 +60,9 @@ impl Plugin for InspectorWindowPlugin {
             .init_resource::<InspectorState>()
             .init_resource::<InspectorCache>()
             .init_resource::<InspectorConfig>()
-            .init_resource::<InspectorWindowState>()
             .init_resource::<SemanticFieldNames>()
             // Messages
+            .add_message::<SetInspectorWindow>()
             .add_message::<RefreshObjectList>()
             // System ordering
             .configure_sets(
@@ -77,11 +77,12 @@ impl Plugin for InspectorWindowPlugin {
             // Limit refreshes
             .configure_sets(
                 Update,
-                (InspectorSet::RefreshCache, InspectorSet::SyncUI)
-                    .run_if(on_message::<RefreshObjectList>),
+                (InspectorSet::RefreshCache, InspectorSet::SyncUI).run_if(
+                    on_message::<RefreshObjectList>.or_else(on_message::<SetInspectorWindow>),
+                ),
             )
             // Startup
-            .add_systems(Startup, setup_inspector_window)
+            .add_systems(Startup, order_inspector_window_creation)
             // PreUpdate systems
             .add_systems(PreUpdate, refresh_object_list_periodically)
             // Update systems
@@ -89,15 +90,18 @@ impl Plugin for InspectorWindowPlugin {
                 Update,
                 (
                     // Input handling
-                    handle_mouse_wheel_scroll.in_set(InspectorSet::Input),
+                    (handle_mouse_wheel_scroll, handle_toggle_key).in_set(InspectorSet::Input),
                     // Cache refresh
                     generate_object_list.in_set(InspectorSet::RefreshCache),
                     // UI sync - chain these to avoid resource conflicts
-                    (setup_inspector_ui, sync_object_list, sync_detail_panel)
+                    (
+                        toggle_inspector_window,
+                        setup_inspector_ui,
+                        sync_object_list,
+                        sync_detail_panel,
+                    )
                         .chain()
                         .in_set(InspectorSet::SyncUI),
-                    // Cleanup
-                    handle_window_close,
                 ),
             )
             .add_observer(on_object_row_click)
@@ -105,11 +109,81 @@ impl Plugin for InspectorWindowPlugin {
     }
 }
 
-/// Spawns the inspector window on startup.
-fn setup_inspector_window(
+/// Signals the plugin to open or close the [`InspectorWindow`].
+#[derive(Message, Debug)]
+pub enum SetInspectorWindow {
+    // Creates the window if it is not present,
+    // and destroys it if already present.
+    Toggle,
+    // Opens the window.
+    //
+    // If the window is already open, a warning message will be emitted.
+    Open,
+    // Closes the window.
+    //
+    // If there is no window, a warning message will be emitted.
+    Close,
+}
+
+/// Sends a message to create an [`InspectorWindow`] if not already present.
+fn order_inspector_window_creation(
+    inspector_window_query: Query<Entity, With<InspectorWindow>>,
+    mut window_messages: MessageWriter<SetInspectorWindow>,
+    config: Res<InspectorConfig>,
+) {
+    if config.open_on_startup && inspector_window_query.iter().next().is_none() {
+        window_messages.write(SetInspectorWindow::Open);
+    }
+}
+
+/// Listens for [`SetInspectorWindow`] to create or destroy an [`InspectorWindow`].
+fn toggle_inspector_window(
+    mut action: MessageReader<SetInspectorWindow>,
+    mut close_window: MessageWriter<WindowCloseRequested>,
+    primary_window_query: Query<Entity, With<PrimaryWindow>>,
+    window_query: Query<Entity, With<InspectorWindow>>,
+    commands: Commands,
+) {
+    use SetInspectorWindow::{Close, Open, Toggle};
+    let Some(action) = action.read().last() else {
+        return;
+    };
+    let window_opt = window_query.iter().next();
+
+    match (action, window_opt) {
+        (Toggle, window) => {
+            if let Some(window) = window {
+                close_window.write(WindowCloseRequested { window });
+            } else {
+                spawn_inspector_window(primary_window_query, commands);
+            }
+        }
+        (Open, None) => spawn_inspector_window(primary_window_query, commands),
+        (Close, Some(window)) => {
+            close_window.write(WindowCloseRequested { window });
+        }
+        (action, window_opt) => {
+            warn!("Invalid operation: action: {action:?}, window: {window_opt:?}")
+        }
+    }
+}
+
+/// Handles the keyboard input for toggling the [`InspectorWindow`].
+fn handle_toggle_key(
+    button_input: Res<ButtonInput<KeyCode>>,
+    mut window_messages: MessageWriter<SetInspectorWindow>,
+    config: Res<InspectorConfig>,
+) {
+    if let Some(toggle_key) = config.toggle_key
+        && button_input.just_pressed(toggle_key)
+    {
+        window_messages.write(SetInspectorWindow::Toggle);
+    }
+}
+
+fn spawn_inspector_window(
     primary_window: Query<Entity, With<PrimaryWindow>>,
     mut commands: Commands,
-    mut window_state: ResMut<InspectorWindowState>,
 ) {
     let window_entity = commands
         .spawn((
@@ -135,26 +209,18 @@ fn setup_inspector_window(
             .insert(ChildOf(primary_window_entity));
     }
 
-    window_state.window_entity = Some(window_entity);
-    window_state.is_open = true;
-
     info!("Inspector window created: {:?}", window_entity);
 }
 
 /// Sets up the UI scaffold once the window exists.
 fn setup_inspector_ui(
     mut commands: Commands,
-    window_state: Res<InspectorWindowState>,
     config: Res<InspectorConfig>,
     inspector_windows: Query<Entity, (With<InspectorWindow>, Without<InspectorUiInitialized>)>,
 ) {
-    let Some(window_entity) = window_state.window_entity else {
+    let Some(window_entity) = inspector_windows.iter().next() else {
         return;
     };
-
-    if inspector_windows.get(window_entity).is_err() {
-        return;
-    }
 
     // Mark window as initialized
     commands
@@ -233,20 +299,6 @@ fn spawn_title_bar(parent: &mut ChildSpawnerCommands<'_>, config: &InspectorConf
                 TextColor(Color::WHITE),
             ));
         });
-}
-
-/// Handles cleanup when the inspector window is closed.
-fn handle_window_close(
-    mut window_state: ResMut<InspectorWindowState>,
-    mut removed_windows: RemovedComponents<Window>,
-) {
-    for entity in removed_windows.read() {
-        if window_state.window_entity == Some(entity) {
-            window_state.window_entity = None;
-            window_state.is_open = false;
-            info!("Inspector window closed");
-        }
-    }
 }
 
 /// Handles mouse wheel scrolling by traversing up from hovered entities to find scrollable containers.

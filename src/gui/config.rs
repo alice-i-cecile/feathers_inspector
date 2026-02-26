@@ -12,6 +12,10 @@ pub struct InspectorConfig {
     ///
     /// If `None`, the lists will not auto-refresh.
     pub refresh_interval: Option<Duration>,
+    /// Whether to open the inspector window on startup.
+    pub open_on_startup: bool,
+    /// Optional key to toggle the inspector window.
+    pub toggle_key: Option<KeyCode>,
 
     // Layout
     /// Width of the left panel (entity list).
@@ -51,6 +55,8 @@ impl Default for InspectorConfig {
         Self {
             // Functional
             refresh_interval: Some(Duration::from_millis(500)),
+            open_on_startup: false,
+            toggle_key: None,
 
             // Layout
             left_panel_width: Val::Percent(30.0),
