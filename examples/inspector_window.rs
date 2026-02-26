@@ -17,13 +17,13 @@ fn main() {
         .add_plugins(NameResolutionPlugin)
         // Add the inspector window plugin
         .add_plugins(InspectorWindowPlugin)
-        .add_systems(Startup, setup)
-        .add_systems(Update, fluctuating_entity_counts)
         .insert_resource(InspectorConfig {
             toggle_key: Some(KeyCode::KeyW),
             open_on_startup: true,
             ..default()
-        });
+        })
+        .add_systems(Startup, setup)
+        .add_systems(Update, fluctuating_entity_counts);
 
     // We can register our own component types to be used for name resolution
     // A priority of zero means this takes precedence over most engine-provided types,

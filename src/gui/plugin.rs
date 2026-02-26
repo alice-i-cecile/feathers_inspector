@@ -128,11 +128,11 @@ pub enum SetInspectorWindow {
 /// Sends a message to create an [`InspectorWindow`] if not already present.
 fn order_inspector_window_creation(
     inspector_window_query: Query<Entity, With<InspectorWindow>>,
-    mut writer: MessageWriter<SetInspectorWindow>,
+    mut window_messages: MessageWriter<SetInspectorWindow>,
     config: Res<InspectorConfig>,
 ) {
     if config.open_on_startup && inspector_window_query.iter().next().is_none() {
-        writer.write(SetInspectorWindow::Open);
+        window_messages.write(SetInspectorWindow::Open);
     }
 }
 
@@ -150,20 +150,20 @@ fn toggle_inspector_window(
     };
     let window_opt = window_query.iter().next();
 
-    match (window_opt, action) {
-        (window, Toggle) => {
+    match (action, window_opt) {
+        (Toggle, window) => {
             if let Some(window) = window {
                 close_window.write(WindowCloseRequested { window });
             } else {
                 spawn_inspector_window(primary_window_query, commands);
             }
         }
-        (None, Open) => spawn_inspector_window(primary_window_query, commands),
-        (Some(window), Close) => {
+        (Open, None) => spawn_inspector_window(primary_window_query, commands),
+        (Close, Some(window)) => {
             close_window.write(WindowCloseRequested { window });
         }
-        (window_opt, action) => {
-            warn!("Invalid operation: window: {window_opt:?}, action: {action:?}")
+        (action, window_opt) => {
+            warn!("Invalid operation: action: {action:?}, window: {window_opt:?}")
         }
     }
 }
@@ -171,13 +171,13 @@ fn toggle_inspector_window(
 /// Handles the keyboard input for toggling the [`InspectorWindow`].
 fn handle_toggle_key(
     button_input: Res<ButtonInput<KeyCode>>,
-    mut writer: MessageWriter<SetInspectorWindow>,
+    mut window_messages: MessageWriter<SetInspectorWindow>,
     config: Res<InspectorConfig>,
 ) {
     if let Some(toggle_key) = config.toggle_key
         && button_input.just_pressed(toggle_key)
     {
-        writer.write(SetInspectorWindow::Toggle);
+        window_messages.write(SetInspectorWindow::Toggle);
     }
 }
 
