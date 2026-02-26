@@ -11,7 +11,7 @@ use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::picking::hover::HoverMap;
 use bevy::prelude::*;
 use bevy::ui::Val::*;
-use bevy::window::{PrimaryWindow, WindowRef, WindowResolution};
+use bevy::window::{PrimaryWindow, WindowCloseRequested, WindowRef, WindowResolution};
 
 use crate::gui::panels::{
     RefreshObjectList, on_object_row_click, refresh_object_list_periodically,
@@ -135,30 +135,32 @@ fn order_inspector_window_creation(
     }
 }
 
-/// Listens for `SetInspectorWindow` to create or destroy an [`InspectorWindow`].
+/// Listens for [`SetInspectorWindow`] to create or destroy an [`InspectorWindow`].
 fn toggle_inspector_window(
     mut action: MessageReader<SetInspectorWindow>,
+    mut close_window: MessageWriter<WindowCloseRequested>,
     primary_window_query: Query<Entity, With<PrimaryWindow>>,
     window_query: Query<Entity, With<InspectorWindow>>,
-    mut commands: Commands,
+    commands: Commands,
 ) {
     use SetInspectorWindow::{Close, Open, Toggle};
     let Some(action) = action.read().last() else {
         return;
     };
-    info!("This code is unreached!");
     let window_opt: Option<Entity> = window_query.single().ok();
 
     match (window_opt, action) {
         (window, Toggle) => {
             if let Some(window) = window {
-                commands.entity(window).despawn();
+                close_window.write(WindowCloseRequested { window });
             } else {
                 spawn_inspector_window(primary_window_query, commands);
             }
         }
         (None, Open) => spawn_inspector_window(primary_window_query, commands),
-        (Some(window), Close) => commands.entity(window).despawn(),
+        (Some(window), Close) => {
+            close_window.write(WindowCloseRequested { window });
+        }
         (window_opt, action) => {
             warn!("Invalid operation: window: {window_opt:?}, action: {action:?}")
         }
