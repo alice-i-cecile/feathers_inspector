@@ -86,14 +86,3 @@ impl ObjectListEntry {
         self.entity
     }
 }
-
-/// Tracks the state of the inspector window.
-#[derive(Resource, Default)]
-pub struct InspectorWindowState {
-    /// Entity ID of the inspector window, if it exists.
-    pub window_entity: Option<Entity>,
-    /// Entity ID of the camera rendering to the inspector window.
-    pub camera_entity: Option<Entity>,
-    /// Whether the inspector window is currently open.
-    pub is_open: bool,
-}
