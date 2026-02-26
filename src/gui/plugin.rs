@@ -174,11 +174,9 @@ fn handle_toggle_key(
     mut writer: MessageWriter<SetInspectorWindow>,
     config: Res<InspectorConfig>,
 ) {
-    let Some(toggle_key) = config.toggle_key else {
-        return;
-    };
-
-    if button_input.just_pressed(toggle_key) {
+    if let Some(toggle_key) = config.toggle_key
+        && button_input.just_pressed(toggle_key)
+    {
         writer.write(SetInspectorWindow::Toggle);
     }
 }
