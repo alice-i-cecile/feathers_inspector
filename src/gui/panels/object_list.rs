@@ -597,17 +597,24 @@ pub fn refresh_object_list_periodically(
     mut message_writer: MessageWriter<RefreshObjectList>,
     time: Res<Time>,
     mut timer: Local<Timer>,
+    mut is_timer_ticking: Local<bool>,
     config: Res<InspectorConfig>,
+    state: Res<InspectorState>,
 ) {
-    // Skip if no refresh interval is set;
-    // This disables auto-refreshing.
-    if config.refresh_interval.is_none() {
+    // Disable auto-refreshing in certain conditions.
+    if config.refresh_interval.is_none() || state.is_paused {
+        *is_timer_ticking = false;
         return;
     }
 
     // Initialize timer if needed
     if timer.duration().is_zero() {
         *timer = Timer::new(config.refresh_interval.unwrap(), TimerMode::Repeating);
+    }
+
+    if !*is_timer_ticking {
+        *is_timer_ticking = true;
+        timer.reset();
     }
 
     // Tick timer
