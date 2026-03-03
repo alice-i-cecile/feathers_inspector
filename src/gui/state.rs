@@ -20,6 +20,12 @@ pub struct InspectorInternal;
 /// All UI-related state flows through this resource.
 #[derive(Resource, Default)]
 pub struct InspectorState {
+    /// Whether the inspector is currently paused.
+    ///
+    /// When the inspector is paused,
+    /// it does not automatically receive updates,
+    /// allowing the user to inspect a snapshot of the world.
+    pub is_paused: bool,
     /// Currently selected object for detail view.
     pub selected_object: Option<Entity>,
     /// Previously selected object (for change detection).

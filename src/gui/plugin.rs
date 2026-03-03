@@ -4,6 +4,7 @@ use bevy::camera::RenderTarget;
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::relationship::Relationship;
 use bevy::feathers::FeathersPlugins;
+use bevy::feathers::controls::{ButtonProps, button};
 use bevy::feathers::dark_theme::create_dark_theme;
 use bevy::feathers::theme::{ThemeBackgroundColor, UiTheme};
 use bevy::feathers::tokens;
@@ -11,6 +12,7 @@ use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::picking::hover::HoverMap;
 use bevy::prelude::*;
 use bevy::ui::Val::*;
+use bevy::ui_widgets::Activate;
 use bevy::window::{PrimaryWindow, WindowCloseRequested, WindowRef, WindowResolution};
 
 use crate::gui::panels::{
@@ -35,6 +37,10 @@ pub struct InspectorWindow;
 /// Marker to indicate UI has been initialized.
 #[derive(Component)]
 struct InspectorUiInitialized;
+
+/// Marker component for the pause button.
+#[derive(Component)]
+pub struct PauseButton;
 
 /// System sets for organizing inspector systems.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
@@ -104,6 +110,7 @@ impl Plugin for InspectorWindowPlugin {
                         .in_set(InspectorSet::SyncUI),
                 ),
             )
+            .add_observer(toggle_is_paused_on_activate)
             .add_observer(on_object_row_click)
             .add_observer(update_active_objects_tab_on_activate_tab);
     }
@@ -298,6 +305,28 @@ fn spawn_title_bar(parent: &mut ChildSpawnerCommands<'_>, config: &InspectorConf
                 },
                 TextColor(Color::WHITE),
             ));
+            bar.spawn(button(
+                ButtonProps::default(),
+                PauseButton,
+                bevy::prelude::Spawn((
+                    Text::new("Pause/Resume"),
+                    TextFont {
+                        font_size: FontSize::Px(config.body_font_size),
+                        ..default()
+                    },
+                )),
+            ));
+            bar.spawn(button(
+                ButtonProps::default(),
+                (),
+                bevy::prelude::Spawn((
+                    Text::new("Refresh"),
+                    TextFont {
+                        font_size: FontSize::Px(config.body_font_size),
+                        ..default()
+                    },
+                )),
+            ));
         });
 }
 
@@ -346,4 +375,18 @@ fn handle_mouse_wheel_scroll(
             }
         }
     }
+}
+
+/// Observes [`Activate`] events to toggle [`InspectorState`].
+fn toggle_is_paused_on_activate(
+    activate: On<Activate>,
+    mut state: ResMut<InspectorState>,
+    pause_button_query: Query<Entity, With<PauseButton>>,
+) {
+    let Some(_pause_button) = pause_button_query.get(activate.entity).ok() else {
+        return;
+    };
+
+    state.is_paused = !state.is_paused;
+    info!("Toggled `is_paused`. Current value: {:?}", state.is_paused);
 }
