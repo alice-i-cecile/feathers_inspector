@@ -172,6 +172,127 @@ pub fn get_reflected_component_mut<'w>(
     Ok(reflected)
 }
 
+/// Checks if a reflected value is safe to be converted to a dynamic representation.
+/// It recursively traverses the object and checks if Map keys and Set values
+/// implement `reflect_hash` and `reflect_partial_eq`.
+pub fn is_dynamic_safe(val: &dyn PartialReflect) -> bool {
+    match val.reflect_ref() {
+        ReflectRef::Struct(s) => {
+            for i in 0..s.field_len() {
+                if let Some(field) = s.field_at(i)
+                    && !is_dynamic_safe(field)
+                {
+                    return false;
+                }
+            }
+            true
+        }
+        ReflectRef::TupleStruct(s) => {
+            for i in 0..s.field_len() {
+                if let Some(field) = s.field(i)
+                    && !is_dynamic_safe(field)
+                {
+                    return false;
+                }
+            }
+            true
+        }
+        ReflectRef::Tuple(s) => {
+            for i in 0..s.field_len() {
+                if let Some(field) = s.field(i)
+                    && !is_dynamic_safe(field)
+                {
+                    return false;
+                }
+            }
+            true
+        }
+        ReflectRef::List(s) => {
+            for i in 0..s.len() {
+                if let Some(field) = s.get(i)
+                    && !is_dynamic_safe(field)
+                {
+                    return false;
+                }
+            }
+            true
+        }
+        ReflectRef::Array(s) => {
+            for i in 0..s.len() {
+                if let Some(field) = s.get(i)
+                    && !is_dynamic_safe(field)
+                {
+                    return false;
+                }
+            }
+            true
+        }
+        ReflectRef::Map(s) => {
+            for (k, v) in s.iter() {
+                if k.reflect_hash().is_none() {
+                    return false;
+                }
+                if k.reflect_partial_eq(k).is_none() {
+                    return false;
+                }
+                if !is_dynamic_safe(k) {
+                    return false;
+                }
+                if !is_dynamic_safe(v) {
+                    return false;
+                }
+            }
+            true
+        }
+        ReflectRef::Set(s) => {
+            for v in s.iter() {
+                if v.reflect_hash().is_none() {
+                    return false;
+                }
+                if v.reflect_partial_eq(v).is_none() {
+                    return false;
+                }
+                if !is_dynamic_safe(v) {
+                    return false;
+                }
+            }
+            true
+        }
+        ReflectRef::Enum(s) => {
+            for i in 0..s.field_len() {
+                if let Some(field) = s.field_at(i)
+                    && !is_dynamic_safe(field)
+                {
+                    return false;
+                }
+            }
+            true
+        }
+        ReflectRef::Opaque(_) => true,
+    }
+}
+
+/// Safely clones a [`PartialReflect`] value into a boxed dynamic representation.
+///
+/// This handles the distinction between "dynamic-safe" types (which can use `.to_dynamic()`)
+/// and opaque/unsafe types (which must use `.reflect_clone()`).
+pub fn clone_partial_reflect(reflected: &dyn PartialReflect) -> Option<Box<dyn PartialReflect>> {
+    if is_dynamic_safe(reflected) {
+        match reflected.reflect_ref() {
+            bevy::reflect::ReflectRef::Opaque(value) => value
+                .reflect_clone()
+                .ok()
+                .map(|boxed| boxed.into_partial_reflect()),
+            _ => Some(reflected.to_dynamic()),
+        }
+    } else {
+        reflected
+            .reflect_clone()
+            .ok()
+            .map(|boxed| boxed.into_partial_reflect())
+    }
+}
+
 /// Converts a reflected value to a string for debugging purposes.
 // When upstreamed, this should be a method on `PartialReflect`,
 // although much of it should be a `Display` impl on `ReflectRef`.

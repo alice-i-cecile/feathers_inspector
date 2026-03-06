@@ -22,8 +22,8 @@ use crate::gui::panels::{
 
 use super::config::InspectorConfig;
 use super::panels::{
-    generate_object_list, spawn_detail_panel, spawn_object_list_panel, sync_detail_panel,
-    sync_object_list,
+    render_detail_panel, render_object_list, spawn_detail_panel, spawn_object_list_panel,
+    update_inspector_cache,
 };
 use super::semantic_names::SemanticFieldNames;
 use super::state::{InspectorCache, InspectorInternal, InspectorState};
@@ -42,13 +42,23 @@ struct InspectorUiInitialized;
 #[derive(Component)]
 pub struct PauseButton;
 
+/// Marker component for the refresh button.
+#[derive(Component)]
+pub struct RefreshButton;
+
 /// System sets for organizing inspector systems.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum InspectorSet {
     /// Handle input events.
     Input,
     /// Refresh cached data.
+    ///
+    /// Cache is needed because the [`World`] could mutate unpredictably,
+    /// therefore, while not guaranteed to be up to date,
+    /// it allows to take a snapshot of it.
     RefreshCache,
+    /// Sync UI with cache.
+    Render,
     /// Sync UI with state.
     SyncUI,
 }
@@ -77,6 +87,7 @@ impl Plugin for InspectorWindowPlugin {
                     InspectorSet::Input,
                     InspectorSet::RefreshCache,
                     InspectorSet::SyncUI,
+                    InspectorSet::Render,
                 )
                     .chain(),
             )
@@ -98,19 +109,19 @@ impl Plugin for InspectorWindowPlugin {
                     // Input handling
                     (handle_mouse_wheel_scroll, handle_toggle_key).in_set(InspectorSet::Input),
                     // Cache refresh
-                    generate_object_list.in_set(InspectorSet::RefreshCache),
+                    update_inspector_cache.in_set(InspectorSet::RefreshCache),
                     // UI sync - chain these to avoid resource conflicts
-                    (
-                        toggle_inspector_window,
-                        setup_inspector_ui,
-                        sync_object_list,
-                        sync_detail_panel,
-                    )
+                    (toggle_inspector_window, setup_inspector_ui)
                         .chain()
                         .in_set(InspectorSet::SyncUI),
+                    // Render systems (Unconditional)
+                    (render_object_list, render_detail_panel)
+                        .chain()
+                        .in_set(InspectorSet::Render),
                 ),
             )
             .add_observer(toggle_is_paused_on_activate)
+            .add_observer(manual_refresh_on_activate)
             .add_observer(on_object_row_click)
             .add_observer(update_active_objects_tab_on_activate_tab);
     }
@@ -318,7 +329,7 @@ fn spawn_title_bar(parent: &mut ChildSpawnerCommands<'_>, config: &InspectorConf
             ));
             bar.spawn(button(
                 ButtonProps::default(),
-                (),
+                RefreshButton,
                 bevy::prelude::Spawn((
                     Text::new("Refresh"),
                     TextFont {
@@ -377,16 +388,32 @@ fn handle_mouse_wheel_scroll(
     }
 }
 
-/// Observes [`Activate`] events to toggle [`InspectorState`].
+/// Observes [`Activate`] events to toggle `is_paused` on [`InspectorState`].
 fn toggle_is_paused_on_activate(
     activate: On<Activate>,
     mut state: ResMut<InspectorState>,
     pause_button_query: Query<Entity, With<PauseButton>>,
+    mut writer: MessageWriter<RefreshObjectList>,
 ) {
     let Some(_pause_button) = pause_button_query.get(activate.entity).ok() else {
         return;
     };
 
     state.is_paused = !state.is_paused;
-    info!("Toggled `is_paused`. Current value: {:?}", state.is_paused);
+
+    // Forces a cache refresh to get the freshest data.
+    writer.write(RefreshObjectList);
+}
+
+/// Observes [`Activate`] events to trigger manual refresh.
+fn manual_refresh_on_activate(
+    activate: On<Activate>,
+    refresh_button_query: Query<Entity, With<RefreshButton>>,
+    mut writer: MessageWriter<RefreshObjectList>,
+) {
+    let Some(_refresh_button) = refresh_button_query.get(activate.entity).ok() else {
+        return;
+    };
+
+    writer.write(RefreshObjectList);
 }

@@ -147,6 +147,7 @@ fn inspect_specific_component_when_c_pressed(
         let settings = ComponentInspectionSettings {
             detail_level: ComponentDetailLevel::Values,
             full_type_names: true,
+            store_reflected_value: false,
         };
         for entity in entities {
             let params = brp::inspect_component::Params {

@@ -2,13 +2,18 @@
 
 use bevy::ecs::component::StorageType;
 use bevy::platform::collections::HashMap;
-use bevy::{ecs::component::ComponentId, prelude::*, reflect::TypeRegistration};
+use bevy::{
+    ecs::component::ComponentId,
+    prelude::*,
+    reflect::{PartialReflect, TypeRegistration},
+};
 use core::any::TypeId;
 use core::fmt::Display;
 use thiserror::Error;
 
 use crate::entity_name_resolution::NameResolutionRegistry;
 use crate::memory_size::MemorySize;
+use crate::reflection_tools::clone_partial_reflect;
 
 /// The result of inspecting a component.
 ///
@@ -21,7 +26,7 @@ use crate::memory_size::MemorySize;
 /// components of the same type.
 ///
 /// To inspect a component type itself, see [`ComponentTypeInspection`].
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ComponentInspection {
     /// The entity that owns the component.
@@ -50,6 +55,31 @@ pub struct ComponentInspection {
     /// This information is gathered via reflection,
     /// and used for debugging purposes.
     pub value: Option<String>,
+    /// The reflected value of the component.
+    ///
+    /// This allows for deeper inspection and interaction with the component data
+    /// (e.g. in the inspector UI).
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub reflected_value: Option<Box<dyn PartialReflect>>,
+}
+
+// Manual implementation needed because of `reflected_value`.
+impl Clone for ComponentInspection {
+    fn clone(&self) -> Self {
+        let reflected_value = self
+            .reflected_value
+            .as_deref()
+            .and_then(clone_partial_reflect);
+
+        Self {
+            entity: self.entity,
+            component_id: self.component_id,
+            name: self.name.clone(),
+            memory_size: self.memory_size,
+            value: self.value.clone(),
+            reflected_value,
+        }
+    }
 }
 
 impl Display for ComponentInspection {
@@ -345,6 +375,12 @@ pub struct ComponentInspectionSettings {
     ///
     /// Defaults to `false`.
     pub full_type_names: bool,
+    /// Whether the reflected value should be stored in `ComponentInspection`.
+    ///
+    /// This allows for deeper inspection and interaction with the component data.
+    ///
+    /// Defaults to `false`.
+    pub store_reflected_value: bool,
 }
 
 /// The amount of component information to include when inspecting an entity.
@@ -370,6 +406,7 @@ impl Default for ComponentInspectionSettings {
         Self {
             detail_level: ComponentDetailLevel::Values,
             full_type_names: false,
+            store_reflected_value: false,
         }
     }
 }
