@@ -124,7 +124,11 @@ impl Plugin for InspectorWindowPlugin {
                         .chain()
                         .in_set(InspectorSet::SyncUI),
                     // Render systems (Unconditional)
-                    (render_object_list, render_detail_panel)
+                    (
+                        render_object_list,
+                        render_detail_panel,
+                        update_toolbar_buttons,
+                    )
                         .chain()
                         .in_set(InspectorSet::Render),
                 ),
@@ -243,6 +247,7 @@ fn spawn_inspector_window(
 fn setup_inspector_ui(
     mut commands: Commands,
     config: Res<InspectorConfig>,
+    state: Res<InspectorState>,
     inspector_windows: Query<Entity, (With<InspectorWindow>, Without<InspectorUiInitialized>)>,
 ) {
     let Some(window_entity) = inspector_windows.iter().next() else {
@@ -279,7 +284,7 @@ fn setup_inspector_ui(
         ))
         .with_children(|root| {
             // Title bar
-            spawn_title_bar(root, &config);
+            spawn_title_bar(root, &config, &state);
 
             // Main content area
             root.spawn((Node {
@@ -302,7 +307,11 @@ fn setup_inspector_ui(
     info!("Inspector UI initialized");
 }
 
-fn spawn_title_bar(parent: &mut ChildSpawnerCommands<'_>, config: &InspectorConfig) {
+fn spawn_title_bar(
+    parent: &mut ChildSpawnerCommands<'_>,
+    config: &InspectorConfig,
+    state: &InspectorState,
+) {
     parent
         .spawn((
             Node {
@@ -325,28 +334,64 @@ fn spawn_title_bar(parent: &mut ChildSpawnerCommands<'_>, config: &InspectorConf
                 },
                 TextColor(Color::WHITE),
             ));
-            bar.spawn(button(
-                ButtonProps::default(),
-                PauseButton,
-                bevy::prelude::Spawn((
-                    Text::new("Pause/Resume"),
-                    TextFont {
-                        font_size: FontSize::Px(config.body_font_size),
+
+            // Flexible spacer
+            bar.spawn(Node {
+                flex_grow: 1.0,
+                ..default()
+            });
+
+            // Toolbar action container
+            bar.spawn(Node {
+                display: Display::Flex,
+                flex_direction: FlexDirection::Row,
+                column_gap: Val::Px(5.0),
+                flex_grow: 0.0,
+                ..default()
+            })
+            .with_children(|actions| {
+                // Wrapper because `Node` on `button` triggers segfault.
+                actions
+                    .spawn(Node {
+                        width: Val::Px(80.0),
+                        justify_content: JustifyContent::Center,
                         ..default()
-                    },
-                )),
-            ));
-            bar.spawn(button(
-                ButtonProps::default(),
-                RefreshButton,
-                bevy::prelude::Spawn((
-                    Text::new("Refresh"),
-                    TextFont {
-                        font_size: FontSize::Px(config.body_font_size),
+                    })
+                    .with_children(|wrapper| {
+                        wrapper.spawn(button(
+                            ButtonProps::default(),
+                            RefreshButton,
+                            bevy::prelude::Spawn((
+                                Text::new("Refresh"),
+                                TextFont {
+                                    font_size: FontSize::Px(config.body_font_size),
+                                    ..default()
+                                },
+                            )),
+                        ));
+                    });
+
+                // Wrapper because `Node` on `button` triggers segfault.
+                actions
+                    .spawn(Node {
+                        width: Val::Px(80.0),
+                        justify_content: JustifyContent::Center,
                         ..default()
-                    },
-                )),
-            ));
+                    })
+                    .with_children(|wrapper| {
+                        wrapper.spawn(button(
+                            ButtonProps::default(),
+                            PauseButton,
+                            bevy::prelude::Spawn((
+                                Text::new(if state.is_paused { "Resume" } else { "Pause" }),
+                                TextFont {
+                                    font_size: FontSize::Px(config.body_font_size),
+                                    ..default()
+                                },
+                            )),
+                        ));
+                    });
+            });
         });
 }
 
@@ -427,4 +472,36 @@ fn manual_refresh_on_activate(
 
     cache.is_dirty = true;
     writer.write(RefreshObjectList);
+}
+
+/// Syncs the text and visibility of the toolbar buttons with the current [`InspectorState`].
+fn update_toolbar_buttons(
+    state: Res<InspectorState>,
+    mut refresh_buttons: Query<&mut Node, With<RefreshButton>>,
+    pause_buttons: Query<&Children, With<PauseButton>>,
+    mut text_query: Query<&mut Text>,
+) {
+    if !state.is_changed() {
+        return;
+    }
+
+    let is_paused = state.is_paused;
+
+    // Update Refresh Button visibility
+    for mut node in &mut refresh_buttons {
+        node.display = if is_paused {
+            Display::Flex
+        } else {
+            Display::None
+        };
+    }
+
+    // Update Pause Button text
+    for children in &pause_buttons {
+        for child in children.iter() {
+            if let Ok(mut text) = text_query.get_mut(child) {
+                text.0 = if is_paused { "Resume" } else { "Pause" }.to_string();
+            }
+        }
+    }
 }
