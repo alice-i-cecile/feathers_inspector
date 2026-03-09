@@ -230,7 +230,6 @@ fn update_cache_paused(world: &mut World, filter: &ObjectListFilter) {
         (cache.snapshot.is_full(), cache.is_dirty)
     };
     if !has_full_snapshot || cache_is_dirty {
-        info!("<!!!> Dirty cache, updating snapshot.");
         create_full_snapshot(world);
     }
 
