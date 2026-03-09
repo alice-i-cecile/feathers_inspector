@@ -19,6 +19,7 @@ use core::any::TypeId;
 use crate::entity_name_resolution::EntityName;
 use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::gui::config::InspectorConfig;
+use crate::gui::panels::RefreshUI;
 use crate::gui::semantic_names::SemanticFieldNames;
 use crate::gui::state::{DetailTab, InspectorCache, InspectorState};
 use crate::gui::widgets::drag_value::{DragValue, DragValueDragState, FieldPath, FieldPathSegment};
@@ -50,9 +51,11 @@ fn on_tab_button_click(
     activate: On<Activate>,
     mut state: ResMut<InspectorState>,
     tabs: Query<&TabButton>,
+    mut ui_writer: MessageWriter<RefreshUI>,
 ) {
     if let Ok(tab) = tabs.get(activate.entity) {
         state.active_detail_tab = tab.0;
+        ui_writer.write(RefreshUI);
     }
 }
 
@@ -61,9 +64,11 @@ fn on_hierarchy_node_click(
     activate: On<Activate>,
     mut state: ResMut<InspectorState>,
     nodes: Query<&HierarchyNode>,
+    mut ui_writer: MessageWriter<RefreshUI>,
 ) {
     if let Ok(node) = nodes.get(activate.entity) {
         state.selected_object = Some(node.0);
+        ui_writer.write(RefreshUI);
     }
 }
 
@@ -99,27 +104,14 @@ fn check_for_state_changes(world: &mut World) -> Option<(Option<Entity>, DetailT
     let state = world.resource::<InspectorState>();
     let selected_object = state.selected_object;
     let active_tab = state.active_detail_tab;
-    let previous_selection = state.previous_selected_object;
-    let previous_tab = state.previous_detail_tab;
-
-    let selection_changed = selected_object != previous_selection;
-    let tab_changed = active_tab != previous_tab;
-    let cache_changed = world
-        .get_resource_ref::<InspectorCache>()
-        .map(|r| r.is_changed())
-        .unwrap_or(false);
     let any_editing = world
         .query::<&DragValueDragState>()
         .iter(world)
         .any(|state| state.dragging || state.editing);
 
-    if !selection_changed && !tab_changed && (!cache_changed || any_editing) {
+    if any_editing {
         return None;
     }
-
-    let mut state = world.resource_mut::<InspectorState>();
-    state.previous_selected_object = selected_object;
-    state.previous_detail_tab = active_tab;
 
     Some((selected_object, active_tab))
 }

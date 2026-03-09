@@ -225,8 +225,12 @@ fn inspect_entities(
 }
 
 fn update_cache_paused(world: &mut World, filter: &ObjectListFilter) {
-    let has_full_snapshot = world.resource::<InspectorCache>().snapshot.is_full();
-    if !has_full_snapshot {
+    let (has_full_snapshot, cache_is_dirty) = {
+        let cache = world.resource::<InspectorCache>();
+        (cache.snapshot.is_full(), cache.is_dirty)
+    };
+    if !has_full_snapshot || cache_is_dirty {
+        info!("<!!!> Dirty cache, updating snapshot.");
         create_full_snapshot(world);
     }
 
@@ -237,6 +241,7 @@ fn update_cache_paused(world: &mut World, filter: &ObjectListFilter) {
             cache.metadata_map.as_ref(),
         );
         cache.filtered_objects = object_list;
+        cache.is_dirty = false;
     });
 }
 
@@ -367,10 +372,6 @@ pub fn render_object_list(
     list_content: Query<(Entity, &ObjectListContent)>,
     children: Query<&Children>,
 ) {
-    if !cache.is_changed() && !state.is_changed() {
-        return;
-    }
-
     for (content_entity, object_list_content) in &list_content {
         if state.active_objects_tab != object_list_content.tab {
             continue;
@@ -450,6 +451,7 @@ pub fn update_active_objects_tab_on_activate_tab(
     children: Query<&Children>,
     mut state: ResMut<InspectorState>,
     mut writer: MessageWriter<RefreshObjectList>,
+    mut ui_writer: MessageWriter<RefreshUI>,
     mut commands: Commands,
 ) {
     let event = on_activate_tab.event();
@@ -468,6 +470,7 @@ pub fn update_active_objects_tab_on_activate_tab(
                         // but it's currently needed to not disrupt
                         // the current exclusive system centric code structure.
                         commands.queue(|world: &mut World| update_inspector_cache(world));
+                        ui_writer.write(RefreshUI);
                     } else {
                         // Forced UI sync to avoid showing stale state.
                         writer.write(RefreshObjectList);
@@ -488,11 +491,14 @@ pub fn on_object_row_click(
     mut state: ResMut<InspectorState>,
     rows: Query<&ObjectRow>,
     mut writer: MessageWriter<RefreshObjectList>,
+    mut ui_writer: MessageWriter<RefreshUI>,
 ) {
     if let Ok(row) = rows.get(activate.entity) {
         state.selected_object = Some(row.selected_object);
         if !state.is_paused {
             writer.write(RefreshObjectList);
+        } else {
+            ui_writer.write(RefreshUI);
         }
     }
 }
@@ -751,6 +757,11 @@ fn scrollable_area(
 /// [`SyncUI`]: crate::gui::plugin::InspectorSet::SyncUI
 #[derive(Message)]
 pub struct RefreshObjectList;
+
+/// A message that drives a refresh of the UI panels,
+/// without forcing a cache rebuild.
+#[derive(Message)]
+pub struct RefreshUI;
 
 /// A system which periodically sends a [`RefreshObjectList`] message.
 ///

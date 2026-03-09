@@ -31,14 +31,10 @@ pub struct InspectorState {
     pub is_paused: bool,
     /// Currently selected object for detail view.
     pub selected_object: Option<Entity>,
-    /// Previously selected object (for change detection).
-    pub previous_selected_object: Option<Entity>,
     /// Active tab in the object list panel.
     pub active_objects_tab: ObjectListTab,
     /// Active tab in the detail panel.
     pub active_detail_tab: DetailTab,
-    /// Previous active tab (for change detection).
-    pub previous_detail_tab: DetailTab,
     /// Current search/filter text for object list.
     pub filter_text: String,
     /// Component filter: only show entities with these components.
@@ -74,6 +70,8 @@ pub struct InspectorCache {
     pub metadata_map: Option<ComponentMetadataMap>,
     /// Snapshot of the world state.
     pub snapshot: WorldSnapshot,
+    /// Signals to force-refresh the cache.
+    pub is_dirty: bool,
 }
 
 /// Collects and indexes [`EntityInspection`]s in an ordered way.

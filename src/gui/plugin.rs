@@ -16,7 +16,7 @@ use bevy::ui_widgets::Activate;
 use bevy::window::{PrimaryWindow, WindowCloseRequested, WindowRef, WindowResolution};
 
 use crate::gui::panels::{
-    RefreshObjectList, on_object_row_click, refresh_object_list_periodically,
+    RefreshObjectList, RefreshUI, on_object_row_click, refresh_object_list_periodically,
     update_active_objects_tab_on_activate_tab,
 };
 
@@ -80,6 +80,7 @@ impl Plugin for InspectorWindowPlugin {
             // Messages
             .add_message::<SetInspectorWindow>()
             .add_message::<RefreshObjectList>()
+            .add_message::<RefreshUI>()
             // System ordering
             .configure_sets(
                 Update,
@@ -96,6 +97,14 @@ impl Plugin for InspectorWindowPlugin {
                 Update,
                 (InspectorSet::RefreshCache, InspectorSet::SyncUI).run_if(
                     on_message::<RefreshObjectList>.or_else(on_message::<SetInspectorWindow>),
+                ),
+            )
+            .configure_sets(
+                Update,
+                InspectorSet::Render.run_if(
+                    on_message::<RefreshObjectList>
+                        .or_else(on_message::<RefreshUI>)
+                        .or_else(on_message::<SetInspectorWindow>),
                 ),
             )
             // Startup
@@ -410,10 +419,12 @@ fn manual_refresh_on_activate(
     activate: On<Activate>,
     refresh_button_query: Query<Entity, With<RefreshButton>>,
     mut writer: MessageWriter<RefreshObjectList>,
+    mut cache: ResMut<InspectorCache>,
 ) {
     let Some(_refresh_button) = refresh_button_query.get(activate.entity).ok() else {
         return;
     };
 
+    cache.is_dirty = true;
     writer.write(RefreshObjectList);
 }
