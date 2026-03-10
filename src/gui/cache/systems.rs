@@ -160,11 +160,11 @@ fn inspect_entities(
 }
 
 fn update_cache_paused(world: &mut World, filter: &ObjectListFilter) {
-    let (has_full_snapshot, cache_is_dirty) = {
+    let has_full_snapshot = {
         let cache = world.resource::<InspectorCache>();
-        (cache.snapshot.is_full(), cache.is_dirty)
+        cache.snapshot.is_full()
     };
-    if !has_full_snapshot || cache_is_dirty {
+    if !has_full_snapshot {
         create_full_snapshot(world);
     }
 
@@ -175,7 +175,6 @@ fn update_cache_paused(world: &mut World, filter: &ObjectListFilter) {
             cache.metadata_map.as_ref(),
         );
         cache.filtered_objects = object_list;
-        cache.is_dirty = false;
     });
 }
 

@@ -20,6 +20,4 @@ pub struct InspectorCache {
     pub metadata_map: Option<ComponentMetadataMap>,
     /// Snapshot of the world state.
     pub snapshot: WorldSnapshot,
-    /// Signals to force-refresh the cache.
-    pub is_dirty: bool,
 }

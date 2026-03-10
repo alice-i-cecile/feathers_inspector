@@ -472,7 +472,7 @@ fn manual_refresh_on_activate(
         return;
     };
 
-    cache.is_dirty = true;
+    cache.snapshot.clear();
     writer.write(RefreshCache);
 }
 
