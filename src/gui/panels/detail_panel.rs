@@ -80,7 +80,7 @@ fn on_hierarchy_node_click(
 
 /// Exclusive system that syncs the detail panel with the current selection.
 /// Uses exclusive world access to avoid resource conflicts.
-/// Only rebuilds UI when selection or tab changes.
+/// Periodically rebuilds UI to support live updating of values.
 pub fn render_detail_panel(world: &mut World) {
     let Some((selected_object, active_tab)) = check_for_state_changes(world) else {
         return;

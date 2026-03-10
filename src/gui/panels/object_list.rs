@@ -194,7 +194,7 @@ pub fn update_active_objects_tab_on_tab_activated(
 /// Global observer for object row clicks.
 /// Added in [`InspectorWindowPlugin`](crate::gui::plugin::InspectorWindowPlugin).
 ///
-/// Traverses up the parent hierarchy to find the [`ObjectRow`] component.
+/// Expects the `Activate` event target to hold the [`ObjectRow`] component.
 pub fn on_object_row_click(
     activate: On<Activate>,
     mut state: ResMut<InspectorState>,
