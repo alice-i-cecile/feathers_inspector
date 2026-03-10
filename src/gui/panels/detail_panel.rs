@@ -20,7 +20,7 @@ use crate::entity_name_resolution::EntityName;
 use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::gui::cache::InspectorCache;
 use crate::gui::config::InspectorConfig;
-use crate::gui::panels::{RefreshCache, RefreshUI};
+use crate::gui::panels::{RefreshCache, RefreshUi};
 use crate::gui::semantic_names::SemanticFieldNames;
 use crate::gui::state::{DetailTab, InspectorState};
 use crate::gui::widgets::drag_value::{DragValue, DragValueDragState, FieldPath, FieldPathSegment};
@@ -52,11 +52,11 @@ fn on_tab_button_click(
     activate: On<Activate>,
     mut state: ResMut<InspectorState>,
     tabs: Query<&TabButton>,
-    mut ui_writer: MessageWriter<RefreshUI>,
+    mut ui_writer: MessageWriter<RefreshUi>,
 ) {
     if let Ok(tab) = tabs.get(activate.entity) {
         state.active_detail_tab = tab.0;
-        ui_writer.write(RefreshUI);
+        ui_writer.write(RefreshUi);
     }
 }
 
@@ -66,14 +66,14 @@ fn on_hierarchy_node_click(
     mut state: ResMut<InspectorState>,
     nodes: Query<&HierarchyNode>,
     mut writer: MessageWriter<RefreshCache>,
-    mut ui_writer: MessageWriter<RefreshUI>,
+    mut ui_writer: MessageWriter<RefreshUi>,
 ) {
     if let Ok(node) = nodes.get(activate.entity) {
         state.selected_object = Some(node.0);
         if !state.is_paused {
             writer.write(RefreshCache);
         } else {
-            ui_writer.write(RefreshUI);
+            ui_writer.write(RefreshUi);
         }
     }
 }

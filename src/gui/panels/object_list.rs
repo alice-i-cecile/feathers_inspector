@@ -160,7 +160,7 @@ pub fn update_active_objects_tab_on_tab_activated(
     children: Query<&Children>,
     mut state: ResMut<InspectorState>,
     mut writer: MessageWriter<RefreshCache>,
-    mut ui_writer: MessageWriter<RefreshUI>,
+    mut ui_writer: MessageWriter<RefreshUi>,
     mut commands: Commands,
 ) {
     let event = on_activate_tab.event();
@@ -179,7 +179,7 @@ pub fn update_active_objects_tab_on_tab_activated(
                         // but it's currently needed to not disrupt
                         // the current exclusive system centric code structure.
                         commands.queue(|world: &mut World| update_inspector_cache(world));
-                        ui_writer.write(RefreshUI);
+                        ui_writer.write(RefreshUi);
                     } else {
                         // Forced UI sync to avoid showing stale state.
                         writer.write(RefreshCache);
@@ -200,14 +200,14 @@ pub fn on_object_row_click(
     mut state: ResMut<InspectorState>,
     rows: Query<&ObjectRow>,
     mut writer: MessageWriter<RefreshCache>,
-    mut ui_writer: MessageWriter<RefreshUI>,
+    mut ui_writer: MessageWriter<RefreshUi>,
 ) {
     if let Ok(row) = rows.get(activate.entity) {
         state.selected_object = Some(row.selected_object);
         if !state.is_paused {
             writer.write(RefreshCache);
         } else {
-            ui_writer.write(RefreshUI);
+            ui_writer.write(RefreshUi);
         }
     }
 }
@@ -475,7 +475,7 @@ pub struct RefreshCache;
 /// [`Render`]: crate::gui::plugin::InspectorSet::Render
 
 #[derive(Message)]
-pub struct RefreshUI;
+pub struct RefreshUi;
 
 /// A system which periodically sends a [`RefreshCache`] message.
 ///

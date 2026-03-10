@@ -17,7 +17,7 @@ use bevy::window::{PrimaryWindow, WindowCloseRequested, WindowRef, WindowResolut
 
 use crate::gui::cache::{InspectorCache, update_inspector_cache};
 use crate::gui::panels::{
-    RefreshCache, RefreshUI, on_object_row_click, periodically_refresh_cache,
+    RefreshCache, RefreshUi, on_object_row_click, periodically_refresh_cache,
     update_active_objects_tab_on_tab_activated,
 };
 
@@ -80,7 +80,7 @@ impl Plugin for InspectorWindowPlugin {
             // Messages
             .add_message::<SetInspectorWindow>()
             .add_message::<RefreshCache>()
-            .add_message::<RefreshUI>()
+            .add_message::<RefreshUi>()
             // System ordering
             .configure_sets(
                 Update,
@@ -105,7 +105,7 @@ impl Plugin for InspectorWindowPlugin {
                 Update,
                 InspectorSet::Render.run_if(
                     on_message::<RefreshCache>
-                        .or_else(on_message::<RefreshUI>)
+                        .or_else(on_message::<RefreshUi>)
                         .or_else(on_message::<SetInspectorWindow>),
                 ),
             )
