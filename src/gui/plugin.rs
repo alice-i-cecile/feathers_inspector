@@ -95,8 +95,11 @@ impl Plugin for InspectorWindowPlugin {
             // Limit refreshes
             .configure_sets(
                 Update,
-                (InspectorSet::CacheUpdate, InspectorSet::SyncUI)
-                    .run_if(on_message::<RefreshCache>.or_else(on_message::<SetInspectorWindow>)),
+                InspectorSet::CacheUpdate.run_if(on_message::<RefreshCache>),
+            )
+            .configure_sets(
+                Update,
+                InspectorSet::SyncUI.run_if(on_message::<SetInspectorWindow>),
             )
             .configure_sets(
                 Update,
