@@ -514,3 +514,60 @@ pub fn periodically_refresh_cache(
         message_writer.write(RefreshCache);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::gui::config::InspectorConfig;
+    use crate::gui::state::InspectorState;
+
+    fn setup_test_app() -> App {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins);
+        // TODO: Consider making `InspectorWindowPlugin` test-mockable.
+        app.insert_resource(InspectorCache::default());
+        app.insert_resource(InspectorState::default());
+        app.insert_resource(InspectorConfig::default());
+        app
+    }
+
+    fn create_test_entry(entity: Entity) -> ObjectListEntry {
+        ObjectListEntry {
+            entity,
+            display_name: "TestEntity".to_string(),
+            component_count: 0,
+            memory_size: crate::memory_size::MemorySize(0),
+        }
+    }
+
+    #[test]
+    fn object_rows_are_spawned_for_cached_entries() {
+        let mut app = setup_test_app();
+        let entity = Entity::from_bits(1);
+
+        let mut cache = app.world_mut().resource_mut::<InspectorCache>();
+        cache.filtered_objects = vec![create_test_entry(entity)];
+
+        let content_node = app
+            .world_mut()
+            .spawn((
+                ObjectListContent {
+                    tab: ObjectListTab::Entities,
+                },
+                Node::default(),
+            ))
+            .id();
+
+        app.world_mut()
+            .resource_mut::<InspectorState>()
+            .active_objects_tab = ObjectListTab::Entities;
+
+        app.add_systems(Update, render_object_list);
+        app.update();
+
+        let children = app.world().get::<Children>(content_node).unwrap();
+        assert_eq!(children.len(), 1);
+        let row_was_spawned = app.world().get::<ObjectRow>(children[0]).is_some();
+        assert!(row_was_spawned);
+    }
+}

@@ -987,3 +987,59 @@ pub fn spawn_detail_panel(parent: &mut ChildSpawnerCommands<'_>, config: &Inspec
                 });
         });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::entity_name_resolution::NameResolutionPlugin;
+    use crate::gui::cache::{InspectorCache, WorldSnapshot};
+    use crate::gui::config::InspectorConfig;
+    use crate::gui::semantic_names::SemanticFieldNames;
+    use crate::gui::state::{DetailTab, InspectorState};
+    use bevy::ecs::system::RunSystemOnce;
+
+    fn setup_test_app() -> App {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins);
+        // TODO: Consider making `InspectorWindowPlugin` test-mockable.
+        app.insert_resource(InspectorCache::default());
+        app.insert_resource(InspectorState::default());
+        app.insert_resource(InspectorConfig::default());
+        app.insert_resource(SemanticFieldNames::default());
+        app
+    }
+
+    fn create_test_inspection(entity: Entity) -> EntityInspection {
+        EntityInspection {
+            entity,
+            name: None,
+            total_memory_size: None,
+            components: None,
+            spawn_details: None,
+        }
+    }
+
+    #[test]
+    fn detail_panel_renders_when_entity_selected() {
+        let mut app = setup_test_app();
+        app.add_plugins(NameResolutionPlugin);
+        let entity = Entity::from_bits(1);
+
+        let inspection = create_test_inspection(entity);
+        let mut cache = app.world_mut().resource_mut::<InspectorCache>();
+        cache.snapshot = WorldSnapshot::full(vec![inspection], vec![entity]);
+
+        let mut state = app.world_mut().resource_mut::<InspectorState>();
+        state.selected_object = Some(entity);
+        state.active_detail_tab = DetailTab::Components;
+
+        let content_entity = app.world_mut().spawn((DetailContent, Node::default())).id();
+        let _ = app.world_mut().run_system_once(render_detail_panel);
+
+        let children = app
+            .world()
+            .get::<Children>(content_entity)
+            .expect("Content entity should have children");
+        assert!(!children.is_empty());
+    }
+}

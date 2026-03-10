@@ -110,12 +110,64 @@ impl WorldSnapshot {
 mod tests {
     use super::*;
 
+    fn create_test_inspection(entity: Entity) -> EntityInspection {
+        EntityInspection {
+            entity,
+            name: None,
+            total_memory_size: None,
+            components: None,
+            spawn_details: None,
+        }
+    }
+
     #[test]
-    fn snapshot_empty() {
-        let mut snapshot = WorldSnapshot::empty();
+    fn full_creation_populates_data() {
+        let e1 = Entity::from_bits(1);
+        let e2 = Entity::from_bits(2);
+        let inspections = vec![create_test_inspection(e1), create_test_inspection(e2)];
+        let ordering = vec![e1, e2];
+
+        let snapshot = WorldSnapshot::full(inspections, ordering);
+
+        assert!(snapshot.is_full());
+        assert_eq!(snapshot.iter().count(), 2);
+    }
+
+    #[test]
+    fn snapshot_preserves_insertion_order() {
+        let e1 = Entity::from_bits(1);
+        let e2 = Entity::from_bits(2);
+        let i1 = create_test_inspection(e1);
+        let i2 = create_test_inspection(e2);
+
+        let snapshot = WorldSnapshot::full(vec![i1.clone(), i2.clone()], vec![e2, e1]);
+
+        let order: Vec<Entity> = snapshot.iter().map(|i| i.entity).collect();
+        assert_eq!(order, vec![e2, e1]);
+    }
+
+    #[test]
+    fn snapshot_provides_lookup_access() {
+        let e1 = Entity::from_bits(1);
+        let e2 = Entity::from_bits(2);
+        let i1 = create_test_inspection(e1);
+
+        let snapshot = WorldSnapshot::full(vec![i1], vec![e1]);
+
+        assert!(snapshot.get(e1).is_some());
+        assert!(snapshot.get(e2).is_none());
+    }
+
+    #[test]
+    fn clear_resets_all_state() {
+        let e1 = Entity::from_bits(1);
+        let i1 = create_test_inspection(e1);
+        let mut snapshot = WorldSnapshot::full(vec![i1], vec![e1]);
+
+        snapshot.clear();
+
         assert!(!snapshot.is_full());
         assert_eq!(snapshot.iter().count(), 0);
-        snapshot.clear();
-        assert!(!snapshot.is_full());
+        assert!(snapshot.get(e1).is_none());
     }
 }
