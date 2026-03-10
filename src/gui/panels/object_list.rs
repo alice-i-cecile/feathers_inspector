@@ -457,13 +457,13 @@ fn scrollable_area(
 
 /// A message that drives a refresh of the [`InspectorCache`].
 ///
-/// This will cause the system sets [`CacheUpdate`] and [`SyncUI`] to run when seen,
+/// This will cause the system sets [`CacheUpdate`] and [`Render`] to run when seen,
 /// via the use of run conditions added as part of [`InspectorWindowPlugin`](crate::gui::plugin::InspectorWindowPlugin).
 ///
 /// This is a public message to allow users to trigger (or cancel!) refreshes manually if desired.
 ///
 /// [`CacheUpdate`]: crate::gui::plugin::InspectorSet::CacheUpdate
-/// [`SyncUI`]: crate::gui::plugin::InspectorSet::SyncUI
+/// [`Render`]: crate::gui::plugin::InspectorSet::Render
 #[derive(Message)]
 pub struct RefreshCache;
 
