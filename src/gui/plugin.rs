@@ -15,6 +15,7 @@ use bevy::ui::Val::*;
 use bevy::ui_widgets::Activate;
 use bevy::window::{PrimaryWindow, WindowCloseRequested, WindowRef, WindowResolution};
 
+use crate::gui::cache::{InspectorCache, update_inspector_cache};
 use crate::gui::panels::{
     RefreshCache, RefreshUI, on_object_row_click, periodically_refresh_cache,
     update_active_objects_tab_on_tab_activated,
@@ -23,10 +24,9 @@ use crate::gui::panels::{
 use super::config::InspectorConfig;
 use super::panels::{
     render_detail_panel, render_object_list, spawn_detail_panel, spawn_object_list_panel,
-    update_inspector_cache,
 };
 use super::semantic_names::SemanticFieldNames;
-use super::state::{InspectorCache, InspectorInternal, InspectorState};
+use super::state::{InspectorInternal, InspectorState};
 use super::widgets::drag_value::DragValuePlugin;
 use super::widgets::tabs::TabPlugin;
 
