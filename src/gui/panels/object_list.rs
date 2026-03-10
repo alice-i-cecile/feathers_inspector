@@ -443,7 +443,7 @@ fn spawn_object_row(
 
 /// Observes [`TabActivated`] events to update the active objects tab
 /// in the [`InspectorState`].
-pub fn update_active_objects_tab_on_activate_tab(
+pub fn update_active_objects_tab_on_tab_activated(
     on_activate_tab: On<TabActivated>,
     has_contents: Query<&HasContent, With<Tab>>,
     object_list_contents: Query<&ObjectListContent>,

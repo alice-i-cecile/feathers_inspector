@@ -17,7 +17,7 @@ use bevy::window::{PrimaryWindow, WindowCloseRequested, WindowRef, WindowResolut
 
 use crate::gui::panels::{
     RefreshObjectList, RefreshUI, on_object_row_click, refresh_object_list_periodically,
-    update_active_objects_tab_on_activate_tab,
+    update_active_objects_tab_on_tab_activated,
 };
 
 use super::config::InspectorConfig;
@@ -136,7 +136,7 @@ impl Plugin for InspectorWindowPlugin {
             .add_observer(toggle_is_paused_on_activate)
             .add_observer(manual_refresh_on_activate)
             .add_observer(on_object_row_click)
-            .add_observer(update_active_objects_tab_on_activate_tab);
+            .add_observer(update_active_objects_tab_on_tab_activated);
     }
 }
 
