@@ -1,24 +1,9 @@
 use bevy::{platform::collections::HashMap, prelude::*};
 
-use crate::inspection::{
-    component_inspection::ComponentMetadataMap,
-    entity_inspection::{EntityInspection, EntityInspectionSettings},
+use crate::{
+    gui::cache::InspectorCache,
+    inspection::entity_inspection::{EntityInspection, EntityInspectionSettings},
 };
-
-/// Cached data for the inspector.
-///
-/// This is regularly invalidated, but this resource helps avoid repeated allocations.
-#[derive(Resource, Default)]
-pub struct InspectorCache {
-    /// Cached object list after filtering.
-    pub filtered_objects: Vec<crate::gui::state::ObjectListEntry>,
-    /// Cached metadata map (reused across inspections).
-    pub metadata_map: Option<ComponentMetadataMap>,
-    /// Snapshot of the world state.
-    pub snapshot: WorldSnapshot,
-    /// Signals to force-refresh the cache.
-    pub is_dirty: bool,
-}
 
 /// Collects and indexes [`EntityInspection`]s in an ordered way.
 #[derive(Default)]

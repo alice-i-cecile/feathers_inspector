@@ -9,7 +9,7 @@ use crate::{
     entity_grouping::{EntityGrouping, GroupingStrategy},
     extension_methods::WorldInspectionExtensionTrait,
     gui::{
-        cache::snapshot::{InspectorCache, WorldSnapshot},
+        cache::{InspectorCache, snapshot::WorldSnapshot},
         state::{InspectorInternal, InspectorState, ObjectListEntry, ObjectListTab},
     },
     inspection::{
