@@ -48,6 +48,8 @@ pub struct RefreshButton;
 pub enum InspectorSet {
     /// Handle input events.
     Input,
+    /// Sets up UI skeleton.
+    SetupUi,
     /// Refresh cached data.
     ///
     /// Cache is needed because the [`World`] could mutate unpredictably,
@@ -56,8 +58,6 @@ pub enum InspectorSet {
     CacheUpdate,
     /// Sync UI with cache.
     Render,
-    /// Sync UI with state.
-    SetupUi,
 }
 
 /// Plugin that manages the inspector window lifecycle.
@@ -83,8 +83,8 @@ impl Plugin for InspectorWindowPlugin {
                 Update,
                 (
                     InspectorSet::Input,
-                    InspectorSet::CacheUpdate,
                     InspectorSet::SetupUi,
+                    InspectorSet::CacheUpdate,
                     InspectorSet::Render,
                 )
                     .chain(),
@@ -92,11 +92,11 @@ impl Plugin for InspectorWindowPlugin {
             // Limit refreshes
             .configure_sets(
                 Update,
-                InspectorSet::CacheUpdate.run_if(on_message::<RefreshCache>),
+                InspectorSet::SetupUi.run_if(on_message::<SetInspectorWindow>),
             )
             .configure_sets(
                 Update,
-                InspectorSet::SetupUi.run_if(on_message::<SetInspectorWindow>),
+                InspectorSet::CacheUpdate.run_if(on_message::<RefreshCache>),
             )
             .configure_sets(
                 Update,
@@ -270,6 +270,7 @@ fn setup_inspector_ui(
     config: Res<InspectorConfig>,
     state: Res<InspectorState>,
     inspector_windows: Query<Entity, (With<InspectorWindow>, Without<InspectorUiInitialized>)>,
+    mut message_writer: MessageWriter<RefreshCache>,
 ) {
     let Some(window_entity) = inspector_windows.iter().next() else {
         return;
@@ -325,7 +326,10 @@ fn setup_inspector_ui(
                 });
         });
 
-    info!("Inspector UI initialized");
+    // User needs to see new data immediately.
+    if !state.is_paused {
+        message_writer.write(RefreshCache);
+    }
 }
 
 fn spawn_title_bar(
