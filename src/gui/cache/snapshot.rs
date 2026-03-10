@@ -2,7 +2,10 @@ use bevy::{platform::collections::HashMap, prelude::*};
 
 use crate::{
     gui::cache::InspectorCache,
-    inspection::entity_inspection::{EntityInspection, EntityInspectionSettings},
+    inspection::{
+        component_inspection::ComponentMetadataMap,
+        entity_inspection::{EntityInspection, EntityInspectionSettings},
+    },
 };
 
 /// Collects and indexes [`EntityInspection`]s in an ordered way.
@@ -45,7 +48,7 @@ impl WorldSnapshot {
             .resource_mut::<InspectorCache>()
             .metadata_map
             .take()
-            .unwrap();
+            .unwrap_or_else(|| ComponentMetadataMap::generate(world));
 
         use crate::extension_methods::WorldInspectionExtensionTrait;
         let inspection = world.inspect_cached(
