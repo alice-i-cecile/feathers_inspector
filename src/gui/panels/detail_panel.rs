@@ -6,13 +6,13 @@
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::observer::On;
 use bevy::ecs::relationship::Relationship;
-use bevy::feathers::controls::{ButtonProps, button};
+use bevy::feathers::controls::{button, ButtonProps};
 use bevy::feathers::theme::ThemeBackgroundColor;
 use bevy::feathers::tokens;
 use bevy::prelude::*;
-use bevy::reflect::{ReflectRef, enums::VariantType};
+use bevy::reflect::{enums::VariantType, ReflectRef};
 use bevy::ui::Val::*;
-use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar, observe};
+use bevy::ui_widgets::{observe, Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar};
 
 use core::any::TypeId;
 
@@ -107,15 +107,24 @@ pub fn render_detail_panel(world: &mut World) {
 }
 
 fn check_for_state_changes(world: &mut World) -> Option<(Option<Entity>, DetailTab)> {
-    let state = world.resource::<InspectorState>();
-    let selected_object = state.selected_object;
-    let active_tab = state.active_detail_tab;
     let any_editing = world
         .query::<&DragValueDragState>()
         .iter(world)
         .any(|state| state.dragging || state.editing);
 
-    if any_editing {
+    let mut state = world.resource_mut::<InspectorState>();
+    let selected_object = state.selected_object;
+    let active_tab = state.active_detail_tab;
+
+    // Detect navigation intent
+    let is_navigating = selected_object != state.previous_selected_object
+        || active_tab != state.previous_detail_tab;
+
+    // Update previous state
+    state.previous_selected_object = selected_object;
+    state.previous_detail_tab = active_tab;
+
+    if any_editing && !is_navigating {
         return None;
     }
 
@@ -713,6 +722,9 @@ fn spawn_relationships_tab_exclusive(
     entity: Entity,
     _metadata_map: &ComponentMetadataMap,
 ) {
+    // FIXME: This tab directly queries live world state, bypassing the paused snapshot system.
+    // Long-term, relationship data should be included in `EntityInspection` to support snapshots.
+
     // Get parent (ChildOf component)
     let parent_entity = world.get::<ChildOf>(entity).map(|c| c.get());
 
