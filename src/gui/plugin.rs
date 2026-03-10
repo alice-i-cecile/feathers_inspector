@@ -17,8 +17,7 @@ use bevy::window::{PrimaryWindow, WindowCloseRequested, WindowRef, WindowResolut
 
 use crate::gui::cache::{InspectorCache, update_inspector_cache};
 use crate::gui::panels::{
-    RefreshCache, RefreshUi, on_object_row_click, periodically_refresh_cache,
-    update_active_objects_tab_on_tab_activated,
+    on_object_row_click, periodically_refresh_cache, update_active_objects_tab_on_tab_activated,
 };
 
 use super::config::InspectorConfig;
@@ -157,6 +156,28 @@ pub enum SetInspectorWindow {
     // If there is no window, a warning message will be emitted.
     Close,
 }
+
+/// A message that drives a refresh of the [`InspectorCache`].
+///
+/// This will cause the system sets [`CacheUpdate`] and [`Render`] to run when seen,
+/// via the use of run conditions added as part of [`InspectorWindowPlugin`].
+///
+/// This is a public message to allow users to trigger (or cancel!) refreshes manually if desired.
+///
+/// [`CacheUpdate`]: crate::gui::plugin::InspectorSet::CacheUpdate
+/// [`Render`]: crate::gui::plugin::InspectorSet::Render
+#[derive(Message)]
+pub struct RefreshCache;
+
+/// A message that drives a refresh of the UI panels,
+/// without forcing a cache rebuild.
+///
+/// This will cause the system set [`Render`] to run.
+///
+/// [`Render`]: crate::gui::plugin::InspectorSet::Render
+
+#[derive(Message)]
+pub struct RefreshUi;
 
 /// Sends a message to create an [`InspectorWindow`] if not already present.
 fn order_inspector_window_creation(

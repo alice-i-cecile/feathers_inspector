@@ -20,7 +20,7 @@ use crate::entity_name_resolution::EntityName;
 use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::gui::cache::InspectorCache;
 use crate::gui::config::InspectorConfig;
-use crate::gui::panels::{RefreshCache, RefreshUi};
+use crate::gui::plugin::{RefreshCache, RefreshUi};
 use crate::gui::semantic_names::SemanticFieldNames;
 use crate::gui::state::{DetailTab, InspectorState};
 use crate::gui::widgets::drag_value::{DragValue, DragValueDragState, FieldPath, FieldPathSegment};

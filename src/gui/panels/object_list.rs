@@ -44,6 +44,7 @@ use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollb
 
 use crate::gui::cache::{InspectorCache, update_inspector_cache};
 use crate::gui::config::InspectorConfig;
+use crate::gui::plugin::{RefreshCache, RefreshUi};
 use crate::gui::state::{InspectorState, ObjectListEntry, ObjectListTab};
 use crate::gui::widgets::tabs::{HasContent, Tab, TabActivated, TabContentDisplayMode, TabGroup};
 
@@ -454,28 +455,6 @@ fn scrollable_area(
         })
         .id()
 }
-
-/// A message that drives a refresh of the [`InspectorCache`].
-///
-/// This will cause the system sets [`CacheUpdate`] and [`Render`] to run when seen,
-/// via the use of run conditions added as part of [`InspectorWindowPlugin`](crate::gui::plugin::InspectorWindowPlugin).
-///
-/// This is a public message to allow users to trigger (or cancel!) refreshes manually if desired.
-///
-/// [`CacheUpdate`]: crate::gui::plugin::InspectorSet::CacheUpdate
-/// [`Render`]: crate::gui::plugin::InspectorSet::Render
-#[derive(Message)]
-pub struct RefreshCache;
-
-/// A message that drives a refresh of the UI panels,
-/// without forcing a cache rebuild.
-///
-/// This will cause the system set [`Render`] to run.
-///
-/// [`Render`]: crate::gui::plugin::InspectorSet::Render
-
-#[derive(Message)]
-pub struct RefreshUi;
 
 /// A system which periodically sends a [`RefreshCache`] message.
 ///
