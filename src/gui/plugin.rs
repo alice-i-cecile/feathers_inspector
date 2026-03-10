@@ -60,7 +60,7 @@ pub enum InspectorSet {
     /// Sync UI with cache.
     Render,
     /// Sync UI with state.
-    SyncUI,
+    SetupUi,
 }
 
 /// Plugin that manages the inspector window lifecycle.
@@ -87,7 +87,7 @@ impl Plugin for InspectorWindowPlugin {
                 (
                     InspectorSet::Input,
                     InspectorSet::CacheUpdate,
-                    InspectorSet::SyncUI,
+                    InspectorSet::SetupUi,
                     InspectorSet::Render,
                 )
                     .chain(),
@@ -99,7 +99,7 @@ impl Plugin for InspectorWindowPlugin {
             )
             .configure_sets(
                 Update,
-                InspectorSet::SyncUI.run_if(on_message::<SetInspectorWindow>),
+                InspectorSet::SetupUi.run_if(on_message::<SetInspectorWindow>),
             )
             .configure_sets(
                 Update,
@@ -124,7 +124,7 @@ impl Plugin for InspectorWindowPlugin {
                     // UI sync - chain these to avoid resource conflicts
                     (toggle_inspector_window, setup_inspector_ui)
                         .chain()
-                        .in_set(InspectorSet::SyncUI),
+                        .in_set(InspectorSet::SetupUi),
                     // Render systems (Unconditional)
                     (
                         render_object_list,
