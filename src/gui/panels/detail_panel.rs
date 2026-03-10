@@ -6,13 +6,13 @@
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::observer::On;
 use bevy::ecs::relationship::Relationship;
-use bevy::feathers::controls::{button, ButtonProps};
+use bevy::feathers::controls::{ButtonProps, button};
 use bevy::feathers::theme::ThemeBackgroundColor;
 use bevy::feathers::tokens;
 use bevy::prelude::*;
-use bevy::reflect::{enums::VariantType, ReflectRef};
+use bevy::reflect::{ReflectRef, enums::VariantType};
 use bevy::ui::Val::*;
-use bevy::ui_widgets::{observe, Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar};
+use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar, observe};
 
 use core::any::TypeId;
 
