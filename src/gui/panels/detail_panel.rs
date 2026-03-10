@@ -1007,10 +1007,10 @@ mod tests {
         let mut app = App::new();
         app.add_plugins(MinimalPlugins);
         // TODO: Consider making `InspectorWindowPlugin` test-mockable.
-        app.insert_resource(InspectorCache::default());
-        app.insert_resource(InspectorState::default());
-        app.insert_resource(InspectorConfig::default());
-        app.insert_resource(SemanticFieldNames::default());
+        app.init_resource::<InspectorConfig>();
+        app.init_resource::<InspectorState>();
+        app.init_resource::<InspectorCache>();
+        app.init_resource::<SemanticFieldNames>();
         app
     }
 

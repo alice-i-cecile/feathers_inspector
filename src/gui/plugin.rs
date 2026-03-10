@@ -15,10 +15,8 @@ use bevy::ui::Val::*;
 use bevy::ui_widgets::Activate;
 use bevy::window::{PrimaryWindow, WindowCloseRequested, WindowRef, WindowResolution};
 
-use crate::gui::cache::{InspectorCache, update_inspector_cache};
-use crate::gui::panels::{
-    on_object_row_click, periodically_refresh_cache, update_active_objects_tab_on_tab_activated,
-};
+use crate::gui::cache::{InspectorCache, periodically_refresh_cache, update_inspector_cache};
+use crate::gui::panels::{on_object_row_click, update_active_objects_tab_on_tab_activated};
 
 use super::config::InspectorConfig;
 use super::panels::{
@@ -72,9 +70,9 @@ impl Plugin for InspectorWindowPlugin {
             .add_plugins(TabPlugin)
             .insert_resource(UiTheme(create_dark_theme()))
             // Resources
+            .init_resource::<InspectorConfig>()
             .init_resource::<InspectorState>()
             .init_resource::<InspectorCache>()
-            .init_resource::<InspectorConfig>()
             .init_resource::<SemanticFieldNames>()
             // Messages
             .add_message::<SetInspectorWindow>()

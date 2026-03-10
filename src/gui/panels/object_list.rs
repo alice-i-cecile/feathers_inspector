@@ -456,44 +456,6 @@ fn scrollable_area(
         .id()
 }
 
-/// A system which periodically sends a [`RefreshCache`] message.
-///
-/// The frequency is controlled by the [`refresh_interval`] field in [`InspectorConfig`].
-///
-/// [`refresh_interval`]: InspectorConfig::refresh_interval
-pub fn periodically_refresh_cache(
-    mut message_writer: MessageWriter<RefreshCache>,
-    time: Res<Time>,
-    mut timer: Local<Timer>,
-    mut is_timer_ticking: Local<bool>,
-    config: Res<InspectorConfig>,
-    state: Res<InspectorState>,
-) {
-    // Disable auto-refreshing in certain conditions.
-    if config.refresh_interval.is_none() || state.is_paused {
-        *is_timer_ticking = false;
-        return;
-    }
-
-    // Initialize timer if needed
-    if timer.duration().is_zero() {
-        *timer = Timer::new(config.refresh_interval.unwrap(), TimerMode::Repeating);
-    }
-
-    if !*is_timer_ticking {
-        *is_timer_ticking = true;
-        timer.reset();
-    }
-
-    // Tick timer
-    timer.tick(time.delta());
-
-    // Send message if timer finished
-    if timer.just_finished() {
-        message_writer.write(RefreshCache);
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -504,9 +466,9 @@ mod tests {
         let mut app = App::new();
         app.add_plugins(MinimalPlugins);
         // TODO: Consider making `InspectorWindowPlugin` test-mockable.
-        app.insert_resource(InspectorCache::default());
-        app.insert_resource(InspectorState::default());
-        app.insert_resource(InspectorConfig::default());
+        app.init_resource::<InspectorConfig>();
+        app.init_resource::<InspectorState>();
+        app.init_resource::<InspectorCache>();
         app
     }
 
