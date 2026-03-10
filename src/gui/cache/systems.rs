@@ -114,6 +114,12 @@ fn update_cache_running(
     let mut cache = world.resource_mut::<InspectorCache>();
     cache.snapshot = updated_snapshot;
     cache.filtered_objects = object_list;
+
+    // Prevents sudden writing of `RefreshCache`
+    // after a forceful refresh.
+    if let Some(ref mut timer) = cache.timer {
+        timer.reset();
+    }
 }
 
 fn generate_live_object_list(world: &mut World, filter: &ObjectListFilter) -> Vec<ObjectListEntry> {

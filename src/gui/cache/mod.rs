@@ -51,7 +51,6 @@ impl FromWorld for InspectorCache {
 pub fn periodically_refresh_cache(
     mut message_writer: MessageWriter<RefreshCache>,
     time: Res<Time>,
-    mut is_timer_ticking: Local<bool>,
     state: Res<InspectorState>,
     mut cache: ResMut<InspectorCache>,
 ) {
@@ -59,13 +58,7 @@ pub fn periodically_refresh_cache(
         return;
     };
     if state.is_paused {
-        *is_timer_ticking = false;
         return;
-    }
-
-    if !*is_timer_ticking {
-        *is_timer_ticking = true;
-        timer.reset();
     }
 
     timer.tick(time.delta());
