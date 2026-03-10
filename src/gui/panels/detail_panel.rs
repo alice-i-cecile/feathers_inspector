@@ -18,15 +18,14 @@ use core::any::TypeId;
 
 use crate::entity_name_resolution::EntityName;
 use crate::extension_methods::WorldInspectionExtensionTrait;
+use crate::gui::cache::InspectorCache;
 use crate::gui::config::InspectorConfig;
+use crate::gui::plugin::{RefreshCache, RefreshUi};
 use crate::gui::semantic_names::SemanticFieldNames;
-use crate::gui::state::{DetailTab, InspectorCache, InspectorState};
+use crate::gui::state::{DetailTab, InspectorState};
 use crate::gui::widgets::drag_value::{DragValue, DragValueDragState, FieldPath, FieldPathSegment};
-use crate::inspection::component_inspection::{
-    ComponentDetailLevel, ComponentInspectionSettings, ComponentMetadataMap,
-};
-use crate::inspection::entity_inspection::EntityInspectionSettings;
-use crate::reflection_tools::get_reflected_component_ref;
+use crate::inspection::component_inspection::ComponentMetadataMap;
+use crate::inspection::entity_inspection::{EntityInspection, EntityInspectionSettings};
 
 /// Marker component for the detail panel container.
 #[derive(Component)]
@@ -53,9 +52,11 @@ fn on_tab_button_click(
     activate: On<Activate>,
     mut state: ResMut<InspectorState>,
     tabs: Query<&TabButton>,
+    mut ui_writer: MessageWriter<RefreshUi>,
 ) {
     if let Ok(tab) = tabs.get(activate.entity) {
         state.active_detail_tab = tab.0;
+        ui_writer.write(RefreshUi);
     }
 }
 
@@ -64,46 +65,76 @@ fn on_hierarchy_node_click(
     activate: On<Activate>,
     mut state: ResMut<InspectorState>,
     nodes: Query<&HierarchyNode>,
+    mut writer: MessageWriter<RefreshCache>,
+    mut ui_writer: MessageWriter<RefreshUi>,
 ) {
     if let Ok(node) = nodes.get(activate.entity) {
         state.selected_object = Some(node.0);
+        if !state.is_paused {
+            writer.write(RefreshCache);
+        } else {
+            ui_writer.write(RefreshUi);
+        }
     }
 }
 
 /// Exclusive system that syncs the detail panel with the current selection.
 /// Uses exclusive world access to avoid resource conflicts.
-/// Only rebuilds UI when selection or tab changes.
-pub fn sync_detail_panel(world: &mut World) {
-    // Extract state info first and check for changes
-    let state = world.resource::<InspectorState>();
-    let selected_object = state.selected_object;
-    let active_tab = state.active_detail_tab;
-    let previous_selection = state.previous_selected_object;
-    let previous_tab = state.previous_detail_tab;
-
-    // Skip if nothing has changed
-    let selection_changed = selected_object != previous_selection;
-    let tab_changed = active_tab != previous_tab;
-    if !selection_changed && !tab_changed {
+/// Periodically rebuilds UI to support live updating of values.
+pub fn render_detail_panel(world: &mut World) {
+    let Some((selected_object, active_tab)) = check_for_state_changes(world) else {
         return;
-    }
-
-    // Update previous values for next frame comparison
-    {
-        let mut state = world.resource_mut::<InspectorState>();
-        state.previous_selected_object = selected_object;
-        state.previous_detail_tab = active_tab;
-    }
-
-    // Find the detail content entity
-    let mut query = world.query_filtered::<Entity, With<DetailContent>>();
-    let content_entity = match query.iter(world).next() {
-        Some(e) => e,
-        None => return,
+    };
+    let Some(content_entity) = clear_detail_content(world) else {
+        return;
+    };
+    let Some(selected_object) = selected_object else {
+        spawn_empty_state_exclusive(world, content_entity);
+        return;
+    };
+    let Some(inspection) = fetch_entity_inspection(world, selected_object) else {
+        spawn_error_message(world, content_entity);
+        return;
     };
 
-    // Despawn all children of the content entity
-    // Collect children first, then despawn them (despawning a parent also despawns children)
+    render_active_tab(
+        world,
+        content_entity,
+        selected_object,
+        active_tab,
+        &inspection,
+    );
+}
+
+fn check_for_state_changes(world: &mut World) -> Option<(Option<Entity>, DetailTab)> {
+    let any_editing = world
+        .query::<&DragValueDragState>()
+        .iter(world)
+        .any(|state| state.dragging || state.editing);
+
+    let mut state = world.resource_mut::<InspectorState>();
+    let selected_object = state.selected_object;
+    let active_tab = state.active_detail_tab;
+
+    // Detect navigation intent
+    let is_navigating = selected_object != state.previous_selected_object
+        || active_tab != state.previous_detail_tab;
+
+    // Update previous state
+    state.previous_selected_object = selected_object;
+    state.previous_detail_tab = active_tab;
+
+    if any_editing && !is_navigating {
+        return None;
+    }
+
+    Some((selected_object, active_tab))
+}
+
+fn clear_detail_content(world: &mut World) -> Option<Entity> {
+    let mut query = world.query_filtered::<Entity, With<DetailContent>>();
+    let content_entity = query.iter(world).next()?;
+
     let children_to_despawn: Vec<Entity> = world
         .get::<Children>(content_entity)
         .map(|c| c.iter().collect())
@@ -111,89 +142,24 @@ pub fn sync_detail_panel(world: &mut World) {
 
     for child in children_to_despawn {
         if world.entities().contains(child) {
-            // Despawning a parent with ChildOf relationship automatically despawns descendants
             world.entity_mut(child).despawn();
         }
     }
 
-    // Get config (clone values we need)
-    let config = world.resource::<InspectorConfig>().clone();
-
-    // Show empty state if no object selected
-    let Some(selected_object) = selected_object else {
-        spawn_empty_state_exclusive(
-            world,
-            content_entity,
-            &config,
-            "Select an object to view details",
-        );
-        return;
-    };
-
-    // Check if entity still exists
-    if !world.entities().contains(selected_object) {
-        spawn_error_message(
-            world,
-            content_entity,
-            &config,
-            "Selected entity no longer exists",
-        );
-        return;
-    }
-
-    // Ensure we have a metadata map - take it out to avoid borrow conflicts
-    let mut metadata_map = world.resource_mut::<InspectorCache>().metadata_map.take();
-
-    if metadata_map.is_none() {
-        metadata_map = Some(ComponentMetadataMap::generate(world));
-    }
-
-    // Update metadata map
-    if let Some(ref mut mm) = metadata_map {
-        mm.update(world);
-    }
-
-    // Render based on active tab
-    match active_tab {
-        DetailTab::Components => {
-            if let Some(ref mut mm) = metadata_map {
-                spawn_components_tab_exclusive(world, content_entity, selected_object, mm, &config);
-            }
-        }
-        DetailTab::Relationships => {
-            if let Some(ref mm) = metadata_map {
-                spawn_relationships_tab_exclusive(
-                    world,
-                    content_entity,
-                    selected_object,
-                    mm,
-                    &config,
-                );
-            }
-        }
-    }
-
-    // Put metadata_map back
-    world.resource_mut::<InspectorCache>().metadata_map = metadata_map;
+    Some(content_entity)
 }
 
-// ============================================================================
-// Exclusive system helper functions (use World directly instead of Commands)
-// ============================================================================
-
-fn spawn_empty_state_exclusive(
-    world: &mut World,
-    parent: Entity,
-    config: &InspectorConfig,
-    message: &str,
-) {
-    let body_font_size = config.body_font_size;
-    let muted_text_color = config.muted_text_color;
-    let message = message.to_string();
+fn spawn_empty_state_exclusive(world: &mut World, parent: Entity) {
+    const MESSAGE: &str = "Select an object to view details";
+    let &InspectorConfig {
+        body_font_size,
+        muted_text_color,
+        ..
+    } = world.resource::<InspectorConfig>();
 
     world.entity_mut(parent).with_children(|p| {
         p.spawn((
-            Text::new(message),
+            Text::new(MESSAGE.to_string()),
             TextFont {
                 font_size: FontSize::Px(body_font_size),
                 ..default()
@@ -207,15 +173,28 @@ fn spawn_empty_state_exclusive(
     });
 }
 
+fn fetch_entity_inspection(world: &mut World, selected_object: Entity) -> Option<EntityInspection> {
+    let mut inspection_opt = None;
+    world.resource_scope(|_world, cache: Mut<InspectorCache>| {
+        if let Some(inspection) = cache.snapshot.get(selected_object) {
+            inspection_opt = Some(inspection.clone());
+        }
+    });
+    inspection_opt
+}
+
 /// Spawns an error message with the text `message` in the detail panel.
-fn spawn_error_message(world: &mut World, parent: Entity, config: &InspectorConfig, message: &str) {
-    let body_font_size = config.body_font_size;
-    let error_text_color = config.error_text_color;
-    let message = message.to_string();
+fn spawn_error_message(world: &mut World, parent: Entity) {
+    const MESSAGE: &str = "Could not fetch entity inspection data";
+    let &InspectorConfig {
+        body_font_size,
+        error_text_color,
+        ..
+    } = world.resource::<InspectorConfig>();
 
     world.entity_mut(parent).with_children(|p| {
         p.spawn((
-            Text::new(message),
+            Text::new(MESSAGE.to_string()),
             TextFont {
                 font_size: FontSize::Px(body_font_size),
                 ..default()
@@ -227,6 +206,38 @@ fn spawn_error_message(world: &mut World, parent: Entity, config: &InspectorConf
             },
         ));
     });
+}
+
+fn render_active_tab(
+    world: &mut World,
+    content_entity: Entity,
+    selected_object: Entity,
+    active_tab: DetailTab,
+    inspection: &EntityInspection,
+) {
+    let mut metadata_map = world
+        .resource_mut::<InspectorCache>()
+        .metadata_map
+        .take()
+        .unwrap_or_else(|| ComponentMetadataMap::generate(world));
+
+    metadata_map.update(world);
+
+    match active_tab {
+        DetailTab::Components => {
+            spawn_components_tab_exclusive(world, content_entity, inspection, &mut metadata_map);
+        }
+        DetailTab::Relationships => {
+            spawn_relationships_tab_exclusive(
+                world,
+                content_entity,
+                selected_object,
+                &metadata_map,
+            );
+        }
+    }
+
+    world.resource_mut::<InspectorCache>().metadata_map = Some(metadata_map);
 }
 
 /// Represents a field extracted from a reflected component
@@ -492,207 +503,193 @@ struct ComponentCardData {
 fn spawn_components_tab_exclusive(
     world: &mut World,
     parent: Entity,
-    entity: Entity,
+    inspection: &crate::inspection::entity_inspection::EntityInspection,
     metadata_map: &mut ComponentMetadataMap,
-    config: &InspectorConfig,
 ) {
-    let settings = EntityInspectionSettings {
-        include_components: true,
-        component_settings: ComponentInspectionSettings {
-            detail_level: ComponentDetailLevel::Names, // We'll extract values ourselves
-            full_type_names: false,
-        },
-    };
-
-    let inspection_result = world.inspect_cached(entity, &settings, metadata_map);
-
     // Get semantic names resource for better tuple struct field names
     let semantic_names = world.resource::<SemanticFieldNames>();
 
-    match inspection_result {
-        Ok(inspection) => {
-            let resolved_name = inspection.name.unwrap_or(EntityName::generated(
-                format!("Entity {:?}", entity).as_str(),
-            ));
+    let resolved_name = inspection.name.clone().unwrap_or(EntityName::generated(
+        format!("Entity {:?}", inspection.entity).as_str(),
+    ));
 
-            let component_count = inspection.components.as_ref().map_or(0, |c| c.len());
-            let memory_display = inspection
-                .total_memory_size
-                .map_or_else(|| "?".to_string(), |m| m.to_string());
+    let component_count = inspection.components.as_ref().map_or(0, |c| c.len());
+    let memory_display = inspection
+        .total_memory_size
+        .map_or_else(|| "?".to_string(), |m| m.to_string());
 
-            // Collect component IDs for reflection access
-            let component_ids: Vec<_> = inspection
-                .components
-                .as_ref()
-                .map(|c| c.iter().map(|comp| comp.component_id).collect())
-                .unwrap_or_default();
+    let &InspectorConfig {
+        title_font_size,
+        body_font_size,
+        small_font_size,
+        panel_padding,
+        item_gap,
+        border_color,
+        muted_text_color,
+        ..
+    } = world.resource::<InspectorConfig>();
 
-            // Clone config values needed in closure
-            let title_font_size = config.title_font_size;
-            let body_font_size = config.body_font_size;
-            let small_font_size = config.small_font_size;
-            let panel_padding = config.panel_padding;
-            let item_gap = config.item_gap;
-            let border_color = config.border_color;
-            let muted_text_color = config.muted_text_color;
-            let field_name_color = Color::srgba(0.6, 0.8, 1.0, 1.0); // Light blue for field names
+    let field_name_color = Color::srgba(0.6, 0.8, 1.0, 1.0); // Light blue for field names
 
-            // Extract fields for each component using reflection
-            let mut component_cards: Vec<ComponentCardData> = Vec::new();
+    // Extract fields for each component using cached inspection data
+    let mut component_cards: Vec<ComponentCardData> = Vec::new();
 
-            for comp_id in &component_ids {
-                // Get metadata for this component
-                let meta = metadata_map.map.get(comp_id);
-                let name = meta.map_or_else(|| "?".to_string(), |m| m.name.shortname().to_string());
-                let size = meta.map_or_else(|| "?".to_string(), |m| m.memory_size.to_string());
-                let component_type_id = meta.and_then(|m| m.type_id);
+    if let Some(components) = &inspection.components {
+        for component_inspection in components {
+            let comp_id = component_inspection.component_id;
 
-                // Try to get reflected component data
-                let mut fields = Vec::new();
-                if let Some(type_id) = component_type_id
-                    && let Ok(reflected) = get_reflected_component_ref(world, entity, type_id)
-                {
-                    extract_fields_from_reflect(reflected, &mut fields, 0, semantic_names, &[]);
-                }
+            // Get metadata for this component
+            let meta = metadata_map.map.get(&comp_id);
+            let name = meta.map_or_else(|| "?".to_string(), |m| m.name.shortname().to_string());
+            let size = meta.map_or_else(|| "?".to_string(), |m| m.memory_size.to_string());
+            let component_type_id = meta.and_then(|m| m.type_id);
 
-                component_cards.push(ComponentCardData {
-                    name,
-                    size,
-                    fields,
-                    entity,
-                    component_type_id,
+            // Try to get reflected component data from the inspection snapshot
+            let mut fields = Vec::new();
+
+            if let Some(reflected_box) = &component_inspection.reflected_value {
+                extract_fields_from_reflect(
+                    reflected_box.as_ref(),
+                    &mut fields,
+                    0,
+                    semantic_names,
+                    &[],
+                );
+            } else if let Some(value_str) = &component_inspection.value {
+                // Fallback to string value if reflected value not available
+                fields.push(ReflectedField {
+                    name: "Value".to_string(),
+                    value: value_str.clone(),
+                    indent: 0,
+                    editable: None,
                 });
             }
 
-            world.entity_mut(parent).with_children(|p| {
-                // Header with entity name and memory
-                p.spawn((
-                    Text::new(format!(
-                        "{} | {} components | {}",
-                        *resolved_name, component_count, memory_display
-                    )),
+            component_cards.push(ComponentCardData {
+                name,
+                size,
+                fields,
+                entity: inspection.entity,
+                component_type_id,
+            });
+        }
+    }
+
+    world.entity_mut(parent).with_children(|p| {
+        // Header with entity name and memory
+        p.spawn((
+            Text::new(format!(
+                "{} | {} components | {}",
+                *resolved_name, component_count, memory_display
+            )),
+            TextFont {
+                font_size: FontSize::Px(title_font_size),
+                ..default()
+            },
+            TextColor(Color::WHITE),
+            Node {
+                margin: UiRect::bottom(Px(12.0)),
+                ..default()
+            },
+        ));
+
+        // Component cards
+        for card_data in component_cards {
+            p.spawn((
+                Node {
+                    width: Percent(100.0),
+                    padding: panel_padding,
+                    margin: UiRect::bottom(item_gap),
+                    display: Display::Flex,
+                    flex_direction: FlexDirection::Column,
+                    border: UiRect::all(Px(1.0)),
+                    ..default()
+                },
+                ThemeBackgroundColor(tokens::WINDOW_BG),
+                BorderColor::all(border_color),
+                ComponentCard,
+            ))
+            .with_children(|card| {
+                // Component name and size header
+                card.spawn((
+                    Text::new(format!("{} | {}", card_data.name, card_data.size)),
                     TextFont {
-                        font_size: FontSize::Px(title_font_size),
+                        font_size: FontSize::Px(body_font_size),
                         ..default()
                     },
-                    TextColor(Color::WHITE),
+                    TextColor(Color::srgba(0.9, 0.9, 0.9, 1.0)),
                     Node {
-                        margin: UiRect::bottom(Px(12.0)),
+                        margin: UiRect::bottom(Px(4.0)),
                         ..default()
                     },
                 ));
 
-                // Component cards
-                for card_data in component_cards {
-                    p.spawn((
-                        Node {
-                            width: Percent(100.0),
-                            padding: panel_padding,
-                            margin: UiRect::bottom(item_gap),
-                            display: Display::Flex,
-                            flex_direction: FlexDirection::Column,
-                            border: UiRect::all(Px(1.0)),
-                            ..default()
-                        },
-                        ThemeBackgroundColor(tokens::WINDOW_BG),
-                        BorderColor::all(border_color),
-                        ComponentCard,
-                    ))
-                    .with_children(|card| {
-                        // Component name and size header
-                        card.spawn((
-                            Text::new(format!("{} | {}", card_data.name, card_data.size)),
+                // Field rows (dear imgui style)
+                for field in &card_data.fields {
+                    let indent_px = field.indent as f32 * 12.0;
+
+                    // Row container for label: value
+                    card.spawn(Node {
+                        display: Display::Flex,
+                        flex_direction: FlexDirection::Row,
+                        column_gap: Px(8.0),
+                        margin: UiRect::left(Px(indent_px)),
+                        align_items: AlignItems::Center,
+                        ..default()
+                    })
+                    .with_children(|row| {
+                        // Field name (light blue)
+                        row.spawn((
+                            Text::new(format!("{}:", field.name)),
                             TextFont {
-                                font_size: FontSize::Px(body_font_size),
+                                font_size: FontSize::Px(small_font_size),
                                 ..default()
                             },
-                            TextColor(Color::srgba(0.9, 0.9, 0.9, 1.0)),
-                            Node {
-                                margin: UiRect::bottom(Px(4.0)),
-                                ..default()
-                            },
+                            TextColor(field_name_color),
                         ));
 
-                        // Field rows (dear imgui style)
-                        for field in &card_data.fields {
-                            let indent_px = field.indent as f32 * 12.0;
+                        // Check if this field is editable
+                        if let (Some(editable), Some(component_type_id)) =
+                            (&field.editable, card_data.component_type_id)
+                        {
+                            // Spawn DragValue widget for editable numeric fields
+                            let field_path = FieldPath {
+                                entity: card_data.entity,
+                                component_type_id,
+                                path: editable.path.clone(),
+                            };
 
-                            // Row container for label: value
-                            card.spawn(Node {
-                                display: Display::Flex,
-                                flex_direction: FlexDirection::Row,
-                                column_gap: Px(8.0),
-                                margin: UiRect::left(Px(indent_px)),
-                                align_items: AlignItems::Center,
-                                ..default()
-                            })
-                            .with_children(|row| {
-                                // Field name (light blue)
-                                row.spawn((
-                                    Text::new(format!("{}:", field.name)),
-                                    TextFont {
-                                        font_size: FontSize::Px(small_font_size),
-                                        ..default()
-                                    },
-                                    TextColor(field_name_color),
-                                ));
-
-                                // Check if this field is editable
-                                if let (Some(editable), Some(component_type_id)) =
-                                    (&field.editable, card_data.component_type_id)
-                                {
-                                    // Spawn DragValue widget for editable numeric fields
-                                    let field_path = FieldPath {
-                                        entity: card_data.entity,
-                                        component_type_id,
-                                        path: editable.path.clone(),
-                                    };
-
-                                    row.spawn((
-                                        Node {
-                                            min_width: Px(60.0),
-                                            padding: UiRect::horizontal(Px(4.0)),
-                                            border: UiRect::all(Px(1.0)),
-                                            ..default()
-                                        },
-                                        BorderColor::all(Color::srgba(0.3, 0.3, 0.3, 1.0)),
-                                        BackgroundColor(Color::srgba(0.15, 0.15, 0.15, 1.0)),
-                                        DragValue {
-                                            field_path,
-                                            drag_speed: 0.1,
-                                            precision: 2,
-                                            min: None,
-                                            max: None,
-                                        },
-                                        DragValueDragState::default(),
-                                        Interaction::default(),
-                                    ))
-                                    .with_child((
-                                        Text::new(format!("{:.2}", editable.numeric_value)),
-                                        TextFont {
-                                            font_size: FontSize::Px(small_font_size),
-                                            ..default()
-                                        },
-                                        TextColor(Color::srgba(0.9, 0.9, 0.6, 1.0)), // Yellow for editable
-                                    ));
-                                } else {
-                                    // Field value (muted) - non-editable
-                                    row.spawn((
-                                        Text::new(field.value.clone()),
-                                        TextFont {
-                                            font_size: FontSize::Px(small_font_size),
-                                            ..default()
-                                        },
-                                        TextColor(muted_text_color),
-                                    ));
-                                }
-                            });
-                        }
-
-                        // Show placeholder if no fields extracted
-                        if card_data.fields.is_empty() {
-                            card.spawn((
-                                Text::new("<no reflected data>"),
+                            row.spawn((
+                                Node {
+                                    min_width: Px(60.0),
+                                    padding: UiRect::horizontal(Px(4.0)),
+                                    border: UiRect::all(Px(1.0)),
+                                    ..default()
+                                },
+                                BorderColor::all(Color::srgba(0.3, 0.3, 0.3, 1.0)),
+                                BackgroundColor(Color::srgba(0.15, 0.15, 0.15, 1.0)),
+                                DragValue {
+                                    field_path,
+                                    drag_speed: 0.1,
+                                    precision: 2,
+                                    min: None,
+                                    max: None,
+                                },
+                                DragValueDragState::default(),
+                                Interaction::default(),
+                            ))
+                            .with_child((
+                                Text::new(format!("{:.2}", editable.numeric_value)),
+                                TextFont {
+                                    font_size: FontSize::Px(small_font_size),
+                                    ..default()
+                                },
+                                TextColor(Color::srgba(0.9, 0.9, 0.6, 1.0)), // Yellow for editable
+                            ));
+                        } else {
+                            // Field value (muted) - non-editable
+                            row.spawn((
+                                Text::new(field.value.clone()),
                                 TextFont {
                                     font_size: FontSize::Px(small_font_size),
                                     ..default()
@@ -702,12 +699,21 @@ fn spawn_components_tab_exclusive(
                         }
                     });
                 }
+
+                // Show placeholder if no fields extracted
+                if card_data.fields.is_empty() {
+                    card.spawn((
+                        Text::new("<no reflected data>"),
+                        TextFont {
+                            font_size: FontSize::Px(small_font_size),
+                            ..default()
+                        },
+                        TextColor(muted_text_color),
+                    ));
+                }
             });
         }
-        Err(e) => {
-            spawn_error_message(world, parent, config, &format!("Error: {:?}", e));
-        }
-    }
+    });
 }
 
 fn spawn_relationships_tab_exclusive(
@@ -715,8 +721,10 @@ fn spawn_relationships_tab_exclusive(
     parent: Entity,
     entity: Entity,
     _metadata_map: &ComponentMetadataMap,
-    config: &InspectorConfig,
 ) {
+    // FIXME: This tab directly queries live world state, bypassing the paused snapshot system.
+    // Long-term, relationship data should be included in `EntityInspection` to support snapshots.
+
     // Get parent (ChildOf component)
     let parent_entity = world.get::<ChildOf>(entity).map(|c| c.get());
 
@@ -755,12 +763,15 @@ fn spawn_relationships_tab_exclusive(
         })
         .collect();
 
-    // Clone config values
-    let title_font_size = config.title_font_size;
-    let body_font_size = config.body_font_size;
-    let muted_text_color = config.muted_text_color;
-    let item_gap = config.item_gap;
     let children_len = children.len();
+
+    let &InspectorConfig {
+        title_font_size,
+        body_font_size,
+        muted_text_color,
+        item_gap,
+        ..
+    } = world.resource::<InspectorConfig>();
 
     world.entity_mut(parent).with_children(|p| {
         // Parent section
@@ -838,6 +849,10 @@ fn spawn_relationships_tab_exclusive(
                     ..default()
                 },
                 TextColor(muted_text_color),
+                Node {
+                    margin: UiRect::bottom(Px(16.0)),
+                    ..default()
+                },
             ));
         } else {
             for (ent, name, comp_count) in children_node_data {
@@ -988,4 +1003,60 @@ pub fn spawn_detail_panel(parent: &mut ChildSpawnerCommands<'_>, config: &Inspec
                         });
                 });
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::entity_name_resolution::NameResolutionPlugin;
+    use crate::gui::cache::{InspectorCache, WorldSnapshot};
+    use crate::gui::config::InspectorConfig;
+    use crate::gui::semantic_names::SemanticFieldNames;
+    use crate::gui::state::{DetailTab, InspectorState};
+    use bevy::ecs::system::RunSystemOnce;
+
+    fn setup_test_app() -> App {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins);
+        // TODO: Consider making `InspectorWindowPlugin` test-mockable.
+        app.init_resource::<InspectorConfig>();
+        app.init_resource::<InspectorState>();
+        app.init_resource::<InspectorCache>();
+        app.init_resource::<SemanticFieldNames>();
+        app
+    }
+
+    fn create_test_inspection(entity: Entity) -> EntityInspection {
+        EntityInspection {
+            entity,
+            name: None,
+            total_memory_size: None,
+            components: None,
+            spawn_details: None,
+        }
+    }
+
+    #[test]
+    fn detail_panel_renders_when_entity_selected() {
+        let mut app = setup_test_app();
+        app.add_plugins(NameResolutionPlugin);
+        let entity = Entity::from_bits(1);
+
+        let inspection = create_test_inspection(entity);
+        let mut cache = app.world_mut().resource_mut::<InspectorCache>();
+        cache.snapshot = WorldSnapshot::full(vec![inspection], vec![entity]);
+
+        let mut state = app.world_mut().resource_mut::<InspectorState>();
+        state.selected_object = Some(entity);
+        state.active_detail_tab = DetailTab::Components;
+
+        let content_entity = app.world_mut().spawn((DetailContent, Node::default())).id();
+        let _ = app.world_mut().run_system_once(render_detail_panel);
+
+        let children = app
+            .world()
+            .get::<Children>(content_entity)
+            .expect("Content entity should have children");
+        assert!(!children.is_empty());
+    }
 }

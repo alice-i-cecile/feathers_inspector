@@ -1,9 +1,7 @@
 //! Methods that should exist on existing Bevy types.
 
-use bevy::{
-    ecs::{component::ComponentId, query::SpawnDetails},
-    prelude::*,
-};
+use bevy::ecs::{component::ComponentId, query::SpawnDetails};
+use bevy::prelude::*;
 use core::any::type_name;
 
 use crate::{
@@ -23,7 +21,8 @@ use crate::{
     },
     memory_size::MemorySize,
     reflection_tools::{
-        get_reflected_component_ref, get_reflected_resource_ref, reflected_value_to_string,
+        clone_partial_reflect, get_reflected_component_ref, get_reflected_resource_ref,
+        reflected_value_to_string,
     },
 };
 
@@ -273,12 +272,22 @@ impl WorldInspectionExtensionTrait for World {
             }
         };
 
+        let reflected_value = if settings.store_reflected_value {
+            metadata
+                .type_id
+                .and_then(|type_id| get_reflected_component_ref(self, entity, type_id).ok())
+                .and_then(clone_partial_reflect)
+        } else {
+            None
+        };
+
         Ok(ComponentInspection {
             entity,
             component_id,
             name,
             memory_size,
             value,
+            reflected_value,
         })
     }
 

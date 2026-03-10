@@ -135,7 +135,7 @@
 ## GUI Refinement
 
 - [ ] Highlight selected entry in object list
-- [ ] Manual refresh button
+- [X] Manual refresh button
 - [ ] Add pagination
 
 ## Summary statistics

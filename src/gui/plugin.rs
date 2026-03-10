@@ -4,6 +4,7 @@ use bevy::camera::RenderTarget;
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::relationship::Relationship;
 use bevy::feathers::FeathersPlugins;
+use bevy::feathers::controls::{ButtonProps, button};
 use bevy::feathers::dark_theme::create_dark_theme;
 use bevy::feathers::theme::{ThemeBackgroundColor, UiTheme};
 use bevy::feathers::tokens;
@@ -11,20 +12,18 @@ use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::picking::hover::HoverMap;
 use bevy::prelude::*;
 use bevy::ui::Val::*;
+use bevy::ui_widgets::Activate;
 use bevy::window::{PrimaryWindow, WindowCloseRequested, WindowRef, WindowResolution};
 
-use crate::gui::panels::{
-    RefreshObjectList, on_object_row_click, refresh_object_list_periodically,
-    update_active_objects_tab_on_activate_tab,
-};
+use crate::gui::cache::{InspectorCache, periodically_refresh_cache, update_inspector_cache};
+use crate::gui::panels::{on_object_row_click, update_active_objects_tab_on_tab_activated};
 
 use super::config::InspectorConfig;
 use super::panels::{
-    generate_object_list, spawn_detail_panel, spawn_object_list_panel, sync_detail_panel,
-    sync_object_list,
+    render_detail_panel, render_object_list, spawn_detail_panel, spawn_object_list_panel,
 };
 use super::semantic_names::SemanticFieldNames;
-use super::state::{InspectorCache, InspectorInternal, InspectorState};
+use super::state::{InspectorInternal, InspectorState};
 use super::widgets::drag_value::DragValuePlugin;
 use super::widgets::tabs::TabPlugin;
 
@@ -36,15 +35,29 @@ pub struct InspectorWindow;
 #[derive(Component)]
 struct InspectorUiInitialized;
 
+/// Marker component for the pause button.
+#[derive(Component)]
+pub struct PauseButton;
+
+/// Marker component for the refresh button.
+#[derive(Component)]
+pub struct RefreshButton;
+
 /// System sets for organizing inspector systems.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum InspectorSet {
     /// Handle input events.
     Input,
+    /// Sets up UI skeleton.
+    SetupUi,
     /// Refresh cached data.
-    RefreshCache,
-    /// Sync UI with state.
-    SyncUI,
+    ///
+    /// Cache is needed because the [`World`] could mutate unpredictably,
+    /// therefore, while not guaranteed to be up to date,
+    /// it allows to take a snapshot of it.
+    CacheUpdate,
+    /// Sync UI with cache.
+    Render,
 }
 
 /// Plugin that manages the inspector window lifecycle.
@@ -57,34 +70,46 @@ impl Plugin for InspectorWindowPlugin {
             .add_plugins(TabPlugin)
             .insert_resource(UiTheme(create_dark_theme()))
             // Resources
+            .init_resource::<InspectorConfig>()
             .init_resource::<InspectorState>()
             .init_resource::<InspectorCache>()
-            .init_resource::<InspectorConfig>()
             .init_resource::<SemanticFieldNames>()
             // Messages
             .add_message::<SetInspectorWindow>()
-            .add_message::<RefreshObjectList>()
+            .add_message::<RefreshCache>()
+            .add_message::<RefreshUi>()
             // System ordering
             .configure_sets(
                 Update,
                 (
                     InspectorSet::Input,
-                    InspectorSet::RefreshCache,
-                    InspectorSet::SyncUI,
+                    InspectorSet::SetupUi,
+                    InspectorSet::CacheUpdate,
+                    InspectorSet::Render,
                 )
                     .chain(),
             )
             // Limit refreshes
             .configure_sets(
                 Update,
-                (InspectorSet::RefreshCache, InspectorSet::SyncUI).run_if(
-                    on_message::<RefreshObjectList>.or_else(on_message::<SetInspectorWindow>),
+                InspectorSet::SetupUi.run_if(on_message::<SetInspectorWindow>),
+            )
+            .configure_sets(
+                Update,
+                InspectorSet::CacheUpdate.run_if(on_message::<RefreshCache>),
+            )
+            .configure_sets(
+                Update,
+                InspectorSet::Render.run_if(
+                    on_message::<RefreshCache>
+                        .or_else(on_message::<RefreshUi>)
+                        .or_else(on_message::<SetInspectorWindow>),
                 ),
             )
             // Startup
             .add_systems(Startup, order_inspector_window_creation)
             // PreUpdate systems
-            .add_systems(PreUpdate, refresh_object_list_periodically)
+            .add_systems(PreUpdate, periodically_refresh_cache)
             // Update systems
             .add_systems(
                 Update,
@@ -92,20 +117,25 @@ impl Plugin for InspectorWindowPlugin {
                     // Input handling
                     (handle_mouse_wheel_scroll, handle_toggle_key).in_set(InspectorSet::Input),
                     // Cache refresh
-                    generate_object_list.in_set(InspectorSet::RefreshCache),
+                    update_inspector_cache.in_set(InspectorSet::CacheUpdate),
                     // UI sync - chain these to avoid resource conflicts
+                    (toggle_inspector_window, setup_inspector_ui)
+                        .chain()
+                        .in_set(InspectorSet::SetupUi),
+                    // Render systems (Unconditional)
                     (
-                        toggle_inspector_window,
-                        setup_inspector_ui,
-                        sync_object_list,
-                        sync_detail_panel,
+                        render_object_list,
+                        render_detail_panel,
+                        update_toolbar_buttons,
                     )
                         .chain()
-                        .in_set(InspectorSet::SyncUI),
+                        .in_set(InspectorSet::Render),
                 ),
             )
+            .add_observer(toggle_is_paused_on_activate)
+            .add_observer(manual_refresh_on_activate)
             .add_observer(on_object_row_click)
-            .add_observer(update_active_objects_tab_on_activate_tab);
+            .add_observer(update_active_objects_tab_on_tab_activated);
     }
 }
 
@@ -124,6 +154,28 @@ pub enum SetInspectorWindow {
     // If there is no window, a warning message will be emitted.
     Close,
 }
+
+/// A message that drives a refresh of the [`InspectorCache`].
+///
+/// This will cause the system sets [`CacheUpdate`] and [`Render`] to run when seen,
+/// via the use of run conditions added as part of [`InspectorWindowPlugin`].
+///
+/// This is a public message to allow users to trigger (or cancel!) refreshes manually if desired.
+///
+/// [`CacheUpdate`]: crate::gui::plugin::InspectorSet::CacheUpdate
+/// [`Render`]: crate::gui::plugin::InspectorSet::Render
+#[derive(Message)]
+pub struct RefreshCache;
+
+/// A message that drives a refresh of the UI panels,
+/// without forcing a cache rebuild.
+///
+/// This will cause the system set [`Render`] to run.
+///
+/// [`Render`]: crate::gui::plugin::InspectorSet::Render
+
+#[derive(Message)]
+pub struct RefreshUi;
 
 /// Sends a message to create an [`InspectorWindow`] if not already present.
 fn order_inspector_window_creation(
@@ -216,7 +268,9 @@ fn spawn_inspector_window(
 fn setup_inspector_ui(
     mut commands: Commands,
     config: Res<InspectorConfig>,
+    state: Res<InspectorState>,
     inspector_windows: Query<Entity, (With<InspectorWindow>, Without<InspectorUiInitialized>)>,
+    mut message_writer: MessageWriter<RefreshCache>,
 ) {
     let Some(window_entity) = inspector_windows.iter().next() else {
         return;
@@ -252,7 +306,7 @@ fn setup_inspector_ui(
         ))
         .with_children(|root| {
             // Title bar
-            spawn_title_bar(root, &config);
+            spawn_title_bar(root, &config, &state);
 
             // Main content area
             root.spawn((Node {
@@ -272,10 +326,17 @@ fn setup_inspector_ui(
                 });
         });
 
-    info!("Inspector UI initialized");
+    // User needs to see new data immediately.
+    if !state.is_paused {
+        message_writer.write(RefreshCache);
+    }
 }
 
-fn spawn_title_bar(parent: &mut ChildSpawnerCommands<'_>, config: &InspectorConfig) {
+fn spawn_title_bar(
+    parent: &mut ChildSpawnerCommands<'_>,
+    config: &InspectorConfig,
+    state: &InspectorState,
+) {
     parent
         .spawn((
             Node {
@@ -298,6 +359,64 @@ fn spawn_title_bar(parent: &mut ChildSpawnerCommands<'_>, config: &InspectorConf
                 },
                 TextColor(Color::WHITE),
             ));
+
+            // Flexible spacer
+            bar.spawn(Node {
+                flex_grow: 1.0,
+                ..default()
+            });
+
+            // Toolbar action container
+            bar.spawn(Node {
+                display: Display::Flex,
+                flex_direction: FlexDirection::Row,
+                column_gap: Val::Px(5.0),
+                flex_grow: 0.0,
+                ..default()
+            })
+            .with_children(|actions| {
+                // Wrapper because `Node` on `button` triggers segfault.
+                actions
+                    .spawn(Node {
+                        width: Val::Px(80.0),
+                        justify_content: JustifyContent::Center,
+                        ..default()
+                    })
+                    .with_children(|wrapper| {
+                        wrapper.spawn(button(
+                            ButtonProps::default(),
+                            RefreshButton,
+                            bevy::prelude::Spawn((
+                                Text::new("Refresh"),
+                                TextFont {
+                                    font_size: FontSize::Px(config.body_font_size),
+                                    ..default()
+                                },
+                            )),
+                        ));
+                    });
+
+                // Wrapper because `Node` on `button` triggers segfault.
+                actions
+                    .spawn(Node {
+                        width: Val::Px(80.0),
+                        justify_content: JustifyContent::Center,
+                        ..default()
+                    })
+                    .with_children(|wrapper| {
+                        wrapper.spawn(button(
+                            ButtonProps::default(),
+                            PauseButton,
+                            bevy::prelude::Spawn((
+                                Text::new(if state.is_paused { "Resume" } else { "Pause" }),
+                                TextFont {
+                                    font_size: FontSize::Px(config.body_font_size),
+                                    ..default()
+                                },
+                            )),
+                        ));
+                    });
+            });
         });
 }
 
@@ -343,6 +462,70 @@ fn handle_mouse_wheel_scroll(
                         break;
                     }
                 }
+            }
+        }
+    }
+}
+
+/// Observes [`Activate`] events to toggle `is_paused` on [`InspectorState`].
+fn toggle_is_paused_on_activate(
+    activate: On<Activate>,
+    mut state: ResMut<InspectorState>,
+    pause_button_query: Query<Entity, With<PauseButton>>,
+    mut writer: MessageWriter<RefreshCache>,
+) {
+    let Some(_pause_button) = pause_button_query.get(activate.entity).ok() else {
+        return;
+    };
+
+    state.is_paused = !state.is_paused;
+
+    // Forces a cache refresh to get the freshest data.
+    writer.write(RefreshCache);
+}
+
+/// Observes [`Activate`] events to trigger manual refresh.
+fn manual_refresh_on_activate(
+    activate: On<Activate>,
+    refresh_button_query: Query<Entity, With<RefreshButton>>,
+    mut writer: MessageWriter<RefreshCache>,
+    mut cache: ResMut<InspectorCache>,
+) {
+    let Some(_refresh_button) = refresh_button_query.get(activate.entity).ok() else {
+        return;
+    };
+
+    cache.snapshot.clear();
+    writer.write(RefreshCache);
+}
+
+/// Syncs the text and visibility of the toolbar buttons with the current [`InspectorState`].
+fn update_toolbar_buttons(
+    state: Res<InspectorState>,
+    mut refresh_buttons: Query<&mut Node, With<RefreshButton>>,
+    pause_buttons: Query<&Children, With<PauseButton>>,
+    mut text_query: Query<&mut Text>,
+) {
+    if !state.is_changed() {
+        return;
+    }
+
+    let is_paused = state.is_paused;
+
+    // Update Refresh Button visibility
+    for mut node in &mut refresh_buttons {
+        node.display = if is_paused {
+            Display::Flex
+        } else {
+            Display::None
+        };
+    }
+
+    // Update Pause Button text
+    for children in &pause_buttons {
+        for child in children.iter() {
+            if let Ok(mut text) = text_query.get_mut(child) {
+                text.0 = if is_paused { "Resume" } else { "Pause" }.to_string();
             }
         }
     }

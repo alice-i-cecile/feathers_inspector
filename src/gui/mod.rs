@@ -3,6 +3,7 @@
 //! Provides a separate window for inspecting entities, components, and relationships
 //! in a Bevy application using bevy_ui and bevy_experimental_feathers.
 
+pub mod cache;
 pub mod config;
 pub mod panels;
 pub mod plugin;

@@ -8,7 +8,6 @@
 use bevy::ecs::component::ComponentId;
 use bevy::prelude::*;
 
-use crate::inspection::component_inspection::ComponentMetadataMap;
 use crate::memory_size::MemorySize;
 
 /// Marker component for inspector-internal entities that should not appear in the entity list.
@@ -20,15 +19,21 @@ pub struct InspectorInternal;
 /// All UI-related state flows through this resource.
 #[derive(Resource, Default)]
 pub struct InspectorState {
+    /// Whether the inspector is currently paused.
+    ///
+    /// When the inspector is paused,
+    /// it does not automatically receive updates,
+    /// allowing the user to inspect a snapshot of the world.
+    pub is_paused: bool,
     /// Currently selected object for detail view.
     pub selected_object: Option<Entity>,
-    /// Previously selected object (for change detection).
+    /// Previous selected object for change detection.
     pub previous_selected_object: Option<Entity>,
     /// Active tab in the object list panel.
     pub active_objects_tab: ObjectListTab,
     /// Active tab in the detail panel.
     pub active_detail_tab: DetailTab,
-    /// Previous active tab (for change detection).
+    /// Previous active tab in the detail panel.
     pub previous_detail_tab: DetailTab,
     /// Current search/filter text for object list.
     pub filter_text: String,
@@ -52,17 +57,6 @@ pub enum DetailTab {
     #[default]
     Components,
     Relationships,
-}
-
-/// Cached data for the inspector.
-///
-/// This is regularly invalidated, but this resource helps avoid repeated allocations.
-#[derive(Resource, Default)]
-pub struct InspectorCache {
-    /// Cached object list after filtering.
-    pub filtered_objects: Vec<ObjectListEntry>,
-    /// Cached metadata map (reused across inspections).
-    pub metadata_map: Option<ComponentMetadataMap>,
 }
 
 /// Data for a single entity in the object list.
