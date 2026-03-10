@@ -16,7 +16,7 @@ use bevy::ui_widgets::Activate;
 use bevy::window::{PrimaryWindow, WindowCloseRequested, WindowRef, WindowResolution};
 
 use crate::gui::panels::{
-    RefreshObjectList, RefreshUI, on_object_row_click, refresh_object_list_periodically,
+    RefreshCache, RefreshUI, on_object_row_click, periodically_refresh_cache,
     update_active_objects_tab_on_tab_activated,
 };
 
@@ -56,7 +56,7 @@ pub enum InspectorSet {
     /// Cache is needed because the [`World`] could mutate unpredictably,
     /// therefore, while not guaranteed to be up to date,
     /// it allows to take a snapshot of it.
-    RefreshCache,
+    CacheUpdate,
     /// Sync UI with cache.
     Render,
     /// Sync UI with state.
@@ -79,14 +79,14 @@ impl Plugin for InspectorWindowPlugin {
             .init_resource::<SemanticFieldNames>()
             // Messages
             .add_message::<SetInspectorWindow>()
-            .add_message::<RefreshObjectList>()
+            .add_message::<RefreshCache>()
             .add_message::<RefreshUI>()
             // System ordering
             .configure_sets(
                 Update,
                 (
                     InspectorSet::Input,
-                    InspectorSet::RefreshCache,
+                    InspectorSet::CacheUpdate,
                     InspectorSet::SyncUI,
                     InspectorSet::Render,
                 )
@@ -95,14 +95,13 @@ impl Plugin for InspectorWindowPlugin {
             // Limit refreshes
             .configure_sets(
                 Update,
-                (InspectorSet::RefreshCache, InspectorSet::SyncUI).run_if(
-                    on_message::<RefreshObjectList>.or_else(on_message::<SetInspectorWindow>),
-                ),
+                (InspectorSet::CacheUpdate, InspectorSet::SyncUI)
+                    .run_if(on_message::<RefreshCache>.or_else(on_message::<SetInspectorWindow>)),
             )
             .configure_sets(
                 Update,
                 InspectorSet::Render.run_if(
-                    on_message::<RefreshObjectList>
+                    on_message::<RefreshCache>
                         .or_else(on_message::<RefreshUI>)
                         .or_else(on_message::<SetInspectorWindow>),
                 ),
@@ -110,7 +109,7 @@ impl Plugin for InspectorWindowPlugin {
             // Startup
             .add_systems(Startup, order_inspector_window_creation)
             // PreUpdate systems
-            .add_systems(PreUpdate, refresh_object_list_periodically)
+            .add_systems(PreUpdate, periodically_refresh_cache)
             // Update systems
             .add_systems(
                 Update,
@@ -118,7 +117,7 @@ impl Plugin for InspectorWindowPlugin {
                     // Input handling
                     (handle_mouse_wheel_scroll, handle_toggle_key).in_set(InspectorSet::Input),
                     // Cache refresh
-                    update_inspector_cache.in_set(InspectorSet::RefreshCache),
+                    update_inspector_cache.in_set(InspectorSet::CacheUpdate),
                     // UI sync - chain these to avoid resource conflicts
                     (toggle_inspector_window, setup_inspector_ui)
                         .chain()
@@ -447,7 +446,7 @@ fn toggle_is_paused_on_activate(
     activate: On<Activate>,
     mut state: ResMut<InspectorState>,
     pause_button_query: Query<Entity, With<PauseButton>>,
-    mut writer: MessageWriter<RefreshObjectList>,
+    mut writer: MessageWriter<RefreshCache>,
 ) {
     let Some(_pause_button) = pause_button_query.get(activate.entity).ok() else {
         return;
@@ -456,14 +455,14 @@ fn toggle_is_paused_on_activate(
     state.is_paused = !state.is_paused;
 
     // Forces a cache refresh to get the freshest data.
-    writer.write(RefreshObjectList);
+    writer.write(RefreshCache);
 }
 
 /// Observes [`Activate`] events to trigger manual refresh.
 fn manual_refresh_on_activate(
     activate: On<Activate>,
     refresh_button_query: Query<Entity, With<RefreshButton>>,
-    mut writer: MessageWriter<RefreshObjectList>,
+    mut writer: MessageWriter<RefreshCache>,
     mut cache: ResMut<InspectorCache>,
 ) {
     let Some(_refresh_button) = refresh_button_query.get(activate.entity).ok() else {
@@ -471,7 +470,7 @@ fn manual_refresh_on_activate(
     };
 
     cache.is_dirty = true;
-    writer.write(RefreshObjectList);
+    writer.write(RefreshCache);
 }
 
 /// Syncs the text and visibility of the toolbar buttons with the current [`InspectorState`].

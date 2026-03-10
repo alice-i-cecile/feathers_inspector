@@ -26,7 +26,7 @@
 //! which stores the generated list in the [`InspectorCache`] resource. The [`render_object_list`] system then reads from this cache
 //! and spawns UI nodes for each object in the list, as children of the appropriate content node based on the active tab.
 //!
-//! When a tab is activated via the [`TabActivated`] event, the [`update_active_objects_tab_on_activate_tab`] system
+//! When a tab is activated via the [`TabActivated`] event, the [`update_active_objects_tab_on_tab_activated`] system
 //! updates the active tab in the [`InspectorState`]. This then triggers a refresh of the object list display to
 //! show the appropriate objects for the selected tab.
 //!
@@ -449,7 +449,7 @@ pub fn update_active_objects_tab_on_tab_activated(
     object_list_contents: Query<&ObjectListContent>,
     children: Query<&Children>,
     mut state: ResMut<InspectorState>,
-    mut writer: MessageWriter<RefreshObjectList>,
+    mut writer: MessageWriter<RefreshCache>,
     mut ui_writer: MessageWriter<RefreshUI>,
     mut commands: Commands,
 ) {
@@ -472,7 +472,7 @@ pub fn update_active_objects_tab_on_tab_activated(
                         ui_writer.write(RefreshUI);
                     } else {
                         // Forced UI sync to avoid showing stale state.
-                        writer.write(RefreshObjectList);
+                        writer.write(RefreshCache);
                     }
                     return;
                 }
@@ -489,13 +489,13 @@ pub fn on_object_row_click(
     activate: On<Activate>,
     mut state: ResMut<InspectorState>,
     rows: Query<&ObjectRow>,
-    mut writer: MessageWriter<RefreshObjectList>,
+    mut writer: MessageWriter<RefreshCache>,
     mut ui_writer: MessageWriter<RefreshUI>,
 ) {
     if let Ok(row) = rows.get(activate.entity) {
         state.selected_object = Some(row.selected_object);
         if !state.is_paused {
-            writer.write(RefreshObjectList);
+            writer.write(RefreshCache);
         } else {
             ui_writer.write(RefreshUI);
         }
@@ -745,28 +745,35 @@ fn scrollable_area(
         .id()
 }
 
-/// A message that drives a refresh of the object list panel.
+/// A message that drives a refresh of the [`InspectorCache`].
 ///
-/// This will cause the system sets [`RefreshCache`] and [`SyncUI`] to run when seen,
+/// This will cause the system sets [`CacheUpdate`] and [`SyncUI`] to run when seen,
 /// via the use of run conditions added as part of [`InspectorWindowPlugin`](crate::gui::plugin::InspectorWindowPlugin).
 ///
 /// This is a public message to allow users to trigger (or cancel!) refreshes manually if desired.
 ///
-/// [`RefreshCache`]: crate::gui::plugin::InspectorSet::RefreshCache
+/// [`CacheUpdate`]: crate::gui::plugin::InspectorSet::CacheUpdate
 /// [`SyncUI`]: crate::gui::plugin::InspectorSet::SyncUI
 #[derive(Message)]
-pub struct RefreshObjectList;
+pub struct RefreshCache;
 
 /// A message that drives a refresh of the UI panels,
 /// without forcing a cache rebuild.
+///
+/// This will cause the system set [`Render`] to run.
+///
+/// [`Render`]: crate::gui::plugin::InspectorSet::Render
+
 #[derive(Message)]
 pub struct RefreshUI;
 
-/// A system which periodically sends a [`RefreshObjectList`] message.
+/// A system which periodically sends a [`RefreshCache`] message.
 ///
-/// The frequency is controlled by the `refresh_interval` field in [`InspectorConfig`].
-pub fn refresh_object_list_periodically(
-    mut message_writer: MessageWriter<RefreshObjectList>,
+/// The frequency is controlled by the [`refresh_interval`] field in [`InspectorConfig`].
+///
+/// [`refresh_interval`]: InspectorConfig::refresh_interval
+pub fn periodically_refresh_cache(
+    mut message_writer: MessageWriter<RefreshCache>,
     time: Res<Time>,
     mut timer: Local<Timer>,
     mut is_timer_ticking: Local<bool>,
@@ -794,6 +801,6 @@ pub fn refresh_object_list_periodically(
 
     // Send message if timer finished
     if timer.just_finished() {
-        message_writer.write(RefreshObjectList);
+        message_writer.write(RefreshCache);
     }
 }
