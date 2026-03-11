@@ -284,33 +284,20 @@ fn does_entity_match_inspection_filter(
     entity: Entity,
     settings: &MultipleEntityInspectionSettings,
 ) -> bool {
-    let entity_ref = match world.get_entity(entity) {
-        Ok(entity_ref) => entity_ref,
-        Err(_) => return false,
+    let Ok(e) = world.get_entity(entity) else {
+        return false;
     };
+    let include = &settings.with_component_filter;
+    let exclude = &settings.without_component_filter;
 
-    if let Some(name_filter) = &settings.name_filter {
-        let name_matches = world
-            .get::<Name>(entity)
-            .is_some_and(|name| name_filter.matches(name.as_str()));
-        if !name_matches {
-            return false;
-        }
-    }
+    let matches_name = settings.name_filter.as_ref().is_none_or(|filter| {
+        e.get::<Name>()
+            .is_some_and(|name| filter.matches(name.as_str()))
+    });
 
-    for component_id in &settings.with_component_filter {
-        if !entity_ref.contains_id(*component_id) {
-            return false;
-        }
-    }
-
-    for component_id in &settings.without_component_filter {
-        if entity_ref.contains_id(*component_id) {
-            return false;
-        }
-    }
-
-    true
+    matches_name
+        && include.iter().all(|cid| e.contains_id(*cid))
+        && !exclude.iter().any(|cid| e.contains_id(*cid))
 }
 
 #[cfg(test)]
