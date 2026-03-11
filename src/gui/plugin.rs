@@ -476,13 +476,11 @@ fn manual_refresh_on_activate(
     activate: On<Activate>,
     refresh_button_query: Query<Entity, With<RefreshButton>>,
     mut refresh_cache: MessageWriter<RefreshCache>,
-    mut cache: ResMut<InspectorCache>,
 ) {
     let Some(_refresh_button) = refresh_button_query.get(activate.entity).ok() else {
         return;
     };
 
-    cache.snapshot.clear();
     refresh_cache.write(RefreshCache { force: true });
 }
 

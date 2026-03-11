@@ -182,11 +182,11 @@ fn update_cache_paused(
         .get_mut(world)
         .read()
         .any(|refresh_cache| refresh_cache.force);
-
     let has_full_snapshot = {
         let cache = world.resource::<InspectorCache>();
         cache.snapshot.is_full()
     };
+
     if !has_full_snapshot || force {
         create_full_snapshot(world);
     }
