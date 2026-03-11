@@ -46,16 +46,12 @@ impl ComponentChecker for (&EntityInspection, &ComponentMetadataMap) {
         let inspection: &EntityInspection = self.0;
         let type_id = TypeId::of::<T>();
         let metadata_map: &ComponentMetadataMap = self.1;
-        if let Some(components) = &inspection.components {
-            for comp in components {
-                if let Some(metadata) = metadata_map.map.get(&comp.component_id)
-                    && metadata.type_id == Some(type_id)
-                {
-                    return true;
-                }
-            }
-        }
-        false
+        inspection.components.iter().flatten().any(|ci| {
+            metadata_map
+                .map
+                .get(&ci.component_id)
+                .is_some_and(|metadata| metadata.type_id == Some(type_id))
+        })
     }
 }
 
