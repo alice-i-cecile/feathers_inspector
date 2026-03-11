@@ -289,12 +289,9 @@ fn matches_tab(checker: impl ComponentChecker, tab: ObjectListTab) -> bool {
 }
 
 fn has_component_by_id(inspection: &EntityInspection, component_id: ComponentId) -> bool {
-    if let Some(components) = &inspection.components {
-        for comp in components {
-            if comp.component_id == component_id {
-                return true;
-            }
-        }
-    }
-    false
+    inspection
+        .components
+        .iter()
+        .flatten()
+        .any(|ci| ci.component_id == component_id)
 }
