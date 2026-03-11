@@ -49,7 +49,7 @@ impl FromWorld for InspectorCache {
 ///
 /// [`refresh_interval`]: InspectorConfig::refresh_interval
 pub fn periodically_refresh_cache(
-    mut message_writer: MessageWriter<RefreshCache>,
+    mut refresh_cache: MessageWriter<RefreshCache>,
     time: Res<Time>,
     state: Res<InspectorState>,
     mut cache: ResMut<InspectorCache>,
@@ -63,6 +63,6 @@ pub fn periodically_refresh_cache(
 
     timer.tick(time.delta());
     if timer.just_finished() {
-        message_writer.write(RefreshCache);
+        refresh_cache.write_default();
     }
 }

@@ -33,6 +33,8 @@
 //! Clicking on an object row sends an [`Activate`] event,
 //! which is observed by the [`on_object_row_click`] system to update the selected object in the [`InspectorState`].
 //! This allows the [`detail_panel`](super::detail_panel) to show the appropriate information for the selected object.
+//!
+//! [`update_inspector_cache`]: crate::gui::cache::update_inspector_cache
 
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::observer::On;
@@ -42,9 +44,9 @@ use bevy::prelude::*;
 use bevy::ui::Val::*;
 use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar};
 
-use crate::gui::cache::{InspectorCache, update_inspector_cache};
+use crate::gui::cache::InspectorCache;
 use crate::gui::config::InspectorConfig;
-use crate::gui::plugin::{RefreshCache, RefreshUi};
+use crate::gui::plugin::RefreshCache;
 use crate::gui::state::{InspectorState, ObjectListEntry, ObjectListTab};
 use crate::gui::widgets::tabs::{HasContent, Tab, TabActivated, TabContentDisplayMode, TabGroup};
 
@@ -160,9 +162,7 @@ pub fn update_active_objects_tab_on_tab_activated(
     object_list_contents: Query<&ObjectListContent>,
     children: Query<&Children>,
     mut state: ResMut<InspectorState>,
-    mut writer: MessageWriter<RefreshCache>,
-    mut ui_writer: MessageWriter<RefreshUi>,
-    mut commands: Commands,
+    mut refresh_cache: MessageWriter<RefreshCache>,
 ) {
     let event = on_activate_tab.event();
     if let Ok(has_content) = has_contents.get(event.tab) {
@@ -173,18 +173,7 @@ pub fn update_active_objects_tab_on_tab_activated(
                     let object_list_tab = object_list_content.tab;
 
                     state.active_objects_tab = object_list_tab;
-                    if state.is_paused {
-                        // Updating the filter allows the new tab content to show the right content
-                        //
-                        // NOTE: This solution is a bit hacky,
-                        // but it's currently needed to not disrupt
-                        // the current exclusive system centric code structure.
-                        commands.queue(|world: &mut World| update_inspector_cache(world));
-                        ui_writer.write(RefreshUi);
-                    } else {
-                        // Forced UI sync to avoid showing stale state.
-                        writer.write(RefreshCache);
-                    }
+                    refresh_cache.write_default();
                     return;
                 }
             }
@@ -200,16 +189,11 @@ pub fn on_object_row_click(
     activate: On<Activate>,
     mut state: ResMut<InspectorState>,
     rows: Query<&ObjectRow>,
-    mut writer: MessageWriter<RefreshCache>,
-    mut ui_writer: MessageWriter<RefreshUi>,
+    mut refresh_cache: MessageWriter<RefreshCache>,
 ) {
     if let Ok(row) = rows.get(activate.entity) {
         state.selected_object = Some(row.selected_object);
-        if !state.is_paused {
-            writer.write(RefreshCache);
-        } else {
-            ui_writer.write(RefreshUi);
-        }
+        refresh_cache.write_default();
     }
 }
 

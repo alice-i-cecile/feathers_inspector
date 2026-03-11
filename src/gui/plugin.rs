@@ -77,7 +77,6 @@ impl Plugin for InspectorWindowPlugin {
             // Messages
             .add_message::<SetInspectorWindow>()
             .add_message::<RefreshCache>()
-            .add_message::<RefreshUi>()
             // System ordering
             .configure_sets(
                 Update,
@@ -100,11 +99,8 @@ impl Plugin for InspectorWindowPlugin {
             )
             .configure_sets(
                 Update,
-                InspectorSet::Render.run_if(
-                    on_message::<RefreshCache>
-                        .or_else(on_message::<RefreshUi>)
-                        .or_else(on_message::<SetInspectorWindow>),
-                ),
+                InspectorSet::Render
+                    .run_if(on_message::<RefreshCache>.or_else(on_message::<SetInspectorWindow>)),
             )
             // Startup
             .add_systems(Startup, order_inspector_window_creation)
@@ -164,18 +160,11 @@ pub enum SetInspectorWindow {
 ///
 /// [`CacheUpdate`]: crate::gui::plugin::InspectorSet::CacheUpdate
 /// [`Render`]: crate::gui::plugin::InspectorSet::Render
-#[derive(Message)]
-pub struct RefreshCache;
-
-/// A message that drives a refresh of the UI panels,
-/// without forcing a cache rebuild.
-///
-/// This will cause the system set [`Render`] to run.
-///
-/// [`Render`]: crate::gui::plugin::InspectorSet::Render
-
-#[derive(Message)]
-pub struct RefreshUi;
+#[derive(Message, Default)]
+pub struct RefreshCache {
+    /// Signals the handler that it really should refresh the cache.
+    pub force: bool,
+}
 
 /// Sends a message to create an [`InspectorWindow`] if not already present.
 fn order_inspector_window_creation(
@@ -270,7 +259,7 @@ fn setup_inspector_ui(
     config: Res<InspectorConfig>,
     state: Res<InspectorState>,
     inspector_windows: Query<Entity, (With<InspectorWindow>, Without<InspectorUiInitialized>)>,
-    mut message_writer: MessageWriter<RefreshCache>,
+    mut refresh_cache: MessageWriter<RefreshCache>,
 ) {
     let Some(window_entity) = inspector_windows.iter().next() else {
         return;
@@ -327,9 +316,7 @@ fn setup_inspector_ui(
         });
 
     // User needs to see new data immediately.
-    if !state.is_paused {
-        message_writer.write(RefreshCache);
-    }
+    refresh_cache.write_default();
 }
 
 fn spawn_title_bar(
@@ -472,7 +459,7 @@ fn toggle_is_paused_on_activate(
     activate: On<Activate>,
     mut state: ResMut<InspectorState>,
     pause_button_query: Query<Entity, With<PauseButton>>,
-    mut writer: MessageWriter<RefreshCache>,
+    mut refresh_cache: MessageWriter<RefreshCache>,
 ) {
     let Some(_pause_button) = pause_button_query.get(activate.entity).ok() else {
         return;
@@ -481,14 +468,14 @@ fn toggle_is_paused_on_activate(
     state.is_paused = !state.is_paused;
 
     // Forces a cache refresh to get the freshest data.
-    writer.write(RefreshCache);
+    refresh_cache.write(RefreshCache { force: true });
 }
 
 /// Observes [`Activate`] events to trigger manual refresh.
 fn manual_refresh_on_activate(
     activate: On<Activate>,
     refresh_button_query: Query<Entity, With<RefreshButton>>,
-    mut writer: MessageWriter<RefreshCache>,
+    mut refresh_cache: MessageWriter<RefreshCache>,
     mut cache: ResMut<InspectorCache>,
 ) {
     let Some(_refresh_button) = refresh_button_query.get(activate.entity).ok() else {
@@ -496,7 +483,7 @@ fn manual_refresh_on_activate(
     };
 
     cache.snapshot.clear();
-    writer.write(RefreshCache);
+    refresh_cache.write(RefreshCache { force: true });
 }
 
 /// Syncs the text and visibility of the toolbar buttons with the current [`InspectorState`].

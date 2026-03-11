@@ -1,7 +1,11 @@
 use std::any::TypeId;
 
 use bevy::{
-    ecs::{component::ComponentId, resource::IsResource, system::SystemIdMarker},
+    ecs::{
+        component::ComponentId,
+        resource::IsResource,
+        system::{SystemIdMarker, SystemState},
+    },
     prelude::*,
 };
 
@@ -10,6 +14,7 @@ use crate::{
     extension_methods::WorldInspectionExtensionTrait,
     gui::{
         cache::{InspectorCache, snapshot::WorldSnapshot},
+        plugin::RefreshCache,
         state::{InspectorInternal, InspectorState, ObjectListEntry, ObjectListTab},
     },
     inspection::{
@@ -64,7 +69,10 @@ impl ComponentChecker for (&EntityInspection, &ComponentMetadataMap) {
 /// as the world may have changed substantially in between.
 ///
 /// Uses exclusive world access to avoid resource conflicts.
-pub fn update_inspector_cache(world: &mut World) {
+pub fn update_inspector_cache(
+    world: &mut World,
+    state: &mut SystemState<MessageReader<RefreshCache>>,
+) {
     update_component_metadata_map(world);
     let (is_paused, selected_object, filter) = {
         let state = world.resource::<InspectorState>();
@@ -80,7 +88,7 @@ pub fn update_inspector_cache(world: &mut World) {
     };
 
     if is_paused {
-        update_cache_paused(world, &filter);
+        update_cache_paused(world, state, &filter);
     } else {
         update_cache_running(world, selected_object, &filter);
     }
@@ -165,12 +173,21 @@ fn inspect_entities(
     })
 }
 
-fn update_cache_paused(world: &mut World, filter: &ObjectListFilter) {
+fn update_cache_paused(
+    world: &mut World,
+    state: &mut SystemState<MessageReader<RefreshCache>>,
+    filter: &ObjectListFilter,
+) {
+    let force = state
+        .get_mut(world)
+        .read()
+        .any(|refresh_cache| refresh_cache.force);
+
     let has_full_snapshot = {
         let cache = world.resource::<InspectorCache>();
         cache.snapshot.is_full()
     };
-    if !has_full_snapshot {
+    if !has_full_snapshot || force {
         create_full_snapshot(world);
     }
 
