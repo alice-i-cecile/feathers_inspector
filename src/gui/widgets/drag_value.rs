@@ -530,7 +530,7 @@ pub fn apply_pending_value_changes(world: &mut World) {
             get_reflected_component_mut(world, field_path.entity, field_path.component_type_id)
         {
             let success = set_field_value_recursive(
-                reflected.bypass_change_detection().as_partial_reflect_mut(),
+                reflected.as_partial_reflect_mut(),
                 &field_path.path,
                 change.new_value,
             );
