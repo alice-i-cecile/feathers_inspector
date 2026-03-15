@@ -22,9 +22,10 @@ For each item, follow the format below:
 
 Possible STATUS replacements include: "Needs work", "PR please", "Blocked", "Needs review", "Merged", and "Integrated".
 
-As PRs are created, link them in the appropriate subsection.
-Once they are merged, update this crate to latest upstream `main` and replace local internals with merged equivalents.
-Once that's done, make sure everything still works then check off the associated  elements.
+As PRs are created, record them in the appropriate subsection, and link back to the root Bevy issue: [#23013](https://github.com/bevyengine/bevy/issues/23013).
+
+Once PRs are merged, update this crate to latest upstream `main` and replace local internals with merged equivalents.
+Once that's done, make sure everything still works then change the work status to **Integrated**.
 
 Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tracks the process of upstreaming only.
 
