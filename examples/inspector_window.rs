@@ -5,7 +5,9 @@
 
 use bevy::prelude::*;
 use feathers_inspector::{
-    entity_name_resolution::{NameResolutionPlugin, NameResolutionRegistry},
+    entity_name_resolution::{
+        NameDefinitionPriority, NameResolutionPlugin, NameResolutionRegistry,
+    },
     gui::{config::InspectorConfig, plugin::InspectorWindowPlugin},
 };
 
@@ -26,10 +28,8 @@ fn main() {
         .add_systems(Update, fluctuating_entity_counts);
 
     // We can register our own component types to be used for name resolution
-    // A priority of zero means this takes precedence over most engine-provided types,
-    // and is generally a good fit for user-defined naming components.
     let mut name_registry = app.world_mut().resource_mut::<NameResolutionRegistry>();
-    name_registry.register_name_defining_type::<Chaff>(0);
+    name_registry.register_name_defining_type::<Chaff>(NameDefinitionPriority::USER);
 
     // Register a one-shot system to be shown in the inspector
     let one_shot_system_id = app.world_mut().register_system(example_one_shot_system);

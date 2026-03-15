@@ -11,7 +11,7 @@ use core::any::TypeId;
 use core::fmt::Display;
 use thiserror::Error;
 
-use crate::entity_name_resolution::NameResolutionRegistry;
+use crate::entity_name_resolution::{NameDefinitionPriority, NameResolutionRegistry};
 use crate::memory_size::MemorySize;
 use crate::reflection_tools::clone_partial_reflect;
 
@@ -141,7 +141,7 @@ pub struct ComponentTypeMetadata {
     /// The name definition priority of the component type.
     /// Higher values indicate higher priority.
     /// `None` indicates that the component does not define names.
-    pub name_definition_priority: Option<i8>,
+    pub name_definition_priority: Option<NameDefinitionPriority>,
     /// Returns true if the component type is mutable while in the ECS.
     pub mutable: bool,
     /// The storage type of this component.

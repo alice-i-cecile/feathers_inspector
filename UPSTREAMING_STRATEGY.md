@@ -78,19 +78,23 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
   - the remaining inspection-dependent helper (`hash_map_component_id_component_type_metadata`) stays in Phase 4 alongside the types it serializes
   - Code: [component_id](src/serde_conversions.rs), [archetype_id](src/serde_conversions.rs), [slice_component_id](src/serde_conversions.rs), [debug_name](src/serde_conversions.rs), [storage_type](src/serde_conversions.rs), [option_vec_debug_name](src/serde_conversions.rs), [serialize_spawn_details()](src/serde_conversions.rs)
   - Target: [bevy_remote/src/serde_conversions.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_remote/src) (new file, alongside existing builtin_methods.rs)
-3. **Needs work:** name resolution
-  - entity name resolution system and fuzzy name mapping utilities
-  - circular dependency must be fixed before upstreaming: `resolve_name()` currently takes `&Option<Vec<ComponentInspection>>` and `&HashMap<ComponentId, ComponentTypeMetadata>` — both Phase 4 types. Meanwhile, `ComponentInspection::new()` reads `NameResolutionRegistry` from the world. This bidirectional dependency prevents either module from landing first.
-    - required refactoring: change `resolve_name()` to accept `&[(ComponentId, &str, Option<NameDefinitionPriority>)]` — a simple slice of component IDs, short names, and priorities that callers assemble from whatever data they have. Move `NameDefinitionPriority` into this module (it's a simple enum/integer, not an inspection type). This breaks the cycle: name resolution becomes a leaf, and `ComponentInspection` calls it with data it already has.
-  - **Fuzzy name mapping** (`fuzzy_component_name_to_id()`, `fuzzy_resource_name_to_id()`) has zero internal dependencies and can be split into a separate PR that lands independently.
-  - Code: [EntityName](src/entity_name_resolution/mod.rs), [NameOrigin](src/entity_name_resolution/mod.rs), [resolve_name()](src/entity_name_resolution/mod.rs), [NameResolutionRegistry](src/entity_name_resolution/mod.rs), [NameResolutionPlugin](src/entity_name_resolution/mod.rs), [fuzzy_component_name_to_id()](src/entity_name_resolution/fuzzy_name_mapping.rs), [fuzzy_resource_name_to_id()](src/entity_name_resolution/fuzzy_name_mapping.rs)
+3. **PR please:** name resolution
+  - entity name resolution system: priority-based naming for entities using registered name-defining components
+  - zero internal dependencies; depends only on `bevy::ecs` and `bevy::prelude` types
+  - Code: [EntityName](src/entity_name_resolution/mod.rs), [NameOrigin](src/entity_name_resolution/mod.rs), [NameDefinitionPriority](src/entity_name_resolution/mod.rs), [ComponentNameData](src/entity_name_resolution/mod.rs), [resolve_name()](src/entity_name_resolution/mod.rs), [NameResolutionRegistry](src/entity_name_resolution/mod.rs), [NameResolutionPlugin](src/entity_name_resolution/mod.rs)
   - Target: [bevy_ecs/src/entity/name_resolution.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src/entity) (new module; `Name` component already lives in bevy_ecs)
-4. **PR please:** world summary types and entry points
+4. **PR please:** fuzzy name mapping
+  - fuzzy component/resource name-to-ID lookup using Levenshtein similarity
+  - zero internal dependencies; depends only on `bevy::ecs` types and `strsim`
+  - independent of item 3 (name resolution) — can land in either order or in parallel
+  - Code: [fuzzy_component_name_to_id()](src/entity_name_resolution/fuzzy_name_mapping.rs), [fuzzy_resource_name_to_id()](src/entity_name_resolution/fuzzy_name_mapping.rs)
+  - Target: [bevy_ecs/src/entity/fuzzy_name_mapping.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src/entity) (new module alongside name_resolution.rs)
+5. **PR please:** world summary types and entry points
   - self-contained world summary with zero internal dependencies; can land in parallel with Phases 1–2
   - originally grouped with multi-inspection in Phase 4, but code analysis confirms this module has no `use crate::` imports — it depends only on `bevy::ecs` types
   - Code: [SummarySettings](src/inspection/world_summary.rs), [ArchetypeSummary](src/inspection/world_summary.rs), [WorldSummary](src/inspection/world_summary.rs), [WorldSummaryExt::summarize()](src/inspection/world_summary.rs), [CommandsSummaryExt::summarize()](src/inspection/world_summary.rs)
   - Target: [bevy_ecs/src/inspection/world_summary.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src) (new file; can land before the rest of the inspection module)
-5. **PR please:** entity grouping primitives
+6. **PR please:** entity grouping primitives
   - self-contained grouping strategies with zero internal dependencies; can land in parallel with Phases 1–2
   - Code: [GroupingStrategy](src/entity_grouping/mod.rs), [EntityGrouping](src/entity_grouping/mod.rs), [EntityGrouping::generate()](src/entity_grouping/mod.rs), [archetype_similarity_grouping](src/entity_grouping/archetype_similarity_grouping.rs), [hierarchy_grouping](src/entity_grouping/hierarchy_grouping.rs)
   - Target: [bevy_ecs/src/inspection/grouping.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src) (new file)

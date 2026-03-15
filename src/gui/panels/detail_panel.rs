@@ -504,7 +504,7 @@ fn spawn_components_tab_exclusive(
     // Get semantic names resource for better tuple struct field names
     let semantic_names = world.resource::<SemanticFieldNames>();
 
-    let resolved_name = inspection.name.clone().unwrap_or(EntityName::generated(
+    let resolved_name = inspection.name.clone().unwrap_or(EntityName::fallback(
         format!("Entity {:?}", inspection.entity).as_str(),
     ));
 

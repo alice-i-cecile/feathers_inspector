@@ -1,12 +1,12 @@
 //! Methods that should exist on existing Bevy types.
 
-use bevy::ecs::{component::ComponentId, query::SpawnDetails};
+use bevy::ecs::{component::ComponentId, query::SpawnDetails, resource::IsResource};
 use bevy::prelude::*;
-use core::any::type_name;
+use core::any::{TypeId, type_name};
 
 use crate::{
     entity_grouping::EntityGrouping,
-    entity_name_resolution::resolve_name,
+    entity_name_resolution::{ComponentNameData, EntityName, resolve_name},
     inspection::component_inspection::{
         ComponentDetailLevel, ComponentInspection, ComponentInspectionError,
         ComponentInspectionSettings, ComponentMetadataMap, ComponentTypeInspection,
@@ -203,7 +203,43 @@ impl WorldInspectionExtensionTrait for World {
         } else {
             (None, None)
         };
-        let name = resolve_name(self, entity, &components, metadata_map);
+        let name = match &components {
+            Some(comps) => {
+                let is_resource = comps.iter().any(|comp| {
+                    metadata_map
+                        .get(&comp.component_id)
+                        .and_then(|meta| meta.type_id)
+                        == Some(TypeId::of::<IsResource>())
+                });
+
+                if is_resource {
+                    // Find the first component that is a registered resource
+                    // and use its type name as the entity's display name.
+                    comps
+                        .iter()
+                        .find(|comp| self.resource_entities().get(comp.component_id).is_some())
+                        .map(|comp| EntityName::resolved(&comp.name.shortname().to_string()))
+                } else {
+                    let short_names: Vec<String> = comps
+                        .iter()
+                        .map(|comp| comp.name.shortname().to_string())
+                        .collect();
+                    let name_data: Vec<ComponentNameData> = comps
+                        .iter()
+                        .zip(short_names.iter())
+                        .map(|(comp, short_name)| ComponentNameData {
+                            component_id: comp.component_id,
+                            short_name: short_name.as_str(),
+                            name_definition_priority: metadata_map
+                                .get(&comp.component_id)
+                                .and_then(|meta| meta.name_definition_priority),
+                        })
+                        .collect();
+                    resolve_name(self, entity, &name_data)
+                }
+            }
+            None => resolve_name(self, entity, &[]),
+        };
 
         Ok(EntityInspection {
             entity,
