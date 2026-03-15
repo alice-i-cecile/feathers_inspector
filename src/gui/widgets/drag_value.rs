@@ -16,7 +16,7 @@ use bevy::reflect::ReflectMut;
 use core::any::TypeId;
 use std::time::{Duration, Instant};
 
-use crate::reflection_tools::get_reflected_component_mut;
+use crate::reflection_tools::get_component_reflect_mut;
 
 /// Double-click detection threshold (in milliseconds)
 const DOUBLE_CLICK_THRESHOLD_MS: u64 = 300;
@@ -527,7 +527,7 @@ pub fn apply_pending_value_changes(world: &mut World) {
 
         // Get mutable access to the component and apply the change
         if let Ok(mut reflected) =
-            get_reflected_component_mut(world, field_path.entity, field_path.component_type_id)
+            get_component_reflect_mut(world, field_path.entity, field_path.component_type_id)
         {
             let success = set_field_value_recursive(
                 reflected.as_partial_reflect_mut(),

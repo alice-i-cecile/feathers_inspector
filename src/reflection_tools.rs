@@ -1,6 +1,12 @@
 //! Code that makes working with Bevy's reflection system easier.
 //!
-//! This should go into bevy_reflect or bevy_ecs::reflect eventually.
+//! The reflection access helpers ([`get_component_reflect`], [`get_component_reflect_mut`],
+//! [`get_resource_reflect`], [`get_resource_reflect_mut`]) and [`GetReflectError`]
+//! should be upstreamed into `bevy_ecs::world::reflect`, extending the existing
+//! [`World::get_reflect`] / [`World::get_reflect_mut`] pattern.
+//!
+//! The remaining utilities ([`is_dynamic_safe`], [`clone_partial_reflect`], etc.)
+//! should go into `bevy_reflect`.
 
 use bevy::{
     prelude::*,
@@ -19,70 +25,92 @@ use core::any::TypeId;
 use thiserror::Error;
 
 /// An error that can occur when attempting to fetch reflected data from the ECS.
+///
+/// This error type covers both component and resource reflection access.
+/// It generalizes upstream's `GetComponentReflectError` to also handle resource access.
+///
+/// When upstreamed, this should unify with `GetComponentReflectError` in
+/// `bevy_ecs::world::reflect`.
 #[derive(Debug, Error, Clone, PartialEq)]
-pub enum ReflectionFetchError {
-    /// The type is not registered in the type registry.
-    #[error("Type {0:?} not registered in type registry")]
-    NotRegistered(TypeId),
-    /// The type does not implement the required reflection trait.
+pub enum GetReflectError {
+    /// There is no [`ComponentId`] corresponding to the given [`TypeId`].
     ///
-    /// If this is for a component, ensure it implements `ReflectComponent`.
-    /// If this is for a resource, ensure it implements `ReflectResource`.
-    #[error("Type {0:?} does not implement required reflection trait")]
-    MissingReflectTrait(TypeId),
+    /// This is usually handled by calling [`App::register_type()`] for the type corresponding to
+    /// the given [`TypeId`].
+    #[error("No `ComponentId` corresponding to {0:?} found (did you call App::register_type()?)")]
+    NoCorrespondingComponentId(TypeId),
+    /// The [`World`] was missing the [`AppTypeRegistry`] resource.
+    #[error("The `World` was missing the `AppTypeRegistry` resource")]
+    MissingAppTypeRegistry,
+    /// The type does not have the required reflection type data (e.g., `ReflectComponent`).
+    ///
+    /// Ensure the type derives `Reflect` and that `ReflectComponent` type data is registered.
+    #[error(
+        "Type {0:?} does not have the required reflection type data (did you derive Reflect and register ReflectComponent?)"
+    )]
+    MissingReflectData(TypeId),
     /// The reflected data could not be retrieved from the world or entity.
     ///
-    /// Ensure that the entity/resource exists and is accessible.
+    /// For components, this means the entity does not have the component.
+    /// For resources, this means the resource does not exist in the world.
     #[error("Could not retrieve reflected data for type {0:?}")]
-    ReflectionRetrievalFailed(TypeId),
+    ReflectDataNotFound(TypeId),
 }
 
 /// Gets a reflected reference to a resource from the world.
-// This should be a method on `World` once upstreamed.
-pub fn get_reflected_resource_ref(
+///
+/// Requires that the resource type derives `Reflect` and has `ReflectComponent` type data
+/// registered via [`App::register_type()`].
+// This should be a method on `World` once upstreamed (e.g., `World::get_resource_reflect`).
+pub fn get_resource_reflect(
     world: &World,
     type_id: TypeId,
-) -> Result<&dyn PartialReflect, ReflectionFetchError> {
-    let type_registry = world.resource::<AppTypeRegistry>();
+) -> Result<&dyn PartialReflect, GetReflectError> {
+    let Some(type_registry) = world.get_resource::<AppTypeRegistry>() else {
+        return Err(GetReflectError::MissingAppTypeRegistry);
+    };
     let type_registry_read_lock = type_registry.read();
     let Some(type_registration) = type_registry_read_lock.get(type_id) else {
-        // TODO: this error variant should return information about the type or component id in question
-        return Err(ReflectionFetchError::NotRegistered(type_id));
+        return Err(GetReflectError::NoCorrespondingComponentId(type_id));
     };
 
     let Some(reflect_component) = type_registration.data::<ReflectComponent>() else {
-        // TODO: these should be distinct error variants
-        return Err(ReflectionFetchError::MissingReflectTrait(type_id));
+        return Err(GetReflectError::MissingReflectData(type_id));
     };
 
-    // Resources are stored as components on special entities
-    // We need to get the component_id first
+    // Resources are stored as components on special entities.
+    // We need to get the component_id first.
     let Some(component_id) = world.components().get_id(type_id) else {
-        return Err(ReflectionFetchError::NotRegistered(type_id));
+        return Err(GetReflectError::NoCorrespondingComponentId(type_id));
     };
 
     let Some(&entity) = world.resource_entities().get(component_id) else {
-        return Err(ReflectionFetchError::ReflectionRetrievalFailed(type_id));
+        return Err(GetReflectError::ReflectDataNotFound(type_id));
     };
 
     let entity_ref = world.entity(entity);
     let Some(reflected) = reflect_component.reflect(entity_ref) else {
-        return Err(ReflectionFetchError::ReflectionRetrievalFailed(type_id));
+        return Err(GetReflectError::ReflectDataNotFound(type_id));
     };
 
     Ok(reflected)
 }
 
 /// Gets a reflected mutable reference to a resource from the world.
-// This should be a method on `World` once upstreamed.
-pub fn get_reflected_resource_mut<'w>(
+///
+/// Requires that the resource type derives `Reflect` and has `ReflectComponent` type data
+/// registered via [`App::register_type()`].
+// This should be a method on `World` once upstreamed (e.g., `World::get_resource_reflect_mut`).
+pub fn get_resource_reflect_mut<'w>(
     world: &'w mut World,
     type_id: TypeId,
-) -> Result<Mut<'w, dyn Reflect>, ReflectionFetchError> {
-    let type_registry = world.resource::<AppTypeRegistry>();
+) -> Result<Mut<'w, dyn Reflect>, GetReflectError> {
+    let Some(type_registry) = world.get_resource::<AppTypeRegistry>() else {
+        return Err(GetReflectError::MissingAppTypeRegistry);
+    };
     let type_registry_read_lock = type_registry.read();
     let Some(type_registration) = type_registry_read_lock.get(type_id) else {
-        return Err(ReflectionFetchError::NotRegistered(type_id));
+        return Err(GetReflectError::NoCorrespondingComponentId(type_id));
     };
 
     // We must explicitly drop the read lock in order to acquire a mutable borrow of the world.
@@ -91,68 +119,78 @@ pub fn get_reflected_resource_mut<'w>(
     drop(type_registry_read_lock);
 
     let Some(reflect_component) = type_registration.data::<ReflectComponent>() else {
-        return Err(ReflectionFetchError::MissingReflectTrait(type_id));
+        return Err(GetReflectError::MissingReflectData(type_id));
     };
 
-    // Resources are stored as components on dedicated entities
-    // We need to get the component_id first, then look up the correct entity to access the component on
+    // Resources are stored as components on dedicated entities.
+    // We need to get the component_id first, then look up the correct entity to access the component on.
     let Some(component_id) = world.components().get_id(type_id) else {
-        return Err(ReflectionFetchError::NotRegistered(type_id));
+        return Err(GetReflectError::NoCorrespondingComponentId(type_id));
     };
 
     let Some(&entity) = world.resource_entities().get(component_id) else {
-        return Err(ReflectionFetchError::ReflectionRetrievalFailed(type_id));
+        return Err(GetReflectError::ReflectDataNotFound(type_id));
     };
 
     let entity_mut = world.entity_mut(entity);
     let Some(reflected) = reflect_component.reflect_mut(entity_mut) else {
-        return Err(ReflectionFetchError::ReflectionRetrievalFailed(type_id));
+        return Err(GetReflectError::ReflectDataNotFound(type_id));
     };
     Ok(reflected)
 }
 
 /// Gets a reflected reference to a component from an entity in the world.
+///
+/// Requires that the component type derives `Reflect` and has `ReflectComponent` type data
+/// registered via [`App::register_type()`].
 // This should be a method on `EntityRef` once upstreamed,
-// and `World::get_reflect_mut` should be removed.
+// and `World::get_reflect` should be updated to delegate to it.
 // We should be able to access the AppTypeRegistry from the EntityRef directly safely
 // once upstreamed by using private world access tools.
-pub fn get_reflected_component_ref(
+pub fn get_component_reflect(
     world: &World,
     entity: Entity,
     type_id: TypeId,
-) -> Result<&dyn PartialReflect, ReflectionFetchError> {
-    let app_type_registry = world.resource::<AppTypeRegistry>();
+) -> Result<&dyn PartialReflect, GetReflectError> {
+    let Some(app_type_registry) = world.get_resource::<AppTypeRegistry>() else {
+        return Err(GetReflectError::MissingAppTypeRegistry);
+    };
     let entity_ref = world.entity(entity);
 
     let type_registry_read_lock = app_type_registry.read();
     let Some(type_registration) = type_registry_read_lock.get(type_id) else {
-        return Err(ReflectionFetchError::NotRegistered(type_id));
+        return Err(GetReflectError::NoCorrespondingComponentId(type_id));
     };
 
     let Some(reflect_component) = type_registration.data::<ReflectComponent>() else {
-        return Err(ReflectionFetchError::MissingReflectTrait(type_id));
+        return Err(GetReflectError::MissingReflectData(type_id));
     };
 
     let Some(reflected) = reflect_component.reflect(entity_ref) else {
-        return Err(ReflectionFetchError::ReflectionRetrievalFailed(type_id));
+        return Err(GetReflectError::ReflectDataNotFound(type_id));
     };
 
     Ok(reflected)
 }
 
 /// Gets a reflected mutable reference to a component from an entity in the world.
+///
+/// Requires that the component type derives `Reflect` and has `ReflectComponent` type data
+/// registered via [`App::register_type()`].
 // This should be a method on `EntityMut` once upstreamed,
-// and `World::get_reflect_mut` should be removed.
-pub fn get_reflected_component_mut<'w>(
+// and `World::get_reflect_mut` should be updated to delegate to it.
+pub fn get_component_reflect_mut<'w>(
     world: &'w mut World,
     entity: Entity,
     type_id: TypeId,
-) -> Result<Mut<'w, dyn Reflect>, ReflectionFetchError> {
-    let app_type_registry = world.resource::<AppTypeRegistry>();
+) -> Result<Mut<'w, dyn Reflect>, GetReflectError> {
+    let Some(app_type_registry) = world.get_resource::<AppTypeRegistry>() else {
+        return Err(GetReflectError::MissingAppTypeRegistry);
+    };
 
     let type_registry_read_lock = app_type_registry.read();
     let Some(type_registration) = type_registry_read_lock.get(type_id) else {
-        return Err(ReflectionFetchError::NotRegistered(type_id));
+        return Err(GetReflectError::NoCorrespondingComponentId(type_id));
     };
 
     // We must explicitly drop the read lock in order to acquire a mutable borrow of the world.
@@ -161,12 +199,12 @@ pub fn get_reflected_component_mut<'w>(
     drop(type_registry_read_lock);
 
     let Some(reflect_component) = type_registration.data::<ReflectComponent>() else {
-        return Err(ReflectionFetchError::MissingReflectTrait(type_id));
+        return Err(GetReflectError::MissingReflectData(type_id));
     };
 
     let entity_mut = world.entity_mut(entity);
     let Some(reflected) = reflect_component.reflect_mut(entity_mut) else {
-        return Err(ReflectionFetchError::ReflectionRetrievalFailed(type_id));
+        return Err(GetReflectError::ReflectDataNotFound(type_id));
     };
 
     Ok(reflected)

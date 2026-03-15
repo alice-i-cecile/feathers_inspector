@@ -21,7 +21,7 @@ use crate::{
     },
     memory_size::MemorySize,
     reflection_tools::{
-        clone_partial_reflect, get_reflected_component_ref, get_reflected_resource_ref,
+        clone_partial_reflect, get_component_reflect, get_resource_reflect,
         reflected_value_to_string,
     },
 };
@@ -261,7 +261,7 @@ impl WorldInspectionExtensionTrait for World {
             None
         } else {
             match metadata.type_id {
-                Some(type_id) => match get_reflected_component_ref(self, entity, type_id) {
+                Some(type_id) => match get_component_reflect(self, entity, type_id) {
                     Ok(reflected) => Some(reflected_value_to_string(
                         reflected,
                         settings.full_type_names,
@@ -275,7 +275,7 @@ impl WorldInspectionExtensionTrait for World {
         let reflected_value = if settings.store_reflected_value {
             metadata
                 .type_id
-                .and_then(|type_id| get_reflected_component_ref(self, entity, type_id).ok())
+                .and_then(|type_id| get_component_reflect(self, entity, type_id).ok())
                 .and_then(clone_partial_reflect)
         } else {
             None
@@ -338,7 +338,7 @@ impl WorldInspectionExtensionTrait for World {
         };
 
         let value = match type_id {
-            Some(type_id) => match get_reflected_resource_ref(self, type_id) {
+            Some(type_id) => match get_resource_reflect(self, type_id) {
                 Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
 
                 Err(err) => format!("<Unreflectable: {}>", err),

@@ -30,11 +30,10 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
 
 ## Phase 1: Reflection enhancements
 
-1. **Needs work:** reflection access helpers for components and resources
+1. **PR please:** reflection access helpers for components and resources
   - error type, component-level and resource-level reflected accessors, extending the existing `get_reflect()` / `get_reflect_mut()` pattern
   - resource accessors use dedicated resource entities internally but share the same error type and target file
-  - **Naming problems:** the existing file already defines `get_reflect()` / `get_reflect_mut()` and its own error types. Audit for naming conflicts with our `get_reflected_component_ref()` / `get_reflected_component_mut()` / `ReflectionFetchError` and align with the established naming conventions before opening a PR.
-  - Code: [ReflectionFetchError](src/reflection_tools.rs), [get_reflected_component_ref()](src/reflection_tools.rs), [get_reflected_component_mut()](src/reflection_tools.rs), [get_reflected_resource_ref()](src/reflection_tools.rs), [get_reflected_resource_mut()](src/reflection_tools.rs)
+  - Code: [GetReflectError](src/reflection_tools.rs), [get_component_reflect()](src/reflection_tools.rs), [get_component_reflect_mut()](src/reflection_tools.rs), [get_resource_reflect()](src/reflection_tools.rs), [get_resource_reflect_mut()](src/reflection_tools.rs)
   - Target: [bevy_ecs/src/world/reflect.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src/world/reflect.rs) (extend existing)
 2. **PR please:** reflection safety and cloning utilities
   - pure reflection utilities with zero ECS coupling: recursive safety check for dynamic conversion and a safe cloning helper
@@ -60,10 +59,10 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
   - Target: [bevy_ui_widgets/src/tabs.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ui_widgets/src) (new file; headless widget alongside existing Activate event)
 2. **Needs work:** drag-value numeric input widget
   - draggable number input (like ImGui's DragFloat) with double-click-to-edit; reusable as a styled control
-  - `apply_pending_value_changes()` and `FieldPath` currently use `get_reflected_component_mut()` for ECS write-back. Split the core widget (drag/edit behavior + `DragValueChanged` event) from the reflection-based write-back, which should stay with the inspector.
+  - `apply_pending_value_changes()` and `FieldPath` currently use `get_component_reflect_mut()` for ECS write-back. Split the core widget (drag/edit behavior + `DragValueChanged` event) from the reflection-based write-back, which should stay with the inspector.
   - Splitting strategy:
     - Upstream to `bevy_feathers`: `DragValuePlugin`, `DragValue`, `DragValueProps`, `DragValueDragState`, `DragValueChanged`, `DragValueEditModeChanged` — the pure input control with no ECS reflection coupling. `DragValueChanged` events carry the new `f64` value and consumers decide what to do with it.
-    - Keep in inspector (Phase 6): `FieldPath`, `PendingValueChanges`, `apply_pending_value_changes()` — these consume `DragValueChanged` events and use `get_reflected_component_mut()` to write values back into ECS components. They stay in `bevy_dev_tools/src/inspector/` as part of the GUI frontend.
+    - Keep in inspector (Phase 6): `FieldPath`, `PendingValueChanges`, `apply_pending_value_changes()` — these consume `DragValueChanged` events and use `get_component_reflect_mut()` to write values back into ECS components. They stay in `bevy_dev_tools/src/inspector/` as part of the GUI frontend.
   - Code: [DragValuePlugin](src/gui/widgets/drag_value.rs), [DragValue](src/gui/widgets/drag_value.rs), [DragValueProps](src/gui/widgets/drag_value.rs), [DragValueDragState](src/gui/widgets/drag_value.rs), [DragValueChanged](src/gui/widgets/drag_value.rs), [DragValueEditModeChanged](src/gui/widgets/drag_value.rs), [FieldPath](src/gui/widgets/drag_value.rs), [PendingValueChanges](src/gui/widgets/drag_value.rs), [apply_pending_value_changes()](src/gui/widgets/drag_value.rs)
   - Target: [bevy_feathers/src/controls/drag_value.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_feathers/src/controls) (new file; bevy_feathers already has slider, checkbox, and other input controls)
 
