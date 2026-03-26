@@ -17,6 +17,7 @@ use bevy::window::{PrimaryWindow, WindowCloseRequested, WindowRef, WindowResolut
 
 use crate::gui::cache::{InspectorCache, periodically_refresh_cache, update_inspector_cache};
 use crate::gui::panels::{on_object_row_click, update_active_objects_tab_on_tab_activated};
+use crate::gui::widgets::registry::WidgetRegistry;
 
 use super::config::InspectorConfig;
 use super::panels::{
@@ -74,6 +75,7 @@ impl Plugin for InspectorWindowPlugin {
             .init_resource::<InspectorState>()
             .init_resource::<InspectorCache>()
             .init_resource::<SemanticFieldNames>()
+            .insert_resource(WidgetRegistry::default().with::<Vec3>().with::<f32>())
             // Messages
             .add_message::<SetInspectorWindow>()
             .add_message::<RefreshCache>()

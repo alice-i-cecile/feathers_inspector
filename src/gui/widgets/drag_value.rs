@@ -17,29 +17,10 @@ use core::any::TypeId;
 use std::time::{Duration, Instant};
 
 use crate::reflection_tools::get_component_reflect_mut;
+use super::{FieldPath, FieldPathSegment};
 
 /// Double-click detection threshold (in milliseconds)
 const DOUBLE_CLICK_THRESHOLD_MS: u64 = 300;
-
-/// Describes how to locate a field within a component for write-back.
-#[derive(Clone, Debug)]
-pub struct FieldPath {
-    /// The entity containing the component.
-    pub entity: Entity,
-    /// The TypeId of the component.
-    pub component_type_id: TypeId,
-    /// The path segments to navigate to the field.
-    pub path: Vec<FieldPathSegment>,
-}
-
-/// A segment in a field path.
-#[derive(Clone, Debug)]
-pub enum FieldPathSegment {
-    /// Named struct field: e.g., "translation"
-    Named(String),
-    /// Indexed tuple/array field: e.g., 0, 1, 2
-    Index(usize),
-}
 
 /// Props for spawning a DragValue widget.
 pub struct DragValueProps {
@@ -320,6 +301,18 @@ fn set_field_value_recursive(
                 && let Some(field) = t.field_mut(*idx)
             {
                 return set_field_value_recursive(field, remaining, new_value);
+            }
+        }
+        ReflectMut::Enum(e) => {
+            if let FieldPathSegment::Index(variant_idx) = segment
+                && variant_idx == &e.variant_index()
+                && let Some(field) = match remaining.first() {
+                    Some(FieldPathSegment::Index(idx)) => e.field_at_mut(*idx),
+                    Some(FieldPathSegment::Named(name)) => e.field_mut(name),
+                    None => None,
+                }
+            {
+                return set_field_value_recursive(field, &remaining[1..], new_value);
             }
         }
 
