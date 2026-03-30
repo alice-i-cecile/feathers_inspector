@@ -174,10 +174,9 @@ fn update_cache_paused(
     state: &mut SystemState<MessageReader<RefreshCache>>,
     filter: &ObjectListFilter,
 ) {
-    let force = state
-        .get_mut(world)
-        .read()
-        .any(|refresh_cache| refresh_cache.force);
+    let force = state.get_mut(world).map_or(false, |mut state| {
+        state.read().any(|refresh_cache| refresh_cache.force)
+    });
     let has_full_snapshot = {
         let cache = world.resource::<InspectorCache>();
         cache.snapshot.is_full()
