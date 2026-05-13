@@ -83,23 +83,31 @@ pub fn render_object_list(
     config: Res<InspectorConfig>,
     list_content: Query<(Entity, &ObjectListContent)>,
     children: Query<&Children>,
+    mut update_params: (Query<(&Children, &mut ObjectRow)>, Query<(&mut Text, &mut TextFont, &mut TextColor)>)
 ) {
     for (content_entity, object_list_content) in &list_content {
         if state.active_objects_tab != object_list_content.tab {
             continue;
         }
 
-        // Clear existing rows
-        // TODO: can we reuse existing rows instead of despawning all?
+        let mut filtered_objects_iterator = cache.filtered_objects.iter();
+
+        // Update or clear existing rows
         if let Ok(children) = children.get(content_entity) {
             for child in children {
-                commands.entity(*child).despawn();
+                if let Some(entry) = filtered_objects_iterator.next() {
+                    let is_selected = state.selected_object == Some(entry.entity());
+                    update_object_row(child, entry, is_selected, &config, &mut update_params);
+                } else {
+                    // Delete excess row
+                    commands.entity(*child).despawn();
+                }
             }
         }
 
         // Spawn new rows
         commands.entity(content_entity).with_children(|list| {
-            for entry in &cache.filtered_objects {
+            for entry in filtered_objects_iterator {
                 let is_selected = state.selected_object == Some(entry.entity());
                 spawn_object_row(list, entry, is_selected, &config);
             }
@@ -152,6 +160,48 @@ fn spawn_object_row(
             }),
         )),
     ),));
+}
+
+/// Updates a single object row button.
+fn update_object_row(
+    entity: &Entity,
+    entry: &ObjectListEntry,
+    is_selected: bool,
+    config: &InspectorConfig,
+    (object_rows, text): &mut (Query<(&Children, &mut ObjectRow)>, Query<(&mut Text, &mut TextFont, &mut TextColor)>)
+) {
+    // Truncate long names
+    let display_name = entry.display_name();
+
+    let display_name = if display_name.len() > 20 {
+        format!("{}...", &display_name[..17])
+    } else {
+        display_name.to_string()
+    };
+
+    let ObjectListEntry {
+        component_count,
+        memory_size,
+        ..
+    } = entry;
+
+    let label = format!(
+        "{:20} {} comp | {}",
+        display_name, component_count, memory_size
+    );
+
+    if let Ok((children, mut object_row)) = object_rows.get_mut(*entity){
+        object_row.selected_object = entry.entity;
+        if let Some(child) = children.first() && let Ok((mut text, mut text_font, mut text_color)) = text.get_mut(*child) {
+            text.0 = label.clone();
+            text_font.font_size = FontSize::Px(config.small_font_size);
+            text_color.0 = if is_selected {
+                Color::WHITE
+            } else {
+                Color::srgba(0.9, 0.9, 0.9, 1.0)
+            };
+        }
+    }
 }
 
 /// Observes [`TabActivated`] events to update the active objects tab
