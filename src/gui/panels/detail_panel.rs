@@ -14,8 +14,6 @@ use bevy::reflect::{ReflectRef, enums::VariantType};
 use bevy::ui::Val::*;
 use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar, observe};
 
-use core::any::TypeId;
-
 use crate::entity_name_resolution::EntityName;
 use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::gui::cache::InspectorCache;
@@ -23,7 +21,9 @@ use crate::gui::config::InspectorConfig;
 use crate::gui::plugin::RefreshCache;
 use crate::gui::semantic_names::SemanticFieldNames;
 use crate::gui::state::{DetailTab, InspectorState};
-use crate::gui::widgets::drag_value::{DragValue, DragValueDragState, FieldPath, FieldPathSegment};
+use crate::gui::widgets::drag_value::DragValueDragState;
+use crate::gui::widgets::registry::{WidgetBuilder, WidgetRegistry};
+use crate::gui::widgets::{FieldPath, FieldPathSegment};
 use crate::inspection::component_inspection::ComponentMetadataMap;
 use crate::inspection::entity_inspection::{EntityInspection, EntityInspectionSettings};
 
@@ -238,18 +238,8 @@ fn render_active_tab(
 /// Represents a field extracted from a reflected component
 struct ReflectedField {
     name: String,
-    value: String,
     indent: u8,
-    /// If this is an editable numeric field, contains the numeric value and path segments
-    editable: Option<EditableFieldInfo>,
-}
-
-/// Information needed to make a field editable
-struct EditableFieldInfo {
-    /// The numeric value (as f64 for generality)
-    numeric_value: f64,
-    /// Path segments to reach this field from the component root
-    path: Vec<FieldPathSegment>,
+    widget: WidgetBuilder,
 }
 
 /// Extracts fields from a reflected value into a flat list of label/value pairs.
@@ -259,205 +249,152 @@ fn extract_fields_from_reflect(
     reflected: &dyn PartialReflect,
     fields: &mut Vec<ReflectedField>,
     indent: u8,
+    widget_registry: &WidgetRegistry,
+    config: &InspectorConfig,
     semantic_names: &SemanticFieldNames,
-    current_path: &[FieldPathSegment],
+    path: Option<FieldPath>,
+    name: Option<&str>,
 ) {
-    // Get the TypeId of this reflected value for semantic name lookup
-    let type_id = reflected
-        .get_represented_type_info()
-        .map(|info| info.type_id());
+    let (type_name, type_id) = reflected.get_represented_type_info().map_or_else(
+        || ("?".to_owned(), None),
+        |info| {
+            (
+                ShortName::from(info.type_path()).to_string(),
+                Some(info.type_id()),
+            )
+        },
+    );
 
-    match reflected.reflect_ref() {
-        ReflectRef::Struct(s) => {
-            for i in 0..s.field_len() {
-                let field_name = s.name_at(i).unwrap_or("?");
-                let field_value = s.field_at(i).unwrap();
-
-                // Build path to this field
-                let mut field_path = current_path.to_vec();
-                field_path.push(FieldPathSegment::Named(field_name.to_string()));
-
-                // Check if this is an editable numeric field
-                let editable = try_extract_numeric(field_value).map(|num| EditableFieldInfo {
-                    numeric_value: num,
-                    path: field_path.clone(),
-                });
-
-                let value_str = format_simple_value(field_value);
-                if let Some(val) = value_str {
+    if let Some(path) = &path
+        && let Some(widget) = widget_registry.get_widget(reflected, path, config)
+    {
+        fields.push(ReflectedField {
+            name: name.unwrap_or("?").to_owned(),
+            indent,
+            widget,
+        });
+    } else {
+        match reflected.reflect_ref() {
+            ReflectRef::Struct(s) => {
+                // Complex nested type - add header and recurse
+                if let Some(name) = name {
                     fields.push(ReflectedField {
-                        name: field_name.to_string(),
-                        value: val,
+                        name: name.to_owned(),
                         indent,
-                        editable,
+                        widget: widget_registry.label_widget(type_name, config),
                     });
-                } else {
-                    // Complex nested type - add header and recurse
-                    let type_name = field_value
-                        .get_represented_type_info()
-                        .map(|t| ShortName::from(t.type_path()).to_string())
-                        .unwrap_or_else(|| "?".to_string());
-                    fields.push(ReflectedField {
-                        name: field_name.to_string(),
-                        value: format!("[{}]", type_name),
-                        indent,
-                        editable: None,
+                }
+                for i in 0..s.field_len() {
+                    let field_name = s.name_at(i).unwrap_or("?");
+                    // Build path to this field
+                    let path = path.clone().map(|mut path| {
+                        path.path
+                            .push(FieldPathSegment::Named(field_name.to_string()));
+                        path
                     });
+                    let field_value = s.field_at(i).unwrap();
+
                     extract_fields_from_reflect(
                         field_value,
                         fields,
-                        indent + 1,
+                        indent.saturating_add(1),
+                        widget_registry,
+                        config,
                         semantic_names,
-                        &field_path,
+                        path,
+                        Some(field_name),
                     );
                 }
             }
-        }
-        ReflectRef::TupleStruct(ts) => {
-            for i in 0..ts.field_len() {
-                let field_value = ts.field(i).unwrap();
-
-                // Build path to this field (use Index for tuple structs)
-                let mut field_path = current_path.to_vec();
-                field_path.push(FieldPathSegment::Index(i));
-
-                // Check if this is an editable numeric field
-                let editable = try_extract_numeric(field_value).map(|num| EditableFieldInfo {
-                    numeric_value: num,
-                    path: field_path.clone(),
-                });
-
-                // Try to get semantic name (e.g., "x", "y", "z") for this field index
-                let field_name = type_id
-                    .and_then(|tid| semantic_names.get_field_name(tid, i))
-                    .map(|s| s.to_string())
-                    .unwrap_or_else(|| format!(".{}", i));
-
-                let value_str = format_simple_value(field_value);
-                if let Some(val) = value_str {
+            ReflectRef::TupleStruct(ts) => {
+                if let Some(name) = name {
                     fields.push(ReflectedField {
-                        name: field_name,
-                        value: val,
+                        name: name.to_owned(),
                         indent,
-                        editable,
+                        widget: widget_registry.label_widget(type_name, config),
                     });
-                } else {
-                    let type_name = field_value
-                        .get_represented_type_info()
-                        .map(|t| ShortName::from(t.type_path()).to_string())
-                        .unwrap_or_else(|| "?".to_string());
-                    fields.push(ReflectedField {
-                        name: field_name,
-                        value: format!("[{}]", type_name),
-                        indent,
-                        editable: None,
+                }
+                for i in 0..ts.field_len() {
+                    // Build path to this field (use Index for tuple structs)
+                    let path = path.clone().map(|mut path| {
+                        path.path.push(FieldPathSegment::Index(i));
+                        path
                     });
+                    let field_value = ts.field(i).unwrap();
+
+                    // Try to get semantic name (e.g., "x", "y", "z") for this field index
+                    let field_name = type_id
+                        .and_then(|tid| semantic_names.get_field_name(tid, i))
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| format!(".{}", i));
+
                     extract_fields_from_reflect(
                         field_value,
                         fields,
-                        indent + 1,
+                        indent.saturating_add(1),
+                        widget_registry,
+                        config,
                         semantic_names,
-                        &field_path,
+                        path,
+                        Some(&field_name),
                     );
                 }
             }
-        }
-        ReflectRef::Enum(e) => {
-            let variant_name = e.variant_name();
-            match e.variant_type() {
-                VariantType::Unit => {
-                    fields.push(ReflectedField {
-                        name: "variant".to_string(),
-                        value: variant_name.to_string(),
-                        indent,
-                        editable: None,
-                    });
-                }
-                VariantType::Tuple => {
-                    fields.push(ReflectedField {
-                        name: "variant".to_string(),
-                        value: variant_name.to_string(),
-                        indent,
-                        editable: None,
-                    });
-                    for i in 0..e.field_len() {
-                        let field_value = e.field_at(i).unwrap();
-                        let value_str = format_simple_value(field_value);
-                        if let Some(val) = value_str {
-                            fields.push(ReflectedField {
-                                name: format!(".{}", i),
-                                value: val,
-                                indent: indent + 1,
-                                editable: None, // TODO: enum field editing
-                            });
-                        }
-                    }
-                }
-                VariantType::Struct => {
-                    fields.push(ReflectedField {
-                        name: "variant".to_string(),
-                        value: variant_name.to_string(),
-                        indent,
-                        editable: None,
-                    });
-                    for i in 0..e.field_len() {
-                        let field_name = e.name_at(i).unwrap_or("?");
-                        let field_value = e.field_at(i).unwrap();
-                        let value_str = format_simple_value(field_value);
-                        if let Some(val) = value_str {
-                            fields.push(ReflectedField {
-                                name: field_name.to_string(),
-                                value: val,
-                                indent: indent + 1,
-                                editable: None, // TODO: enum field editing
-                            });
-                        }
-                    }
-                }
-            }
-        }
-        _ => {
-            // For other types (List, Map, etc), just show a simple representation
-            if let Some(val) = format_simple_value(reflected) {
+            ReflectRef::Enum(e) => {
                 fields.push(ReflectedField {
-                    name: "value".to_string(),
-                    value: val,
+                    name: name.unwrap_or("variant").to_owned(),
                     indent,
-                    editable: None,
+                    widget: widget_registry.enum_widget(&type_name, e, config),
                 });
+
+                // Build path to this variant
+                let path = path.clone().map(|mut path| {
+                    path.path.push(FieldPathSegment::Index(e.variant_index()));
+                    path
+                });
+                for i in 0..e.field_len() {
+                    let field_name = e
+                        .name_at(i)
+                        .map(ToOwned::to_owned)
+                        .unwrap_or_else(|| format!(".{i}"));
+                    let field_value = e.field_at(i).unwrap();
+
+                    // Build path to this variant's field (use Index or Name)
+                    let path = path.clone().map(|mut path| {
+                        match e.variant_type() {
+                            VariantType::Unit => {}
+                            VariantType::Tuple => path.path.push(FieldPathSegment::Index(i)),
+                            VariantType::Struct => {
+                                path.path.push(FieldPathSegment::Named(field_name.clone()))
+                            }
+                        }
+                        path
+                    });
+
+                    extract_fields_from_reflect(
+                        field_value,
+                        fields,
+                        indent.saturating_add(1),
+                        widget_registry,
+                        config,
+                        semantic_names,
+                        path,
+                        Some(&field_name),
+                    );
+                }
+            }
+            _ => {
+                // For other types (List, Map, etc), just show a simple representation
+                if let Some(val) = format_simple_value(reflected) {
+                    fields.push(ReflectedField {
+                        name: name.unwrap_or("value").to_owned(),
+                        indent,
+                        widget: widget_registry.label_widget(val, config),
+                    });
+                }
             }
         }
     }
-}
-
-/// Tries to extract a numeric value from a reflected type.
-/// Returns the value as f64 if it's a supported numeric type.
-fn try_extract_numeric(reflected: &dyn PartialReflect) -> Option<f64> {
-    // Try f32
-    if let Some(val) = reflected.try_downcast_ref::<f32>() {
-        return Some(*val as f64);
-    }
-    // Try f64
-    if let Some(val) = reflected.try_downcast_ref::<f64>() {
-        return Some(*val);
-    }
-    // Try i32
-    if let Some(val) = reflected.try_downcast_ref::<i32>() {
-        return Some(*val as f64);
-    }
-    // Try i64
-    if let Some(val) = reflected.try_downcast_ref::<i64>() {
-        return Some(*val as f64);
-    }
-    // Try u32
-    if let Some(val) = reflected.try_downcast_ref::<u32>() {
-        return Some(*val as f64);
-    }
-    // Try u64
-    if let Some(val) = reflected.try_downcast_ref::<u64>() {
-        return Some(*val as f64);
-    }
-    None
 }
 
 /// Tries to format a value as a simple string, returns None if it's a complex type
@@ -489,10 +426,6 @@ struct ComponentCardData {
     name: String,
     size: String,
     fields: Vec<ReflectedField>,
-    /// The entity this component belongs to (for write-back)
-    entity: Entity,
-    /// The TypeId of this component (for write-back)
-    component_type_id: Option<TypeId>,
 }
 
 fn spawn_components_tab_exclusive(
@@ -503,6 +436,7 @@ fn spawn_components_tab_exclusive(
 ) {
     // Get semantic names resource for better tuple struct field names
     let semantic_names = world.resource::<SemanticFieldNames>();
+    let widget_registry = world.resource::<WidgetRegistry>();
 
     let resolved_name = inspection.name.clone().unwrap_or(EntityName::fallback(
         format!("Entity {:?}", inspection.entity).as_str(),
@@ -513,6 +447,7 @@ fn spawn_components_tab_exclusive(
         .total_memory_size
         .map_or_else(|| "?".to_string(), |m| m.to_string());
 
+    let inspector_config = world.resource::<InspectorConfig>();
     let &InspectorConfig {
         title_font_size,
         body_font_size,
@@ -522,7 +457,7 @@ fn spawn_components_tab_exclusive(
         border_color,
         muted_text_color,
         ..
-    } = world.resource::<InspectorConfig>();
+    } = inspector_config;
 
     let field_name_color = Color::srgba(0.6, 0.8, 1.0, 1.0); // Light blue for field names
 
@@ -542,31 +477,33 @@ fn spawn_components_tab_exclusive(
             // Try to get reflected component data from the inspection snapshot
             let mut fields = Vec::new();
 
+            let path = component_type_id.map(|component_type_id| FieldPath {
+                entity: inspection.entity,
+                component_type_id,
+                path: vec![],
+            });
+
             if let Some(reflected_box) = &component_inspection.reflected_value {
                 extract_fields_from_reflect(
                     reflected_box.as_ref(),
                     &mut fields,
                     0,
+                    &widget_registry,
+                    inspector_config,
                     semantic_names,
-                    &[],
+                    path,
+                    None,
                 );
             } else if let Some(value_str) = &component_inspection.value {
                 // Fallback to string value if reflected value not available
                 fields.push(ReflectedField {
                     name: "Value".to_string(),
-                    value: value_str.clone(),
                     indent: 0,
-                    editable: None,
+                    widget: widget_registry.label_widget(value_str.to_owned(), inspector_config),
                 });
             }
 
-            component_cards.push(ComponentCardData {
-                name,
-                size,
-                fields,
-                entity: inspection.entity,
-                component_type_id,
-            });
+            component_cards.push(ComponentCardData { name, size, fields });
         }
     }
 
@@ -619,8 +556,20 @@ fn spawn_components_tab_exclusive(
                     },
                 ));
 
+                // Show placeholder if no fields extracted
+                if card_data.fields.is_empty() {
+                    card.spawn((
+                        Text::new("<no reflected data>"),
+                        TextFont {
+                            font_size: FontSize::Px(small_font_size),
+                            ..default()
+                        },
+                        TextColor(muted_text_color),
+                    ));
+                }
+
                 // Field rows (dear imgui style)
-                for field in &card_data.fields {
+                for field in card_data.fields {
                     let indent_px = field.indent as f32 * 12.0;
 
                     // Row container for label: value
@@ -643,68 +592,8 @@ fn spawn_components_tab_exclusive(
                             TextColor(field_name_color),
                         ));
 
-                        // Check if this field is editable
-                        if let (Some(editable), Some(component_type_id)) =
-                            (&field.editable, card_data.component_type_id)
-                        {
-                            // Spawn DragValue widget for editable numeric fields
-                            let field_path = FieldPath {
-                                entity: card_data.entity,
-                                component_type_id,
-                                path: editable.path.clone(),
-                            };
-
-                            row.spawn((
-                                Node {
-                                    min_width: Px(60.0),
-                                    padding: UiRect::horizontal(Px(4.0)),
-                                    border: UiRect::all(Px(1.0)),
-                                    ..default()
-                                },
-                                BorderColor::all(Color::srgba(0.3, 0.3, 0.3, 1.0)),
-                                BackgroundColor(Color::srgba(0.15, 0.15, 0.15, 1.0)),
-                                DragValue {
-                                    field_path,
-                                    drag_speed: 0.1,
-                                    precision: 2,
-                                    min: None,
-                                    max: None,
-                                },
-                                DragValueDragState::default(),
-                                Interaction::default(),
-                            ))
-                            .with_child((
-                                Text::new(format!("{:.2}", editable.numeric_value)),
-                                TextFont {
-                                    font_size: FontSize::Px(small_font_size),
-                                    ..default()
-                                },
-                                TextColor(Color::srgba(0.9, 0.9, 0.6, 1.0)), // Yellow for editable
-                            ));
-                        } else {
-                            // Field value (muted) - non-editable
-                            row.spawn((
-                                Text::new(field.value.clone()),
-                                TextFont {
-                                    font_size: FontSize::Px(small_font_size),
-                                    ..default()
-                                },
-                                TextColor(muted_text_color),
-                            ));
-                        }
+                        field.widget.apply_widget(&mut row.spawn_empty());
                     });
-                }
-
-                // Show placeholder if no fields extracted
-                if card_data.fields.is_empty() {
-                    card.spawn((
-                        Text::new("<no reflected data>"),
-                        TextFont {
-                            font_size: FontSize::Px(small_font_size),
-                            ..default()
-                        },
-                        TextColor(muted_text_color),
-                    ));
                 }
             });
         }

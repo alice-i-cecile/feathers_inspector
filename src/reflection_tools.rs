@@ -310,25 +310,28 @@ pub fn is_dynamic_safe(val: &dyn PartialReflect) -> bool {
     }
 }
 
-/// Safely clones a [`PartialReflect`] value into a boxed dynamic representation.
+/// Safely clones a [`PartialReflect`] value into a box.
 ///
-/// This handles the distinction between "dynamic-safe" types (which can use `.to_dynamic()`)
-/// and opaque/unsafe types (which must use `.reflect_clone()`).
+/// This handles the distinction between types that can be cloned directly
+/// and those that need to be converted to a dynamic type
 pub fn clone_partial_reflect(reflected: &dyn PartialReflect) -> Option<Box<dyn PartialReflect>> {
-    if is_dynamic_safe(reflected) {
-        match reflected.reflect_ref() {
-            bevy::reflect::ReflectRef::Opaque(value) => value
-                .reflect_clone()
-                .ok()
-                .map(|boxed| boxed.into_partial_reflect()),
-            _ => Some(reflected.to_dynamic()),
-        }
-    } else {
-        reflected
-            .reflect_clone()
-            .ok()
-            .map(|boxed| boxed.into_partial_reflect())
-    }
+    reflected
+        .reflect_clone()
+        .ok()
+        .map(|boxed| boxed.into_partial_reflect())
+        .or_else(|| {
+            if is_dynamic_safe(reflected) {
+                match reflected.reflect_ref() {
+                    bevy::reflect::ReflectRef::Opaque(value) => value
+                        .reflect_clone()
+                        .ok()
+                        .map(|boxed| boxed.into_partial_reflect()),
+                    _ => Some(reflected.to_dynamic()),
+                }
+            } else {
+                None
+            }
+        })
 }
 
 /// Converts a reflected value to a string for debugging purposes.
