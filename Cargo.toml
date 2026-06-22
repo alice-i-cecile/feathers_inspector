@@ -16,9 +16,9 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy.git", rev = "586f2617200e9b241b42b7835a1c2f2e4faceb50", features = [
+bevy = { version = "0.19", features = [
 	"track_location",
-	"experimental_bevy_feathers",
+	"bevy_feathers",
 	"debug",
 ] }
 serde = { version = "1.0", optional = true, features = ["derive"] }

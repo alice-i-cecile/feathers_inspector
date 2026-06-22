@@ -3,16 +3,18 @@
 //! See [`DetailsTab`](crate::gui::state::DetailTab) for the different tabs available in this panel,
 //! which is used to switch between different detail views (e.g., components, relationships).
 
+#![expect(deprecated, reason = "need to upgrade to BSN still")]
+
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::observer::On;
 use bevy::ecs::relationship::Relationship;
-use bevy::feathers::controls::{ButtonProps, button};
+use bevy::feathers::controls::{ButtonBundleProps, button_bundle};
 use bevy::feathers::theme::ThemeBackgroundColor;
 use bevy::feathers::tokens;
 use bevy::prelude::*;
 use bevy::reflect::{ReflectRef, enums::VariantType};
 use bevy::ui::Val::*;
-use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar, observe};
+use bevy::ui_widgets::{Activate, ControlOrientation, Scrollbar, ScrollbarThumb, observe};
 
 use core::any::TypeId;
 
@@ -785,15 +787,15 @@ fn spawn_relationships_tab_exclusive(
 
         if let Some((ent, name, comp_count)) = parent_node_data {
             let label = format!("{} ({} components)", name, comp_count);
-            // Wrap button in container to handle margin (button() already includes Node)
+            // Wrap button in container to handle margin (button_bundle() already includes Node)
             p.spawn(Node {
                 margin: UiRect::bottom(item_gap),
                 ..default()
             })
             .with_children(|wrapper| {
                 wrapper.spawn((
-                    button(
-                        ButtonProps::default(),
+                    button_bundle(
+                        ButtonBundleProps::default(),
                         HierarchyNode(ent),
                         bevy::prelude::Spawn((
                             Text::new(label),
@@ -852,15 +854,15 @@ fn spawn_relationships_tab_exclusive(
         } else {
             for (ent, name, comp_count) in children_node_data {
                 let label = format!("{} ({} components)", name, comp_count);
-                // Wrap button in container to handle margin (button() already includes Node)
+                // Wrap button in container to handle margin (button_bundle() already includes Node)
                 p.spawn(Node {
                     margin: UiRect::bottom(item_gap),
                     ..default()
                 })
                 .with_children(|wrapper| {
                     wrapper.spawn((
-                        button(
-                            ButtonProps::default(),
+                        button_bundle(
+                            ButtonBundleProps::default(),
                             HierarchyNode(ent),
                             bevy::prelude::Spawn((
                                 Text::new(label),
@@ -913,8 +915,8 @@ pub fn spawn_detail_panel(parent: &mut ChildSpawnerCommands<'_>, config: &Inspec
                 .with_children(|tabs| {
                     // Components tab
                     tabs.spawn((
-                        button(
-                            ButtonProps::default(),
+                        button_bundle(
+                            ButtonBundleProps::default(),
                             TabButton(DetailTab::Components),
                             bevy::prelude::Spawn((
                                 Text::new("Components"),
@@ -929,8 +931,8 @@ pub fn spawn_detail_panel(parent: &mut ChildSpawnerCommands<'_>, config: &Inspec
 
                     // Relationships tab
                     tabs.spawn((
-                        button(
-                            ButtonProps::default(),
+                        button_bundle(
+                            ButtonBundleProps::default(),
                             TabButton(DetailTab::Relationships),
                             bevy::prelude::Spawn((
                                 Text::new("Relationships"),
@@ -988,7 +990,7 @@ pub fn spawn_detail_panel(parent: &mut ChildSpawnerCommands<'_>, config: &Inspec
                         ))
                         .with_children(|sb| {
                             sb.spawn((
-                                CoreScrollbarThumb,
+                                ScrollbarThumb::default(),
                                 Node {
                                     width: Percent(100.0),
                                     ..default()

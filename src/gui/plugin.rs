@@ -1,10 +1,12 @@
 //! Inspector window plugin and UI scaffold.
 
+#![expect(deprecated, reason = "need to upgrade to BSN still")]
+
 use bevy::camera::RenderTarget;
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::relationship::Relationship;
 use bevy::feathers::FeathersPlugins;
-use bevy::feathers::controls::{ButtonProps, button};
+use bevy::feathers::controls::{ButtonBundleProps, button_bundle};
 use bevy::feathers::dark_theme::create_dark_theme;
 use bevy::feathers::theme::{ThemeBackgroundColor, UiTheme};
 use bevy::feathers::tokens;
@@ -370,8 +372,8 @@ fn spawn_title_bar(
                         ..default()
                     })
                     .with_children(|wrapper| {
-                        wrapper.spawn(button(
-                            ButtonProps::default(),
+                        wrapper.spawn(button_bundle(
+                            ButtonBundleProps::default(),
                             RefreshButton,
                             bevy::prelude::Spawn((
                                 Text::new("Refresh"),
@@ -391,8 +393,8 @@ fn spawn_title_bar(
                         ..default()
                     })
                     .with_children(|wrapper| {
-                        wrapper.spawn(button(
-                            ButtonProps::default(),
+                        wrapper.spawn(button_bundle(
+                            ButtonBundleProps::default(),
                             PauseButton,
                             bevy::prelude::Spawn((
                                 Text::new(if state.is_paused { "Resume" } else { "Pause" }),

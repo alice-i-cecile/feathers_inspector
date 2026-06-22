@@ -176,6 +176,7 @@ fn update_cache_paused(
 ) {
     let force = state
         .get_mut(world)
+        .unwrap()
         .read()
         .any(|refresh_cache| refresh_cache.force);
     let has_full_snapshot = {

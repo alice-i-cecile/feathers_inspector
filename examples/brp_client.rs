@@ -97,7 +97,6 @@ fn inspect_all_entities_when_space_pressed(
         };
         let entities = query(query_params, &brp_url.0);
         let request = BrpRequest {
-            jsonrpc: String::from("2.0"),
             method: brp::component_metadata_map_generate::METHOD.to_string(),
             id: None,
             params: None,
@@ -233,7 +232,6 @@ mod helper {
 
     pub fn query(params: BrpQueryParams, url: &str) -> Vec<Entity> {
         let query_entities_request = BrpRequest {
-            jsonrpc: String::from("2.0"),
             method: String::from(BRP_QUERY_METHOD),
             id: None,
             params: Some(
@@ -264,7 +262,6 @@ mod helper {
         T: Serialize,
     {
         BrpRequest {
-            jsonrpc: String::from("2.0"),
             method: method.to_string(),
             id: None,
             params: Some(

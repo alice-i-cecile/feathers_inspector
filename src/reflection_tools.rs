@@ -33,7 +33,7 @@ use thiserror::Error;
 /// `bevy_ecs::world::reflect`.
 #[derive(Debug, Error, Clone, PartialEq)]
 pub enum GetReflectError {
-    /// There is no [`ComponentId`] corresponding to the given [`TypeId`].
+    /// There is no [`ComponentId`](bevy::ecs::component::ComponentId) corresponding to the given [`TypeId`].
     ///
     /// This is usually handled by calling [`App::register_type()`] for the type corresponding to
     /// the given [`TypeId`].
@@ -84,7 +84,7 @@ pub fn get_resource_reflect(
         return Err(GetReflectError::NoCorrespondingComponentId(type_id));
     };
 
-    let Some(&entity) = world.resource_entities().get(component_id) else {
+    let Some(entity) = world.resource_entities().get(component_id) else {
         return Err(GetReflectError::ReflectDataNotFound(type_id));
     };
 
@@ -128,7 +128,7 @@ pub fn get_resource_reflect_mut<'w>(
         return Err(GetReflectError::NoCorrespondingComponentId(type_id));
     };
 
-    let Some(&entity) = world.resource_entities().get(component_id) else {
+    let Some(entity) = world.resource_entities().get(component_id) else {
         return Err(GetReflectError::ReflectDataNotFound(type_id));
     };
 

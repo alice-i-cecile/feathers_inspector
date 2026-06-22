@@ -152,7 +152,7 @@ pub fn resolve_name(
     }
 
     // Sort by priority (higher priority first), then by name alphabetically
-    name_resolution_priorities.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    name_resolution_priorities.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(b.0)));
 
     // Only include names with the highest priority
     // PERF: we could do this more efficiently by combining the sort and filter steps

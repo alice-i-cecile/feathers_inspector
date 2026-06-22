@@ -36,13 +36,15 @@
 //!
 //! [`update_inspector_cache`]: crate::gui::cache::update_inspector_cache
 
+#![expect(deprecated, reason = "need to upgrade to BSN still")]
+
 use bevy::ecs::hierarchy::ChildSpawnerCommands;
 use bevy::ecs::observer::On;
 
-use bevy::feathers::controls::{ButtonProps, button};
+use bevy::feathers::controls::{ButtonBundleProps, button_bundle};
 use bevy::prelude::*;
 use bevy::ui::Val::*;
-use bevy::ui_widgets::{Activate, ControlOrientation, CoreScrollbarThumb, Scrollbar};
+use bevy::ui_widgets::{Activate, ControlOrientation, Scrollbar, ScrollbarThumb};
 
 use crate::gui::cache::InspectorCache;
 use crate::gui::config::InspectorConfig;
@@ -134,8 +136,8 @@ fn spawn_object_row(
         display_name, component_count, memory_size
     );
 
-    parent.spawn((button(
-        ButtonProps::default(),
+    parent.spawn((button_bundle(
+        ButtonBundleProps::default(),
         ObjectRow {
             selected_object: entry.entity(),
         },
@@ -216,8 +218,8 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
             // Tab buttons
             let entities_tab_entity = panel
                 .commands()
-                .spawn(button(
-                    ButtonProps::default(),
+                .spawn(button_bundle(
+                    ButtonBundleProps::default(),
                     Tab,
                     bevy::prelude::Spawn((
                         Text::new("Entities"),
@@ -230,8 +232,8 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                 .id();
             let resources_tab_entity = panel
                 .commands()
-                .spawn(button(
-                    ButtonProps::default(),
+                .spawn(button_bundle(
+                    ButtonBundleProps::default(),
                     Tab,
                     bevy::prelude::Spawn((
                         Text::new("Resources"),
@@ -244,8 +246,8 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                 .id();
             let observers_tab_entity = panel
                 .commands()
-                .spawn(button(
-                    ButtonProps::default(),
+                .spawn(button_bundle(
+                    ButtonBundleProps::default(),
                     Tab,
                     bevy::prelude::Spawn((
                         Text::new("Observers"),
@@ -258,8 +260,8 @@ pub fn spawn_object_list_panel(parent: &mut ChildSpawnerCommands<'_>, config: &I
                 .id();
             let one_shot_systems_tab_entity = panel
                 .commands()
-                .spawn(button(
-                    ButtonProps::default(),
+                .spawn(button_bundle(
+                    ButtonBundleProps::default(),
                     Tab,
                     bevy::prelude::Spawn((
                         Text::new("One-Shot systems"),
@@ -428,7 +430,7 @@ fn scrollable_area(
                 ))
                 .with_children(|sb| {
                     sb.spawn((
-                        CoreScrollbarThumb,
+                        ScrollbarThumb::default(),
                         Node {
                             width: Percent(100.0),
                             ..default()
