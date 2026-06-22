@@ -31,21 +31,18 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
 
 ## Phase 1: Reflection enhancements
 
-1. **PR please:** reflection access helpers for components and resources
-  - Code: [GetReflectError](src/reflection_tools.rs), [get_component_reflect()](src/reflection_tools.rs), [get_component_reflect_mut()](src/reflection_tools.rs), [get_resource_reflect()](src/reflection_tools.rs), [get_resource_reflect_mut()](src/reflection_tools.rs)
-  - Target: [bevy_ecs/src/world/reflect.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src/world/reflect.rs)
-2. **PR please:** reflection safety and cloning utilities
+1. **PR please:** reflection safety and cloning utilities
   - Code: [is_dynamic_safe()](src/reflection_tools.rs), [clone_partial_reflect()](src/reflection_tools.rs)
   - Target: [bevy_reflect/src/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_reflect/src)
-3. **PR please:** semantic field name registry for tuple structs
+2. **PR please:** semantic field name registry for tuple structs
   - maps tuple indices to human-readable names (e.g. "x", "y", "z") for common math types
   - Code: [SemanticFieldNames](src/gui/semantic_names.rs)
   - Target: [bevy_reflect/src/semantic_names.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_reflect/src)
-4. **PR please:** changing values with reflection example
+3. **PR please:** changing values with reflection example
   - this is a useful pattern to demonstrate, but is fundamentally independent from the rest of the inspection work
   - Code: [changing_values_with_reflection example](examples/changing_values_with_reflection.rs)
   - Target: [examples/reflection/](https://github.com/bevyengine/bevy/tree/main/examples/reflection)
-5. **PR please:** reflection pretty printing
+4. **PR please:** reflection pretty printing
   - these should all just be `Display` impls where possible; could not do here because orphan rules 
   - Code: [reflected_value_to_string()](src/reflection_tools.rs), [pretty_print_reflected_struct()](src/reflection_tools.rs), [pretty_print_reflected_enum()](src/reflection_tools.rs), [pretty_print_reflected_opaque()](src/reflection_tools.rs)
   - Target: [bevy_reflect/src/display.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_reflect/src)

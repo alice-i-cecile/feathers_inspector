@@ -4,7 +4,6 @@
 use core::any::TypeId;
 
 use bevy::{prelude::*, reflect::ReflectMut};
-use feathers_inspector::reflection_tools::get_component_reflect_mut;
 
 fn main() {
     App::new()
@@ -100,7 +99,7 @@ fn modify_selected_component(world: &mut World) {
         SelectedComponent::Sprite => TypeId::of::<Sprite>(),
     };
 
-    let mut dynamic_mut = get_component_reflect_mut(world, entity, type_id).unwrap();
+    let mut dynamic_mut = world.get_reflect_mut(entity, type_id).unwrap();
 
     match selected {
         // If we know the type, we can downcast and modify directly.

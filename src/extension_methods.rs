@@ -20,10 +20,7 @@ use crate::{
         ResourceInspection, ResourceInspectionError, ResourceInspectionSettings,
     },
     memory_size::MemorySize,
-    reflection_tools::{
-        clone_partial_reflect, get_component_reflect, get_resource_reflect,
-        reflected_value_to_string,
-    },
+    reflection_tools::{clone_partial_reflect, reflected_value_to_string},
 };
 
 /// An extension trait for inspecting ECS objects, for methods that should belong on [`World`].
@@ -298,9 +295,9 @@ impl WorldInspectionExtensionTrait for World {
             None
         } else {
             match metadata.type_id {
-                Some(type_id) => match get_component_reflect(self, entity, type_id) {
+                Some(type_id) => match self.get_reflect(entity, type_id) {
                     Ok(reflected) => Some(reflected_value_to_string(
-                        reflected,
+                        reflected.as_partial_reflect(),
                         settings.full_type_names,
                     )),
                     Err(err) => Some(format!("<Unreflectable: {}>", err)),
@@ -312,8 +309,8 @@ impl WorldInspectionExtensionTrait for World {
         let reflected_value = if settings.store_reflected_value {
             metadata
                 .type_id
-                .and_then(|type_id| get_component_reflect(self, entity, type_id).ok())
-                .and_then(clone_partial_reflect)
+                .and_then(|type_id| self.get_reflect(entity, type_id).ok())
+                .and_then(|reflected| clone_partial_reflect(reflected.as_partial_reflect()))
         } else {
             None
         };
@@ -374,13 +371,18 @@ impl WorldInspectionExtensionTrait for World {
             None => None,
         };
 
-        let value = match type_id {
-            Some(type_id) => match get_resource_reflect(self, type_id) {
-                Ok(reflected) => reflected_value_to_string(reflected, settings.full_type_names),
-
+        // Resources are stored as components on a dedicated entity, so reflect the resource by
+        // resolving that entity and reusing `World::get_reflect`.
+        let value = match (type_id, self.resource_entities().get(component_id)) {
+            (Some(type_id), Some(entity)) => match self.get_reflect(entity, type_id) {
+                Ok(reflected) => reflected_value_to_string(
+                    reflected.as_partial_reflect(),
+                    settings.full_type_names,
+                ),
                 Err(err) => format!("<Unreflectable: {}>", err),
             },
-            None => "Dynamic Type".to_string(),
+            (Some(type_id), None) => format!("<Resource not present: TypeId({type_id:?})>"),
+            (None, _) => "Dynamic Type".to_string(),
         };
 
         Ok(ResourceInspection {
