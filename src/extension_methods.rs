@@ -194,10 +194,11 @@ impl WorldInspectionExtensionTrait for World {
             let total_bytes = components
                 .iter()
                 .map(|comp| comp.memory_size)
-                .fold(std::mem::size_of::<Entity>(), |acc, size| {
-                    acc + size.as_bytes()
+                // Sum in u64 to avoid overflow for extremely large entities on 32-bit systems.
+                .fold(std::mem::size_of::<Entity>() as u64, |acc, size| {
+                    acc + size.0
                 });
-            let total_memory_size = MemorySize::new(total_bytes);
+            let total_memory_size = MemorySize(total_bytes);
 
             (Some(components), Some(total_memory_size))
         } else {
