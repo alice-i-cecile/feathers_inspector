@@ -3,7 +3,7 @@
 use bevy::{
     prelude::*,
     reflect::{
-        ReflectRef,
+        ReflectCloneError, ReflectRef,
         array::Array,
         enums::{Enum, VariantType},
         list::List,
@@ -13,124 +13,49 @@ use bevy::{
     },
 };
 
-/// Checks if a reflected value is safe to be converted to a dynamic representation.
-/// It recursively traverses the object and checks if Map keys and Set values
-/// implement `reflect_hash` and `reflect_partial_eq`.
-pub fn is_dynamic_safe(val: &dyn PartialReflect) -> bool {
-    match val.reflect_ref() {
-        ReflectRef::Struct(s) => {
-            for i in 0..s.field_len() {
-                if let Some(field) = s.field_at(i)
-                    && !is_dynamic_safe(field)
-                {
-                    return false;
-                }
-            }
-            true
-        }
-        ReflectRef::TupleStruct(s) => {
-            for i in 0..s.field_len() {
-                if let Some(field) = s.field(i)
-                    && !is_dynamic_safe(field)
-                {
-                    return false;
-                }
-            }
-            true
-        }
-        ReflectRef::Tuple(s) => {
-            for i in 0..s.field_len() {
-                if let Some(field) = s.field(i)
-                    && !is_dynamic_safe(field)
-                {
-                    return false;
-                }
-            }
-            true
-        }
-        ReflectRef::List(s) => {
-            for i in 0..s.len() {
-                if let Some(field) = s.get(i)
-                    && !is_dynamic_safe(field)
-                {
-                    return false;
-                }
-            }
-            true
-        }
-        ReflectRef::Array(s) => {
-            for i in 0..s.len() {
-                if let Some(field) = s.get(i)
-                    && !is_dynamic_safe(field)
-                {
-                    return false;
-                }
-            }
-            true
-        }
-        ReflectRef::Map(s) => {
-            for (k, v) in s.iter() {
-                if k.reflect_hash().is_none() {
-                    return false;
-                }
-                if k.reflect_partial_eq(k).is_none() {
-                    return false;
-                }
-                if !is_dynamic_safe(k) {
-                    return false;
-                }
-                if !is_dynamic_safe(v) {
-                    return false;
-                }
-            }
-            true
-        }
-        ReflectRef::Set(s) => {
-            for v in s.iter() {
-                if v.reflect_hash().is_none() {
-                    return false;
-                }
-                if v.reflect_partial_eq(v).is_none() {
-                    return false;
-                }
-                if !is_dynamic_safe(v) {
-                    return false;
-                }
-            }
-            true
-        }
-        ReflectRef::Enum(s) => {
-            for i in 0..s.field_len() {
-                if let Some(field) = s.field_at(i)
-                    && !is_dynamic_safe(field)
-                {
-                    return false;
-                }
-            }
-            true
-        }
-        ReflectRef::Opaque(_) => true,
-    }
-}
-
-/// Safely clones a [`PartialReflect`] value into a boxed dynamic representation.
+/// Clones a reflected value, recovering from errors where possible to produce a partially usable clone.
 ///
-/// This handles the distinction between "dynamic-safe" types (which can use `.to_dynamic()`)
-/// and opaque/unsafe types (which must use `.reflect_clone()`).
-pub fn clone_partial_reflect(reflected: &dyn PartialReflect) -> Option<Box<dyn PartialReflect>> {
-    if is_dynamic_safe(reflected) {
-        match reflected.reflect_ref() {
-            bevy::reflect::ReflectRef::Opaque(value) => value
-                .reflect_clone()
-                .ok()
-                .map(|boxed| boxed.into_partial_reflect()),
-            _ => Some(reflected.to_dynamic()),
-        }
-    } else {
-        reflected
-            .reflect_clone()
-            .ok()
-            .map(|boxed| boxed.into_partial_reflect())
+/// This is useful for working with reflected values that may contain non-cloneable fields.
+/// The result may be incomplete: `#[reflect(ignore)]` fields are dropped.
+/// Complete failures will yield a [`ReflectCloneError`].
+///
+/// # Comparison with other reflection-cloning methods
+///
+/// Bevy offers two other ways to copy a reflected value, and *neither* is a good
+/// general-purpose choice for reporting / debugging workflows.
+///
+/// [`PartialReflect::reflect_clone`] generates a direct, concrete clone of the value.
+/// It keeps the real type but fails when any field is non-cloneable.
+/// This is common when the type contains any `#[reflect(ignore)]` fields.
+///
+/// [`PartialReflect::to_dynamic`] instead builds a dynamic representation that simply omits
+/// non-cloneable fields, so it succeeds for more types.
+/// But it can panic on opaque values when cloning fails,
+/// and sacrifices information about the type and its fields.
+///
+/// This method prefers the more faithful `reflect_clone` path, falling back to `to_dynamic` when necessary.
+/// Opaque values have no dynamic form, so they will always return an error when `reflect_clone` fails.
+// Upstreaming notes:
+// - `clone_incomplete` should just be a method on `PartialReflect`
+// - remember to cross-link from `PartialReflect::reflect_clone` and `PartialReflect::to_dynamic` for breadcrumbs
+// - `to_dynamic` should be made to return a `Result` in the same PR that adds this method
+pub fn clone_incomplete(
+    reflected: &dyn PartialReflect,
+) -> Result<Box<dyn PartialReflect>, ReflectCloneError> {
+    match reflected.reflect_clone() {
+        // Prefer a concrete clone to preserve data
+        Ok(cloned) => Ok(cloned.into_partial_reflect()),
+        // A concrete clone failed,
+        // almost always because of a non-cloneable field such as `#[reflect(ignore)]`.
+        // We should try to salvage a dynamic copy that simply omits those fields.
+        Err(err) => match reflected.reflect_ref() {
+            // Opaque values have no dynamic form so just return the error.
+            ReflectRef::Opaque(_) => Err(err),
+            // BUG: this will probably panic with if nested fields have unclonable opaque values.
+            // Fixing to_dynamic to return a Result is much cleaner than working around it here,
+            // so we should just do that during upstreaming.
+            _ => Ok(reflected.to_dynamic()),
+        },
     }
 }
 

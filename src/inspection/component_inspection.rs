@@ -13,7 +13,7 @@ use thiserror::Error;
 
 use crate::entity_name_resolution::{NameDefinitionPriority, NameResolutionRegistry};
 use crate::memory_size::MemorySize;
-use crate::reflection_tools::clone_partial_reflect;
+use crate::reflection_tools::clone_incomplete;
 
 /// The result of inspecting a component.
 ///
@@ -69,7 +69,7 @@ impl Clone for ComponentInspection {
         let reflected_value = self
             .reflected_value
             .as_deref()
-            .and_then(clone_partial_reflect);
+            .and_then(|reflected| clone_incomplete(reflected).ok());
 
         Self {
             entity: self.entity,

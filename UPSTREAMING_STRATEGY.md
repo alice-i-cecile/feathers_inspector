@@ -31,9 +31,9 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
 
 ## Phase 1: Reflection enhancements
 
-1. **PR please:** reflection safety and cloning utilities
-  - Code: [is_dynamic_safe()](src/reflection_tools.rs), [clone_partial_reflect()](src/reflection_tools.rs)
-  - Target: [bevy_reflect/src/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_reflect/src)
+1. **PR please:** cloning utilities
+  - Code: [clone_incomplete](src/reflection_tools.rs)
+  - Target: [bevy_reflect/src/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_reflect/src), as a method on `PartialReflect`
 2. **PR please:** semantic field name registry for tuple structs
   - maps tuple indices to human-readable names (e.g. "x", "y", "z") for common math types
   - Code: [SemanticFieldNames](src/gui/semantic_names.rs)

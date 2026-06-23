@@ -20,7 +20,7 @@ use crate::{
         ResourceInspection, ResourceInspectionError, ResourceInspectionSettings,
     },
     memory_size::MemorySize,
-    reflection_tools::{clone_partial_reflect, reflected_value_to_string},
+    reflection_tools::{clone_incomplete, reflected_value_to_string},
 };
 
 /// An extension trait for inspecting ECS objects, for methods that should belong on [`World`].
@@ -310,7 +310,7 @@ impl WorldInspectionExtensionTrait for World {
             metadata
                 .type_id
                 .and_then(|type_id| self.get_reflect(entity, type_id).ok())
-                .and_then(|reflected| clone_partial_reflect(reflected.as_partial_reflect()))
+                .and_then(|reflected| clone_incomplete(reflected.as_partial_reflect()).ok())
         } else {
             None
         };
