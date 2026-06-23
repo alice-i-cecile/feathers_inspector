@@ -332,6 +332,22 @@ impl ComponentMetadataMap {
             }
         }
     }
+
+    /// Looks up a given component type by its name in the metadata map, returning the component ID and metadata if found.
+    ///
+    /// The canonical name is generated from the [`DebugName`] of the component type.
+    /// Remember to turn on the `debug` feature in Bevy to get the full type names for components!
+    pub fn get_component_metadata_by_name(
+        &self,
+        component_name: &str,
+    ) -> Option<(ComponentId, &ComponentTypeMetadata)> {
+        self.map
+            .iter()
+            .find_map(|(id, meta)| 
+                // We deref DebugName here to compare the &str and avoid allocation
+                (&*meta.name == component_name).then_some((*id, meta))
+            )
+    }
 }
 
 impl FromWorld for ComponentMetadataMap {

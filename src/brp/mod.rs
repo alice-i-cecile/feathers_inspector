@@ -17,7 +17,7 @@ use bevy::{
 };
 use serde_json::Value;
 
-use crate::inspection::component_inspection::{ComponentMetadataMap, ComponentTypeMetadata};
+use crate::inspection::component_inspection::ComponentMetadataMap;
 
 pub mod component_metadata_map_generate;
 pub mod fuzzy_component_name_to_name;
@@ -80,17 +80,6 @@ pub(crate) fn register_remote_method(
     remote_methods.insert(method, RemoteMethodSystemId::Instant(system_id));
 }
 
-/// Returns a [`ComponentMetadataMap`] entry
-pub fn component_type_to_metadata<'metadata>(
-    component_type: &str,
-    metadata_map: &'metadata ComponentMetadataMap,
-) -> Option<(ComponentId, &'metadata ComponentTypeMetadata)> {
-    metadata_map.map.iter().find_map(|(id, meta)| {
-        let full = meta.name.to_string();
-        (full == component_type).then_some((*id, meta))
-    })
-}
-
 /// Custom BRP error codes for this library.
 pub mod error_codes {
     /// Fuzzy name mapping returned no candidates.
@@ -98,7 +87,7 @@ pub mod error_codes {
     /// The [`ComponentMetadataMap`] does not contain data about the given component.
     ///
     /// [`ComponentMetadataMap`]: crate::inspection::component_inspection::ComponentMetadataMap
-    pub const COMPONENT_TYPE_NOT_IN_METADATA: i16 = 2;
+    pub const COMPONENT_NAME_NOT_IN_METADATA: i16 = 2;
 }
 
 /// Resolves a fuzzy id lookup result into a BRP response carrying the matched type's name.
@@ -132,11 +121,11 @@ fn no_fuzzy_name_candidates_brp_error(fuzzy_name: &str) -> BrpError {
     }
 }
 
-fn component_type_not_in_metadata_brp_error(component_type: &str) -> BrpError {
-    let data = serde_json::to_value(component_type.to_string()).ok();
+fn component_name_not_in_metadata_brp_error(component_name: &str) -> BrpError {
+    let data = serde_json::to_value(component_name.to_string()).ok();
     BrpError {
-        code: error_codes::COMPONENT_TYPE_NOT_IN_METADATA,
-        message: format!("Component not found in metadata: `{component_type}`"),
+        code: error_codes::COMPONENT_NAME_NOT_IN_METADATA,
+        message: format!("Component not found in metadata: `{component_name}`"),
         data,
     }
 }

@@ -25,22 +25,22 @@ impl Plugin for VerbPlugin {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Params {
-    pub component_type: String,
+    pub component_name: String,
     pub settings: ResourceInspectionSettings,
     pub metadata_map: Option<ComponentMetadataMap>,
 }
 
 pub fn process_remote_request(In(params): In<Option<Value>>, world: &World) -> BrpResult {
     let Params {
-        component_type,
+        component_name,
         settings,
         metadata_map,
     } = parse_some(params)?;
     let metadata_map = metadata_map.unwrap_or(ComponentMetadataMap::generate(world));
-    let Some((component_id, _)) = super::component_type_to_metadata(&component_type, &metadata_map)
+    let Some((component_id, _)) = metadata_map.get_component_metadata_by_name(&component_name)
     else {
-        return Err(super::component_type_not_in_metadata_brp_error(
-            &component_type,
+        return Err(super::component_name_not_in_metadata_brp_error(
+            &component_name,
         ));
     };
     match world.inspect_resource_by_id(component_id, settings) {

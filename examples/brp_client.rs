@@ -150,7 +150,7 @@ fn inspect_specific_component_when_c_pressed(
         };
         for entity in entities {
             let params = brp::inspect_component::Params {
-                component_type: SPRITE_COMPONENT_NAME.to_string(),
+                component_name: SPRITE_COMPONENT_NAME.to_string(),
                 entity,
                 settings,
                 metadata_map: None,
@@ -171,7 +171,7 @@ fn inspect_resource_when_r_pressed(
             full_type_names: true,
         };
         let params = brp::inspect_resource::Params {
-            component_type: TIME_RESOURCE_NAME.to_string(),
+            component_name: TIME_RESOURCE_NAME.to_string(),
             settings,
             metadata_map: None,
         };
@@ -204,7 +204,7 @@ fn inspect_sprite_component_type_when_m_pressed(
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyM) {
         let params = brp::inspect_component_type::Params {
-            component_type: SPRITE_COMPONENT_NAME.to_string(),
+            component_name: SPRITE_COMPONENT_NAME.to_string(),
             metadata_map: None,
         };
         let request = construct_request(brp::inspect_component_type::METHOD, params);
