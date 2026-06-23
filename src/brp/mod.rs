@@ -101,7 +101,29 @@ pub mod error_codes {
     pub const COMPONENT_TYPE_NOT_IN_METADATA: i16 = 2;
 }
 
-pub fn no_fuzzy_name_candidates_brp_error(fuzzy_name: &str) -> BrpError {
+/// Resolves a fuzzy id lookup result into a BRP response carrying the matched type's name.
+pub(crate) fn fuzzy_id_to_name_result(
+    world: &World,
+    fuzzy_name: &str,
+    matched_id: Option<ComponentId>,
+    metadata_map: Option<ComponentMetadataMap>,
+) -> BrpResult {
+    let Some(component_id) = matched_id else {
+        return Err(no_fuzzy_name_candidates_brp_error(fuzzy_name));
+    };
+
+    let metadata_map = metadata_map.unwrap_or_else(|| ComponentMetadataMap::generate(world));
+    let Some(component_metadata) = metadata_map.get(&component_id) else {
+        let index = component_id.index();
+        return Err(BrpError::component_error(format!(
+            "Could not find metadata for component `{index}`"
+        )));
+    };
+
+    serde_json::to_value(component_metadata.name.to_string()).map_err(BrpError::internal)
+}
+
+fn no_fuzzy_name_candidates_brp_error(fuzzy_name: &str) -> BrpError {
     let data = serde_json::to_value(fuzzy_name.to_string()).ok();
     BrpError {
         code: error_codes::NO_FUZZY_NAME_CANDIDATES,
@@ -110,7 +132,7 @@ pub fn no_fuzzy_name_candidates_brp_error(fuzzy_name: &str) -> BrpError {
     }
 }
 
-pub fn component_type_not_in_metadata_brp_error(component_type: &str) -> BrpError {
+fn component_type_not_in_metadata_brp_error(component_type: &str) -> BrpError {
     let data = serde_json::to_value(component_type.to_string()).ok();
     BrpError {
         code: error_codes::COMPONENT_TYPE_NOT_IN_METADATA,

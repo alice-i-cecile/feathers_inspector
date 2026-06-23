@@ -59,6 +59,30 @@ pub fn clone_incomplete(
     }
 }
 
+/// Reflects the value of the component identified by `type_id` on `entity`, formatting it for debugging.
+///
+/// Resources are stored as components on a dedicated backing entity, so this serves both
+/// component and resource inspection.
+///
+/// Returns `"Dynamic Type"` when `type_id` is `None`,
+/// and an "<Unreflectable: ...>" error string when reflection fails.
+pub fn component_value_to_string(
+    world: &World,
+    entity: Entity,
+    type_id: Option<core::any::TypeId>,
+    full_type_names: bool,
+) -> String {
+    match type_id {
+        Some(type_id) => match world.get_reflect(entity, type_id) {
+            Ok(reflected) => {
+                reflected_value_to_string(reflected.as_partial_reflect(), full_type_names)
+            }
+            Err(err) => format!("<Unreflectable: {err}>"),
+        },
+        None => "Dynamic Type".to_string(),
+    }
+}
+
 /// Converts a reflected value to a string for debugging purposes.
 // When upstreamed, this should be a method on `PartialReflect`,
 // although much of it should be a `Display` impl on `ReflectRef`.
