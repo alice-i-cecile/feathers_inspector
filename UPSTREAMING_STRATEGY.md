@@ -34,8 +34,9 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
 1. **PR please:** cloning utilities
   - Code: [clone_incomplete](src/reflection_tools.rs)
   - Target: [bevy_reflect/src/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_reflect/src), as a method on `PartialReflect`
-2. **PR please:** semantic field name registry for tuple structs
+2. **Needs work:** semantic field name registry for tuple structs
   - maps tuple indices to human-readable names (e.g. "x", "y", "z") for common math types
+  - currently a resource, but that doesn't make sense in bevy_reflect. Can we design this better? Maybe an attribute?
   - Code: [SemanticFieldNames](src/gui/semantic_names.rs)
   - Target: [bevy_reflect/src/semantic_names.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_reflect/src)
 3. **PR please:** changing values with reflection example
