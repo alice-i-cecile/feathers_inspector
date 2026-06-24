@@ -34,7 +34,7 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
 1. **PR please:** cloning utilities
   - Code: [clone_incomplete](src/reflection_tools.rs)
   - Target: [bevy_reflect/src/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_reflect/src), as a method on `PartialReflect`
-2. **PR please:** changing values with reflection example
+2. **Needs review:** changing values with reflection example. [#24747](https://github.com/bevyengine/bevy/pull/24747)
   - this is a useful pattern to demonstrate, but is fundamentally independent from the rest of the inspection work
   - Code: [changing_values_with_reflection example](examples/changing_values_with_reflection.rs)
   - Target: [examples/reflection/](https://github.com/bevyengine/bevy/tree/main/examples/reflection)
