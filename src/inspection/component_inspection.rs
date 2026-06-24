@@ -341,12 +341,9 @@ impl ComponentMetadataMap {
         &self,
         component_name: &str,
     ) -> Option<(ComponentId, &ComponentTypeMetadata)> {
-        self.map
-            .iter()
-            .find_map(|(id, meta)| 
+        self.map.iter().find_map(|(id, meta)|
                 // We deref DebugName here to compare the &str and avoid allocation
-                (&*meta.name == component_name).then_some((*id, meta))
-            )
+                (&*meta.name == component_name).then_some((*id, meta)))
     }
 }
 

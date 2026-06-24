@@ -85,7 +85,10 @@ pub fn render_object_list(
     config: Res<InspectorConfig>,
     list_content: Query<(Entity, &ObjectListContent)>,
     children: Query<&Children>,
-    mut update_params: (Query<(&Children, &mut ObjectRow)>, Query<(&mut Text, &mut TextFont, &mut TextColor)>)
+    mut update_params: (
+        Query<(&Children, &mut ObjectRow)>,
+        Query<(&mut Text, &mut TextFont, &mut TextColor)>,
+    ),
 ) {
     for (content_entity, object_list_content) in &list_content {
         if state.active_objects_tab != object_list_content.tab {
@@ -170,7 +173,10 @@ fn update_object_row(
     entry: &ObjectListEntry,
     is_selected: bool,
     config: &InspectorConfig,
-    (object_rows, text): &mut (Query<(&Children, &mut ObjectRow)>, Query<(&mut Text, &mut TextFont, &mut TextColor)>)
+    (object_rows, text): &mut (
+        Query<(&Children, &mut ObjectRow)>,
+        Query<(&mut Text, &mut TextFont, &mut TextColor)>,
+    ),
 ) {
     // Truncate long names
     let display_name = entry.display_name();
@@ -192,9 +198,11 @@ fn update_object_row(
         display_name, component_count, memory_size
     );
 
-    if let Ok((children, mut object_row)) = object_rows.get_mut(*entity){
+    if let Ok((children, mut object_row)) = object_rows.get_mut(*entity) {
         object_row.selected_object = entry.entity;
-        if let Some(child) = children.first() && let Ok((mut text, mut text_font, mut text_color)) = text.get_mut(*child) {
+        if let Some(child) = children.first()
+            && let Ok((mut text, mut text_font, mut text_color)) = text.get_mut(*child)
+        {
             text.0 = label.clone();
             text_font.font_size = FontSize::Px(config.small_font_size);
             text_color.0 = if is_selected {

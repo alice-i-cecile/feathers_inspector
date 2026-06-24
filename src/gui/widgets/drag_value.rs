@@ -16,7 +16,6 @@ use bevy::reflect::ReflectMut;
 use core::any::TypeId;
 use std::time::{Duration, Instant};
 
-
 /// Double-click detection threshold (in milliseconds)
 const DOUBLE_CLICK_THRESHOLD_MS: u64 = 300;
 
