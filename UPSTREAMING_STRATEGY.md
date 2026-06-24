@@ -34,16 +34,11 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
 1. **PR please:** cloning utilities
   - Code: [clone_incomplete](src/reflection_tools.rs)
   - Target: [bevy_reflect/src/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_reflect/src), as a method on `PartialReflect`
-2. **Needs work:** semantic field name registry for tuple structs
-  - maps tuple indices to human-readable names (e.g. "x", "y", "z") for common math types
-  - currently a resource, but that doesn't make sense in bevy_reflect. Can we design this better? Maybe an attribute?
-  - Code: [SemanticFieldNames](src/gui/semantic_names.rs)
-  - Target: [bevy_reflect/src/semantic_names.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_reflect/src)
-3. **PR please:** changing values with reflection example
+2. **PR please:** changing values with reflection example
   - this is a useful pattern to demonstrate, but is fundamentally independent from the rest of the inspection work
   - Code: [changing_values_with_reflection example](examples/changing_values_with_reflection.rs)
   - Target: [examples/reflection/](https://github.com/bevyengine/bevy/tree/main/examples/reflection)
-4. **PR please:** reflection pretty printing
+3. **PR please:** reflection pretty printing
   - these should all just be `Display` impls where possible; could not do here because orphan rules 
   - Code: [reflected_value_to_string()](src/reflection_tools.rs), [pretty_print_reflected_struct()](src/reflection_tools.rs), [pretty_print_reflected_enum()](src/reflection_tools.rs), [pretty_print_reflected_opaque()](src/reflection_tools.rs)
   - Target: [bevy_reflect/src/display.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_reflect/src)

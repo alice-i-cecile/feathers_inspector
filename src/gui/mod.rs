@@ -7,6 +7,5 @@ pub mod cache;
 pub mod config;
 pub mod panels;
 pub mod plugin;
-pub mod semantic_names;
 pub mod state;
 pub mod widgets;

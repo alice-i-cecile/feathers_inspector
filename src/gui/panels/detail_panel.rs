@@ -23,7 +23,6 @@ use crate::extension_methods::WorldInspectionExtensionTrait;
 use crate::gui::cache::InspectorCache;
 use crate::gui::config::InspectorConfig;
 use crate::gui::plugin::RefreshCache;
-use crate::gui::semantic_names::SemanticFieldNames;
 use crate::gui::state::{DetailTab, InspectorState};
 use crate::gui::widgets::drag_value::{DragValue, DragValueDragState, FieldPath, FieldPathSegment};
 use crate::inspection::component_inspection::ComponentMetadataMap;
@@ -255,20 +254,13 @@ struct EditableFieldInfo {
 }
 
 /// Extracts fields from a reflected value into a flat list of label/value pairs.
-/// Uses `SemanticFieldNames` to provide better field names for tuple structs (e.g., x/y/z instead of .0/.1/.2).
 /// Tracks the path to each field for write-back support.
 fn extract_fields_from_reflect(
     reflected: &dyn PartialReflect,
     fields: &mut Vec<ReflectedField>,
     indent: u8,
-    semantic_names: &SemanticFieldNames,
     current_path: &[FieldPathSegment],
 ) {
-    // Get the TypeId of this reflected value for semantic name lookup
-    let type_id = reflected
-        .get_represented_type_info()
-        .map(|info| info.type_id());
-
     match reflected.reflect_ref() {
         ReflectRef::Struct(s) => {
             for i in 0..s.field_len() {
@@ -305,13 +297,7 @@ fn extract_fields_from_reflect(
                         indent,
                         editable: None,
                     });
-                    extract_fields_from_reflect(
-                        field_value,
-                        fields,
-                        indent + 1,
-                        semantic_names,
-                        &field_path,
-                    );
+                    extract_fields_from_reflect(field_value, fields, indent + 1, &field_path);
                 }
             }
         }
@@ -329,11 +315,7 @@ fn extract_fields_from_reflect(
                     path: field_path.clone(),
                 });
 
-                // Try to get semantic name (e.g., "x", "y", "z") for this field index
-                let field_name = type_id
-                    .and_then(|tid| semantic_names.get_field_name(tid, i))
-                    .map(|s| s.to_string())
-                    .unwrap_or_else(|| format!(".{}", i));
+                let field_name = format!(".{}", i);
 
                 let value_str = format_simple_value(field_value);
                 if let Some(val) = value_str {
@@ -354,13 +336,7 @@ fn extract_fields_from_reflect(
                         indent,
                         editable: None,
                     });
-                    extract_fields_from_reflect(
-                        field_value,
-                        fields,
-                        indent + 1,
-                        semantic_names,
-                        &field_path,
-                    );
+                    extract_fields_from_reflect(field_value, fields, indent + 1, &field_path);
                 }
             }
         }
@@ -503,9 +479,6 @@ fn spawn_components_tab_exclusive(
     inspection: &crate::inspection::entity_inspection::EntityInspection,
     metadata_map: &mut ComponentMetadataMap,
 ) {
-    // Get semantic names resource for better tuple struct field names
-    let semantic_names = world.resource::<SemanticFieldNames>();
-
     let resolved_name = inspection.name.clone().unwrap_or(EntityName::fallback(
         format!("Entity {:?}", inspection.entity).as_str(),
     ));
@@ -545,13 +518,7 @@ fn spawn_components_tab_exclusive(
             let mut fields = Vec::new();
 
             if let Some(reflected_box) = &component_inspection.reflected_value {
-                extract_fields_from_reflect(
-                    reflected_box.as_ref(),
-                    &mut fields,
-                    0,
-                    semantic_names,
-                    &[],
-                );
+                extract_fields_from_reflect(reflected_box.as_ref(), &mut fields, 0, &[]);
             } else if let Some(value_str) = &component_inspection.value {
                 // Fallback to string value if reflected value not available
                 fields.push(ReflectedField {
@@ -1008,7 +975,6 @@ mod tests {
     use crate::entity_name_resolution::NameResolutionPlugin;
     use crate::gui::cache::{InspectorCache, WorldSnapshot};
     use crate::gui::config::InspectorConfig;
-    use crate::gui::semantic_names::SemanticFieldNames;
     use crate::gui::state::{DetailTab, InspectorState};
     use bevy::ecs::system::RunSystemOnce;
 
@@ -1019,7 +985,6 @@ mod tests {
         app.init_resource::<InspectorConfig>();
         app.init_resource::<InspectorState>();
         app.init_resource::<InspectorCache>();
-        app.init_resource::<SemanticFieldNames>();
         app
     }
 

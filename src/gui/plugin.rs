@@ -24,7 +24,6 @@ use super::config::InspectorConfig;
 use super::panels::{
     render_detail_panel, render_object_list, spawn_detail_panel, spawn_object_list_panel,
 };
-use super::semantic_names::SemanticFieldNames;
 use super::state::{InspectorInternal, InspectorState};
 use super::widgets::drag_value::DragValuePlugin;
 use super::widgets::tabs::TabPlugin;
@@ -75,7 +74,6 @@ impl Plugin for InspectorWindowPlugin {
             .init_resource::<InspectorConfig>()
             .init_resource::<InspectorState>()
             .init_resource::<InspectorCache>()
-            .init_resource::<SemanticFieldNames>()
             // Messages
             .add_message::<SetInspectorWindow>()
             .add_message::<RefreshCache>()
