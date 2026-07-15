@@ -38,7 +38,7 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
   - this is a useful pattern to demonstrate, but is fundamentally independent from the rest of the inspection work
   - Code: [changing_values_with_reflection example](examples/changing_values_with_reflection.rs)
   - Target: [examples/reflection/](https://github.com/bevyengine/bevy/tree/main/examples/reflection)
-3. **PR please:** reflection pretty printing
+3. **Merged** reflection pretty printing. [#24995]
   - these should all just be `Display` impls where possible; could not do here because orphan rules 
   - Code: [reflected_value_to_string()](src/reflection_tools.rs), [pretty_print_reflected_struct()](src/reflection_tools.rs), [pretty_print_reflected_enum()](src/reflection_tools.rs), [pretty_print_reflected_opaque()](src/reflection_tools.rs)
   - Target: [bevy_reflect/src/display.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_reflect/src)
