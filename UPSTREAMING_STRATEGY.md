@@ -56,16 +56,16 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
 
 ## Phase 3: Assorted utilities
 
-1. **Review please:** memory-size utility types and formatting helpers [#25006](https://github.com/bevyengine/bevy/pull/25006)
+1. **Merged:** memory-size utility types and formatting helpers [#25006](https://github.com/bevyengine/bevy/pull/25006)
   - Code: [MemorySize](src/memory_size.rs) and everything else in that file
   - Target: [bevy_diagnostic/src/memory_size.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_diagnostic/src)
-2. **Review please:** name resolution [#25007](https://github.com/bevyengine/bevy/pull/25007)
+2. **Merged:** name resolution [#25007](https://github.com/bevyengine/bevy/pull/25007)
   - Code: [EntityName](src/entity_name_resolution/mod.rs), [NameOrigin](src/entity_name_resolution/mod.rs), [NameDefinitionPriority](src/entity_name_resolution/mod.rs), [ComponentNameData](src/entity_name_resolution/mod.rs), [resolve_name()](src/entity_name_resolution/mod.rs), [NameResolutionRegistry](src/entity_name_resolution/mod.rs), [NameResolutionPlugin](src/entity_name_resolution/mod.rs)
   - Target: [bevy_dev_tools/inspector/src/entity/name_resolution.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src/entity) + [bevy_dev_tools/inspector/src/entity/fuzzy_name_mapping.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src/entity)
 3. **Review please:** entity grouping primitives [#25010](https://github.com/bevyengine/bevy/pull/25007)
   - Code: [entity_grouping](src/entity_grouping/mod.rs) + hierarchy_grouping + archetype_similarity_grouping
   - Target: [bevy_dev_tools/inspector/src/inspection/entity_grouping.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
-4. **PR please:** fuzzy name mapping
+4. **Review please:** fuzzy name mapping [#25028](https://github.com/bevyengine/bevy/pull/25028)
   - Code: [fuzzy_name_mapping.rs](fuzzy_name_mapping.rs)
   - Target: [`bevy_dev_tools/inspector/fuzzy_name_mapping.rs`](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/src/inspector/)
 
