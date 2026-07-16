@@ -23,9 +23,17 @@ const THRESHOLD: f64 = 0.6;
 /// Matching uses normalized Levenshtein similarity to find the closest match,
 /// and is case-insensitive and ignores leading/trailing whitespace.
 /// Only the "shortname" of the component (i.e., without module paths) is considered.
-pub fn fuzzy_component_name_to_id(world: &World, fuzzy_name: &str) -> Vec<(f64, ComponentId)> {
+///
+/// The `threshold` parameter controls the minimum similarity score required for a match to be included in the results.
+/// When incrementally searching for a matching name, it may be useful to start with a lower threshold
+/// and increase it as the user types more characters.
+pub fn fuzzy_component_name_to_id(
+    world: &World,
+    fuzzy_name: &str,
+    threshold: f64,
+) -> Vec<(f64, ComponentId)> {
     let candidates = world.components().iter_registered().map(|info| info.id());
-    fuzzy_name_to_id(world, fuzzy_name, candidates)
+    fuzzy_name_to_id(world, fuzzy_name, candidates, threshold)
 }
 
 /// Attempts to find a [`ComponentId`] for the given fuzzy resource name.
@@ -40,11 +48,19 @@ pub fn fuzzy_component_name_to_id(world: &World, fuzzy_name: &str) -> Vec<(f64, 
 /// Matching uses normalized Levenshtein similarity to find the closest match,
 /// and is case-insensitive and ignores leading/trailing whitespace.
 /// Only the "shortname" of the resource (i.e., without module paths) is considered.
-pub fn fuzzy_resource_name_to_id(world: &World, fuzzy_name: &str) -> Vec<(f64, ComponentId)> {
+///
+/// The `threshold` parameter controls the minimum similarity score required for a match to be included in the results.
+/// When incrementally searching for a matching name, it may be useful to start with a lower threshold
+/// and increase it as the user types more characters.
+pub fn fuzzy_resource_name_to_id(
+    world: &World,
+    fuzzy_name: &str,
+    threshold: f64,
+) -> Vec<(f64, ComponentId)> {
     // We can restrict the candidate set to the component id values that are registered as resources,
     // allowing us to share code with the component equivalent above.
     let candidates = world.resource_entities().iter().map(|(id, _)| id);
-    fuzzy_name_to_id(world, fuzzy_name, candidates)
+    fuzzy_name_to_id(world, fuzzy_name, candidates, threshold)
 }
 
 /// Finds the best fuzzy match for `fuzzy_name` among the provided candidate [`ComponentId`]s.
@@ -59,10 +75,13 @@ pub fn fuzzy_resource_name_to_id(world: &World, fuzzy_name: &str) -> Vec<(f64, C
 /// An exact (post-normalization) match short-circuits and is always preferred.
 ///
 /// Shortnames (i.e., without module paths) are used for matching.
+///
+/// The `threshold` parameter controls the minimum similarity score required for a match to be included in the results.
 fn fuzzy_name_to_id(
     world: &World,
     fuzzy_name: &str,
     candidates: impl Iterator<Item = ComponentId>,
+    threshold: f64,
 ) -> Vec<(f64, ComponentId)> {
     let processed_fuzzy_name = fuzzy_name.trim().to_lowercase();
 
@@ -80,7 +99,7 @@ fn fuzzy_name_to_id(
             return vec![(1.0, id)];
         }
         let similarity = jaro_winkler(&processed_fuzzy_name, &processed_name);
-        if similarity >= THRESHOLD {
+        if similarity >= threshold {
             matches.push((similarity, id));
         }
     }
