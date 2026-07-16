@@ -65,9 +65,6 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
 3. **PR please:** entity grouping primitives
   - Code: [GroupingStrategy](src/entity_grouping/mod.rs), [EntityGrouping](src/entity_grouping/mod.rs), [EntityGrouping::generate()](src/entity_grouping/mod.rs), [archetype_similarity_grouping](src/entity_grouping/archetype_similarity_grouping.rs), [hierarchy_grouping](src/entity_grouping/hierarchy_grouping.rs)
   - Target: [bevy_dev_tools/inspector/src/inspection/grouping.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
-4. **PR please:** world summary types and entry points
-  - Code: [SummarySettings](src/inspection/world_summary.rs), [ArchetypeSummary](src/inspection/world_summary.rs), [WorldSummary](src/inspection/world_summary.rs), [WorldSummaryExt::summarize()](src/inspection/world_summary.rs), [CommandsSummaryExt::summarize()](src/inspection/world_summary.rs)
-  - Target: [bevy_dev_tools/inspector/src/inspection/world_summary.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
 5. **PR please:** fuzzy name mapping
   - Code: [fuzzy_name_mapping.rs](fuzzy_name_mapping.rs)
   - Target: [`bevy_dev_tools/inspector/fuzzy_name_mapping.rs`](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/src/inspector/)
@@ -76,20 +73,23 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
 
 Settings types (`EntityInspectionSettings`, `ComponentInspectionSettings`, etc.) will be upstreamed incrementally: each PR adds the fields it needs, rather than landing every field up front.
 
-1. **PR please:** core inspection output types + `Display` formatting + world/command inspection entry points + clone_incomplete
+1. **PR please:** world summary types and entry points
+  - Code: [SummarySettings](src/inspection/world_summary.rs), [ArchetypeSummary](src/inspection/world_summary.rs), [WorldSummary](src/inspection/world_summary.rs), [WorldSummaryExt::summarize()](src/inspection/world_summary.rs), [CommandsSummaryExt::summarize()](src/inspection/world_summary.rs)
+  - Target: [bevy_dev_tools/inspector/src/inspection/world_summary.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
+2. **PR please:** core inspection output types + `Display` formatting + world/command inspection entry points + clone_incomplete
   - Code: [EntityInspection](src/inspection/entity_inspection.rs), [ResourceInspection](src/inspection/resource_inspection.rs), [ComponentInspection](src/inspection/component_inspection.rs), [impl Display for EntityInspection](src/inspection/entity_inspection.rs), [impl Display for ResourceInspection](src/inspection/resource_inspection.rs), [impl Display for ComponentInspection](src/inspection/component_inspection.rs), [WorldInspectionExtensionTrait](src/extension_methods.rs), [inspect()](src/extension_methods.rs), [inspect_cached()](src/extension_methods.rs), [inspect_component_by_id()](src/extension_methods.rs), [inspect_resource_by_id()](src/extension_methods.rs), [inspect_all_resources()](src/extension_methods.rs), [clone_incomplete](src/reflection_tools.rs)
   - Target: [bevy_dev_tools/inspector/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
-2. **Blocked:** component metadata inspection
+3. **Blocked:** component metadata inspection
   - Code: [ComponentTypeMetadata](src/inspection/component_inspection.rs), [ComponentTypeMetadata::new()](src/inspection/component_inspection.rs), [ComponentTypeInspection](src/inspection/component_inspection.rs), [ComponentMetadataMap::generate()](src/inspection/component_inspection.rs), [hash_map_component_id_component_type_metadata](src/serde_conversions.rs)
   - Target: [bevy_dev_tools/inspector/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
-3. **Blocked:** search/filter primitives
+4. **Blocked:** search/filter primitives
   - Code: [NameFilter](src/inspection/entity_inspection.rs), [filter_entity_list_for_inspection()](src/inspection/entity_inspection.rs)
   - Target: [bevy_dev_tools/inspector/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
-4. **Blocked:** multi-inspection + sorting/grouping integration
+5. **Blocked:** multi-inspection + sorting/grouping integration
   - introduces `MultipleEntityInspectionSettings`; `GroupingStrategy`, `EntityGrouping`, and `WorldSummary` already landed in Phase 3
   - Code: [MultipleEntityInspectionSettings](src/inspection/entity_inspection.rs), [inspect_multiple()](src/extension_methods.rs)
   - Target: [bevy_dev_tools/inspector/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
-5. **Blocked:** log-style inspection example
+6. **Blocked:** log-style inspection example
   - Code: [log_style_inspection example](examples/log_style_inspection.rs)
   - Target: [examples/ecs/](https://github.com/bevyengine/bevy/tree/main/examples/ecs)
 
