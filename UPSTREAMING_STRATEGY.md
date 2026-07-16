@@ -63,9 +63,9 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
   - Code: [EntityName](src/entity_name_resolution/mod.rs), [NameOrigin](src/entity_name_resolution/mod.rs), [NameDefinitionPriority](src/entity_name_resolution/mod.rs), [ComponentNameData](src/entity_name_resolution/mod.rs), [resolve_name()](src/entity_name_resolution/mod.rs), [NameResolutionRegistry](src/entity_name_resolution/mod.rs), [NameResolutionPlugin](src/entity_name_resolution/mod.rs)
   - Target: [bevy_dev_tools/inspector/src/entity/name_resolution.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src/entity) + [bevy_dev_tools/inspector/src/entity/fuzzy_name_mapping.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src/entity)
 3. **PR please:** entity grouping primitives
-  - Code: [GroupingStrategy](src/entity_grouping/mod.rs), [EntityGrouping](src/entity_grouping/mod.rs), [EntityGrouping::generate()](src/entity_grouping/mod.rs), [archetype_similarity_grouping](src/entity_grouping/archetype_similarity_grouping.rs), [hierarchy_grouping](src/entity_grouping/hierarchy_grouping.rs)
-  - Target: [bevy_dev_tools/inspector/src/inspection/grouping.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
-5. **PR please:** fuzzy name mapping
+  - Code: [entity_grouping](src/entity_grouping/mod.rs) + hierarchy_grouping + archetype_similarity_grouping
+  - Target: [bevy_dev_tools/inspector/src/inspection/entity_grouping.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
+4. **PR please:** fuzzy name mapping
   - Code: [fuzzy_name_mapping.rs](fuzzy_name_mapping.rs)
   - Target: [`bevy_dev_tools/inspector/fuzzy_name_mapping.rs`](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/src/inspector/)
 
