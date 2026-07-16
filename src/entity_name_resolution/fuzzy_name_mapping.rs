@@ -8,9 +8,6 @@ use bevy::ecs::component::ComponentId;
 use bevy::ecs::world::World;
 use strsim::jaro_winkler;
 
-/// Minimum required similarity for inclusion in a fuzzy mapping.
-const THRESHOLD: f64 = 0.6;
-
 /// Attempts to find a [`ComponentId`] for the given fuzzy component name.
 ///
 /// A vector of candidate matches will be returned, with the best-effort match first.
