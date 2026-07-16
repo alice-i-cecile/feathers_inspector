@@ -5,7 +5,7 @@ When upstreaming this work, there are several distinct phases:
 1. Reflection enhancements: improving `bevy_reflect` with assorted access helpers and display utilities.
 2. Reusable UI widgets: generic widget primitives with no inspector coupling.
 3. Assorted utilities: misc work required by the inspection backend that can be done independently
-4. Inspection backend + log-style front-end: code which defines the API in `bevy_ecs` which various inspection tools should call.
+4. Inspection backend + log-style front-end: code which defines the API in `bevy_dev_tools/inspector` which various inspection tools should call.
 5. BRP inspection frontend.
 6. Feathers-based GUI frontend.
 
@@ -17,7 +17,7 @@ For each item, follow the format below:
 1. **STATUS:** Sample work item, [#12345](https://github.com/bevyengine/bevy/pulls)
   - details on scope
   - Code: [lib.rs](src/lib.rs)
-  - Target: [bevy_ecs/inspection](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src/inspection.rs)
+  - Target: [bevy_dev_tools/inspector/inspection](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src/inspection.rs)
 ```
 
 Possible STATUS replacements include: "Needs work", "PR please", "Blocked", "Needs review", "Merged", and "Integrated".
@@ -59,15 +59,18 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
 1. **Review please:** memory-size utility types and formatting helpers [#25006](https://github.com/bevyengine/bevy/pull/25006)
   - Code: [MemorySize](src/memory_size.rs) and everything else in that file
   - Target: [bevy_diagnostic/src/memory_size.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_diagnostic/src)
-2. **PR please:** name resolution + fuzzy name mapping
-  - Code: [EntityName](src/entity_name_resolution/mod.rs), [NameOrigin](src/entity_name_resolution/mod.rs), [NameDefinitionPriority](src/entity_name_resolution/mod.rs), [ComponentNameData](src/entity_name_resolution/mod.rs), [resolve_name()](src/entity_name_resolution/mod.rs), [NameResolutionRegistry](src/entity_name_resolution/mod.rs), [NameResolutionPlugin](src/entity_name_resolution/mod.rs), [fuzzy_component_name_to_id()](src/entity_name_resolution/fuzzy_name_mapping.rs), [fuzzy_resource_name_to_id()](src/entity_name_resolution/fuzzy_name_mapping.rs)
-  - Target: [bevy_ecs/src/entity/name_resolution.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src/entity) + [bevy_ecs/src/entity/fuzzy_name_mapping.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src/entity)
+2. **PR please:** name resolution
+  - Code: [EntityName](src/entity_name_resolution/mod.rs), [NameOrigin](src/entity_name_resolution/mod.rs), [NameDefinitionPriority](src/entity_name_resolution/mod.rs), [ComponentNameData](src/entity_name_resolution/mod.rs), [resolve_name()](src/entity_name_resolution/mod.rs), [NameResolutionRegistry](src/entity_name_resolution/mod.rs), [NameResolutionPlugin](src/entity_name_resolution/mod.rs)
+  - Target: [bevy_dev_tools/inspector/src/entity/name_resolution.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src/entity) + [bevy_dev_tools/inspector/src/entity/fuzzy_name_mapping.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src/entity)
 3. **PR please:** entity grouping primitives
   - Code: [GroupingStrategy](src/entity_grouping/mod.rs), [EntityGrouping](src/entity_grouping/mod.rs), [EntityGrouping::generate()](src/entity_grouping/mod.rs), [archetype_similarity_grouping](src/entity_grouping/archetype_similarity_grouping.rs), [hierarchy_grouping](src/entity_grouping/hierarchy_grouping.rs)
-  - Target: [bevy_ecs/src/inspection/grouping.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src)
+  - Target: [bevy_dev_tools/inspector/src/inspection/grouping.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
 4. **PR please:** world summary types and entry points
   - Code: [SummarySettings](src/inspection/world_summary.rs), [ArchetypeSummary](src/inspection/world_summary.rs), [WorldSummary](src/inspection/world_summary.rs), [WorldSummaryExt::summarize()](src/inspection/world_summary.rs), [CommandsSummaryExt::summarize()](src/inspection/world_summary.rs)
-  - Target: [bevy_ecs/src/inspection/world_summary.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src)
+  - Target: [bevy_dev_tools/inspector/src/inspection/world_summary.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
+5. **PR please:** fuzzy name mapping
+  - Code: [fuzzy_name_mapping.rs](fuzzy_name_mapping.rs)
+  - Target: [`bevy_dev_tools/inspector/fuzzy_name_mapping.rs`](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/src/inspector/)
 
 ## Phase 4: Inspection backend + log-style front-end
 
@@ -75,17 +78,17 @@ Settings types (`EntityInspectionSettings`, `ComponentInspectionSettings`, etc.)
 
 1. **PR please:** core inspection output types + `Display` formatting + world/command inspection entry points + clone_incomplete
   - Code: [EntityInspection](src/inspection/entity_inspection.rs), [ResourceInspection](src/inspection/resource_inspection.rs), [ComponentInspection](src/inspection/component_inspection.rs), [impl Display for EntityInspection](src/inspection/entity_inspection.rs), [impl Display for ResourceInspection](src/inspection/resource_inspection.rs), [impl Display for ComponentInspection](src/inspection/component_inspection.rs), [WorldInspectionExtensionTrait](src/extension_methods.rs), [inspect()](src/extension_methods.rs), [inspect_cached()](src/extension_methods.rs), [inspect_component_by_id()](src/extension_methods.rs), [inspect_resource_by_id()](src/extension_methods.rs), [inspect_all_resources()](src/extension_methods.rs), [clone_incomplete](src/reflection_tools.rs)
-  - Target: [bevy_ecs/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src)
+  - Target: [bevy_dev_tools/inspector/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
 2. **Blocked:** component metadata inspection
   - Code: [ComponentTypeMetadata](src/inspection/component_inspection.rs), [ComponentTypeMetadata::new()](src/inspection/component_inspection.rs), [ComponentTypeInspection](src/inspection/component_inspection.rs), [ComponentMetadataMap::generate()](src/inspection/component_inspection.rs), [hash_map_component_id_component_type_metadata](src/serde_conversions.rs)
-  - Target: [bevy_ecs/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src)
+  - Target: [bevy_dev_tools/inspector/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
 3. **Blocked:** search/filter primitives
   - Code: [NameFilter](src/inspection/entity_inspection.rs), [filter_entity_list_for_inspection()](src/inspection/entity_inspection.rs)
-  - Target: [bevy_ecs/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src)
+  - Target: [bevy_dev_tools/inspector/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
 4. **Blocked:** multi-inspection + sorting/grouping integration
   - introduces `MultipleEntityInspectionSettings`; `GroupingStrategy`, `EntityGrouping`, and `WorldSummary` already landed in Phase 3
   - Code: [MultipleEntityInspectionSettings](src/inspection/entity_inspection.rs), [inspect_multiple()](src/extension_methods.rs)
-  - Target: [bevy_ecs/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src)
+  - Target: [bevy_dev_tools/inspector/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_dev_tools/inspector/src)
 5. **Blocked:** log-style inspection example
   - Code: [log_style_inspection example](examples/log_style_inspection.rs)
   - Target: [examples/ecs/](https://github.com/bevyengine/bevy/tree/main/examples/ecs)
@@ -106,18 +109,14 @@ Settings types (`EntityInspectionSettings`, `ComponentInspectionSettings`, etc.)
 
 ## Phase 6: Feathers-based GUI frontend
 
-1. **PR please:** stub `bevy_inspector` crate
-   - should only contain GUI frontend code! Backend lives in `bevy_ecs`, feature-flagged. BRP code is in `bevy_brp`
-   - setting this up is non-trivial boilerplate and heavy on bikeshedding: do separately
-   - see [#15666](https://github.com/bevyengine/bevy/pull/15666) or [#15650](https://github.com/bevyengine/bevy/pull/15650) for examples of how to spin up a new Bevy crate
-2. **Blocked:** inspector cache layer
+1. **Blocked:** inspector cache layer
   - not super happy about the design here; think critically before upstreaming
   - Code: [InspectorCache](src/gui/cache/mod.rs), [cache snapshot](src/gui/cache/snapshot.rs), [cache systems](src/gui/cache/systems.rs), [InspectorConfig](src/gui/config.rs), [InspectorState](src/gui/state.rs), [RefreshCache](src/gui/plugin.rs)
-  - Target: `bevy_inspector/cache`
-3. **Blocked:** inspector panels, plugin, and example
+  - Target: `bevy_dev_tools/inspector/cache`
+2. **Blocked:** inspector panels, plugin, and example
   - depends on P6.1 for the crate and P6.2 for the cache layer
   - uses `feathers` widgets for styled controls, but do not block on adding more. Imperfect functionality is okay!
   - targeting MVP quality: something broadly useful but incomplete
   - probably easier to rewrite from scratch, but you can look at this crate for inspiration
   - Code: [InspectorWindowPlugin](src/gui/plugin.rs), [SetInspectorWindow](src/gui/plugin.rs), [spawn_object_list_panel()](src/gui/panels/object_list.rs), [spawn_detail_panel()](src/gui/panels/detail_panel.rs), [render_object_list()](src/gui/panels/object_list.rs), [render_detail_panel()](src/gui/panels/detail_panel.rs), [inspector_window example](examples/inspector_window.rs)
-  - Target: `bevy_inspector`
+  - Target: `bevy_dev_tools/inspector/gui`
