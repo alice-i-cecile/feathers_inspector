@@ -59,47 +59,34 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
 1. **Review please:** memory-size utility types and formatting helpers [#25006](https://github.com/bevyengine/bevy/pull/25006)
   - Code: [MemorySize](src/memory_size.rs) and everything else in that file
   - Target: [bevy_diagnostic/src/memory_size.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_diagnostic/src)
-2. **PR please:** serde conversion helpers (inspection-agnostic subset)
-  - Code: [component_id](src/serde_conversions.rs), [archetype_id](src/serde_conversions.rs), [slice_component_id](src/serde_conversions.rs), [debug_name](src/serde_conversions.rs), [storage_type](src/serde_conversions.rs), [option_vec_debug_name](src/serde_conversions.rs), [serialize_spawn_details()](src/serde_conversions.rs)
-  - Target: [bevy_remote/src/serde_conversions.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_remote/src)
-3. **PR please:** name resolution
-  - Code: [EntityName](src/entity_name_resolution/mod.rs), [NameOrigin](src/entity_name_resolution/mod.rs), [NameDefinitionPriority](src/entity_name_resolution/mod.rs), [ComponentNameData](src/entity_name_resolution/mod.rs), [resolve_name()](src/entity_name_resolution/mod.rs), [NameResolutionRegistry](src/entity_name_resolution/mod.rs), [NameResolutionPlugin](src/entity_name_resolution/mod.rs)
-  - Target: [bevy_ecs/src/entity/name_resolution.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src/entity)
-4. **PR please:** fuzzy name mapping
-  - Code: [fuzzy_component_name_to_id()](src/entity_name_resolution/fuzzy_name_mapping.rs), [fuzzy_resource_name_to_id()](src/entity_name_resolution/fuzzy_name_mapping.rs)
-  - Target: [bevy_ecs/src/entity/fuzzy_name_mapping.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src/entity)
-5. **PR please:** world summary types and entry points
-  - Code: [SummarySettings](src/inspection/world_summary.rs), [ArchetypeSummary](src/inspection/world_summary.rs), [WorldSummary](src/inspection/world_summary.rs), [WorldSummaryExt::summarize()](src/inspection/world_summary.rs), [CommandsSummaryExt::summarize()](src/inspection/world_summary.rs)
-  - Target: [bevy_ecs/src/inspection/world_summary.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src)
-6. **PR please:** entity grouping primitives
+2. **PR please:** name resolution + fuzzy name mapping
+  - Code: [EntityName](src/entity_name_resolution/mod.rs), [NameOrigin](src/entity_name_resolution/mod.rs), [NameDefinitionPriority](src/entity_name_resolution/mod.rs), [ComponentNameData](src/entity_name_resolution/mod.rs), [resolve_name()](src/entity_name_resolution/mod.rs), [NameResolutionRegistry](src/entity_name_resolution/mod.rs), [NameResolutionPlugin](src/entity_name_resolution/mod.rs), [fuzzy_component_name_to_id()](src/entity_name_resolution/fuzzy_name_mapping.rs), [fuzzy_resource_name_to_id()](src/entity_name_resolution/fuzzy_name_mapping.rs)
+  - Target: [bevy_ecs/src/entity/name_resolution.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src/entity) + [bevy_ecs/src/entity/fuzzy_name_mapping.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src/entity)
+3. **PR please:** entity grouping primitives
   - Code: [GroupingStrategy](src/entity_grouping/mod.rs), [EntityGrouping](src/entity_grouping/mod.rs), [EntityGrouping::generate()](src/entity_grouping/mod.rs), [archetype_similarity_grouping](src/entity_grouping/archetype_similarity_grouping.rs), [hierarchy_grouping](src/entity_grouping/hierarchy_grouping.rs)
   - Target: [bevy_ecs/src/inspection/grouping.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src)
+4. **PR please:** world summary types and entry points
+  - Code: [SummarySettings](src/inspection/world_summary.rs), [ArchetypeSummary](src/inspection/world_summary.rs), [WorldSummary](src/inspection/world_summary.rs), [WorldSummaryExt::summarize()](src/inspection/world_summary.rs), [CommandsSummaryExt::summarize()](src/inspection/world_summary.rs)
+  - Target: [bevy_ecs/src/inspection/world_summary.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src)
 
 ## Phase 4: Inspection backend + log-style front-end
 
 Settings types (`EntityInspectionSettings`, `ComponentInspectionSettings`, etc.) will be upstreamed incrementally: each PR adds the fields it needs, rather than landing every field up front.
 
-1. **Blcoked:** clone_incomplete. Split out from [#24748](https://github.com/bevyengine/bevy/pull/24748)
-  - Code: [clone_incomplete](src/reflection_tools.rs)
-  - Target: [bevy_reflect/src/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_reflect/src), as a method on `PartialReflect`
-2. **Blocked:** core inspection output types + `Display` formatting
-  - Code: [EntityInspection](src/inspection/entity_inspection.rs), [ResourceInspection](src/inspection/resource_inspection.rs), [ComponentInspection](src/inspection/component_inspection.rs), [impl Display for EntityInspection](src/inspection/entity_inspection.rs), [impl Display for ResourceInspection](src/inspection/resource_inspection.rs), [impl Display for ComponentInspection](src/inspection/component_inspection.rs)
+1. **PR please:** core inspection output types + `Display` formatting + world/command inspection entry points + clone_incomplete
+  - Code: [EntityInspection](src/inspection/entity_inspection.rs), [ResourceInspection](src/inspection/resource_inspection.rs), [ComponentInspection](src/inspection/component_inspection.rs), [impl Display for EntityInspection](src/inspection/entity_inspection.rs), [impl Display for ResourceInspection](src/inspection/resource_inspection.rs), [impl Display for ComponentInspection](src/inspection/component_inspection.rs), [WorldInspectionExtensionTrait](src/extension_methods.rs), [inspect()](src/extension_methods.rs), [inspect_cached()](src/extension_methods.rs), [inspect_component_by_id()](src/extension_methods.rs), [inspect_resource_by_id()](src/extension_methods.rs), [inspect_all_resources()](src/extension_methods.rs), [clone_incomplete](src/reflection_tools.rs)
   - Target: [bevy_ecs/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src)
-3. **Blocked:** metadata types
+2. **Blocked:** component metadata inspection
   - Code: [ComponentTypeMetadata](src/inspection/component_inspection.rs), [ComponentTypeMetadata::new()](src/inspection/component_inspection.rs), [ComponentTypeInspection](src/inspection/component_inspection.rs), [ComponentMetadataMap::generate()](src/inspection/component_inspection.rs), [hash_map_component_id_component_type_metadata](src/serde_conversions.rs)
   - Target: [bevy_ecs/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src)
-4. **Blocked:** world/command inspection entry points
-  - depends on P4.1 (output types), P4.3 (metadata types), and Phase 3 items (name resolution, memory size)
-  - Code: [WorldInspectionExtensionTrait](src/extension_methods.rs), [inspect()](src/extension_methods.rs), [inspect_cached()](src/extension_methods.rs), [inspect_component_by_id()](src/extension_methods.rs), [inspect_resource_by_id()](src/extension_methods.rs), [inspect_all_resources()](src/extension_methods.rs)
-  - Target: [bevy_ecs/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src)
-5. **Blocked:** search/filter primitives
+3. **Blocked:** search/filter primitives
   - Code: [NameFilter](src/inspection/entity_inspection.rs), [filter_entity_list_for_inspection()](src/inspection/entity_inspection.rs)
   - Target: [bevy_ecs/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src)
-6. **Blocked:** multi-inspection + sorting/grouping integration
+4. **Blocked:** multi-inspection + sorting/grouping integration
   - introduces `MultipleEntityInspectionSettings`; `GroupingStrategy`, `EntityGrouping`, and `WorldSummary` already landed in Phase 3
   - Code: [MultipleEntityInspectionSettings](src/inspection/entity_inspection.rs), [inspect_multiple()](src/extension_methods.rs)
   - Target: [bevy_ecs/src/inspection/](https://github.com/bevyengine/bevy/tree/main/crates/bevy_ecs/src)
-7. **Blocked:** log-style inspection example
+5. **Blocked:** log-style inspection example
   - Code: [log_style_inspection example](examples/log_style_inspection.rs)
   - Target: [examples/ecs/](https://github.com/bevyengine/bevy/tree/main/examples/ecs)
 
@@ -108,10 +95,9 @@ Settings types (`EntityInspectionSettings`, `ComponentInspectionSettings`, etc.)
 1. **Blocked:** BRP core registration + primary verbs
   - register verbs via `RemotePlugin::with_method()`, following the pattern in [builtin_methods.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_remote/src/builtin_methods.rs)
   - Target: [bevy_remote/src/inspection_methods.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_remote/src) 
-  - Code: [InspectorBrpPlugin](src/brp/mod.rs), [register_remote_method()](src/brp/mod.rs), [component_type_to_metadata()](src/brp/mod.rs), [inspect::VerbPlugin](src/brp/inspect.rs), [inspect_cached::VerbPlugin](src/brp/inspect_cached.rs), [inspect_resource::VerbPlugin](src/brp/inspect_resource.rs), [inspect_component::VerbPlugin](src/brp/inspect_component.rs), [inspect_component_type::VerbPlugin](src/brp/inspect_component_type.rs)
+  - Code: [InspectorBrpPlugin](src/brp/mod.rs), [register_remote_method()](src/brp/mod.rs), [component_type_to_metadata()](src/brp/mod.rs), [inspect::VerbPlugin](src/brp/inspect.rs), [inspect_cached::VerbPlugin](src/brp/inspect_cached.rs), [inspect_resource::VerbPlugin](src/brp/inspect_resource.rs), [inspect_component::VerbPlugin](src/brp/inspect_component.rs), [inspect_component_type::VerbPlugin](src/brp/inspect_component_type.rs), [serde_conversion](src/serde_conversion.rs)
 2. **Blocked:** BRP remaining verbs
   - batch/query verbs, metadata generation, fuzzy name resolution, and world summary
-  - depends on P5.1 for the core registration infrastructure
   - Code: [inspect_multiple::VerbPlugin](src/brp/inspect_multiple.rs), [inspect_all_resources::VerbPlugin](src/brp/inspect_all_resources.rs), [component_metadata_map_generate::VerbPlugin](src/brp/component_metadata_map_generate.rs), [fuzzy_component_name_to_name::VerbPlugin](src/brp/fuzzy_component_name_to_name.rs), [fuzzy_resource_name_to_name::VerbPlugin](src/brp/fuzzy_resource_name_to_name.rs), [summarize_world::VerbPlugin](src/brp/summarize_world.rs)
   - Target: [bevy_remote/src/inspection_methods.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_remote/src)
 3. **Blocked:** BRP inspection examples
