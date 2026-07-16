@@ -17,7 +17,7 @@ use strsim::jaro_winkler;
 ///
 /// See [`fuzzy_resource_name_to_id`] for a similar function for resources.
 ///
-/// Matching uses normalized Levenshtein similarity to find the closest match,
+/// Matching uses Jaro-Winkler similarity to find the closest match,
 /// and is case-insensitive and ignores leading/trailing whitespace.
 /// Only the "shortname" of the component (i.e., without module paths) is considered.
 ///
@@ -42,7 +42,7 @@ pub fn fuzzy_component_name_to_id(
 ///
 /// See [`fuzzy_component_name_to_id`] for a similar function for components.
 ///
-/// Matching uses normalized Levenshtein similarity to find the closest match,
+/// Matching uses Jaro-Winkler similarity to find the closest match,
 /// and is case-insensitive and ignores leading/trailing whitespace.
 /// Only the "shortname" of the resource (i.e., without module paths) is considered.
 ///
