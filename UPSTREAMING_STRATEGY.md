@@ -56,7 +56,7 @@ Track the current feature status in [MILESTONES.md](MILESTONES.md); this file tr
 
 ## Phase 3: Assorted utilities
 
-1. **PR please:** memory-size utility types and formatting helpers
+1. **Review please:** memory-size utility types and formatting helpers [#25006](https://github.com/bevyengine/bevy/pull/25006)
   - Code: [MemorySize](src/memory_size.rs) and everything else in that file
   - Target: [bevy_diagnostic/src/memory_size.rs](https://github.com/bevyengine/bevy/tree/main/crates/bevy_diagnostic/src)
 2. **PR please:** serde conversion helpers (inspection-agnostic subset)
